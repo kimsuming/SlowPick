@@ -46,7 +46,7 @@ class MenuListScreen extends StatelessWidget {
         builder: (context, snapshot) {
           // 1. 로딩 중일 때
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator(color: Colors.greenAccent));
           }
 
           // 2. 에러가 났을 때
@@ -85,7 +85,7 @@ class MenuListScreen extends StatelessWidget {
 
                     // 1. 로딩 중일 때 보여줄 것
                     placeholder: (context, url) =>
-                        const CircularProgressIndicator(),
+                        const CircularProgressIndicator(color: Colors.greenAccent),
 
                     // 2. 에러 났을 때 보여줄 것
                     errorWidget: (context, url, error) =>
