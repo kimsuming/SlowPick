@@ -1,216 +1,393 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-/*예시*/
+class SearchScreen extends StatefulWidget {
+  // 메인에서 전달받을 초기 검색어 (없을 수도 있으므로 nullable)
+  final String? initialQuery;
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const SearchScreen({super.key, this.initialQuery});
+
+  @override
+  State<SearchScreen> createState() => _SearchScreenState();
+}
+
+class _SearchScreenState extends State<SearchScreen> {
+  bool _isGridView = true;
+  late TextEditingController _searchController; // late로 변경
+  String _searchText = "";
+
+  @override
+  void initState() {
+    super.initState();
+    // 전달받은 초기 검색어가 있으면 설정, 없으면 빈 문자열
+    String initialText = widget.initialQuery ?? "";
+    _searchController = TextEditingController(text: initialText);
+    _searchText = initialText;
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double screenHeight = MediaQuery.of(context).size.height;
+    final double gridAspectRatio = (screenWidth / 2) / (screenHeight * 0.38);
+
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('SlowPick 메뉴'),
+        title: const Text('메뉴 검색'),
         backgroundColor: Colors.white,
         elevation: 0,
-        titleTextStyle: const TextStyle(
+        titleTextStyle: TextStyle(
           color: Colors.black,
-          fontSize: 20,
+          fontSize: screenWidth * 0.05,
           fontWeight: FontWeight.bold,
         ),
-      ),
-      backgroundColor: Colors.white, // 배경색
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('menus').snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.greenAccent),
-            );
-          }
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text('저장된 메뉴가 없습니다.'));
-          }
-
-          final docs = snapshot.data!.docs;
-
-          // GridView로 변경하여 카드 디자인 적용
-          return GridView.builder(
-            padding: const EdgeInsets.all(16),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2, // 2열로 배치
-              childAspectRatio: 196 / 350, // Figma 디자인 비율 (가로/세로)
-              crossAxisSpacing: 16, // 가로 간격
-              mainAxisSpacing: 16, // 세로 간격
-            ),
-            itemCount: docs.length,
-            itemBuilder: (context, index) {
-              final data = docs[index].data() as Map<String, dynamic>;
-
-              // 데이터 추출 (없을 경우 기본값 설정)
-              final String name = data['menu_name'] ?? '이름 없음';
-              final String imageUrl = data['menu_image_url'] ?? '';
-              final int kcal = data['nutrition']?['calories_kcal'] ?? 0;
-              final num sugar =
-                  data['nutrition']?['sugar_g'] ?? 0; // int or double
-
-              // 알레르기 정보는 현재 크롤러에서 가져오지 않았으므로 예시 텍스트 처리
-              final String allergy = "정보 없음";
-
-              return _buildMenuCard(name, kcal, sugar, allergy, imageUrl);
+        // 뒤로가기 버튼 색상 (메인에서 넘어왔으므로 필요)
+        iconTheme: const IconThemeData(color: Colors.black),
+        actions: [
+          IconButton(
+            onPressed: () {
+              setState(() {
+                _isGridView = !_isGridView;
+              });
             },
-          );
-        },
+            icon: Icon(
+              _isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
+              color: Colors.black54,
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) {
+                setState(() {
+                  _searchText = value;
+                });
+              },
+              decoration: InputDecoration(
+                hintText: '메뉴 이름을 검색해보세요',
+                prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                suffixIcon: _searchText.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.grey),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _searchText = "";
+                          });
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: const Color(0xFFF5F5F5),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('menus').snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.greenAccent),
+                  );
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text('저장된 메뉴가 없습니다.'));
+                }
+
+                final allDocs = snapshot.data!.docs;
+                final filteredDocs = allDocs.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final name = data['menu_name'] as String? ?? '';
+                  if (_searchText.isEmpty) return true;
+                  return name.toLowerCase().contains(_searchText.toLowerCase());
+                }).toList();
+
+                if (filteredDocs.isEmpty) {
+                  return Center(
+                    child: Text('\'$_searchText\' 검색 결과가 없습니다.'),
+                  );
+                }
+
+                if (_isGridView) {
+                  return GridView.builder(
+                    padding: EdgeInsets.fromLTRB(
+                        screenWidth * 0.04, 0, screenWidth * 0.04, 16),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: gridAspectRatio,
+                      crossAxisSpacing: screenWidth * 0.04,
+                      mainAxisSpacing: screenWidth * 0.04,
+                    ),
+                    itemCount: filteredDocs.length,
+                    itemBuilder: (context, index) {
+                      final data = filteredDocs[index].data() as Map<String, dynamic>;
+                      return _buildGridCard(context, data);
+                    },
+                  );
+                } else {
+                  return ListView.separated(
+                    padding: EdgeInsets.fromLTRB(
+                        screenWidth * 0.04, 0, screenWidth * 0.04, 16),
+                    itemCount: filteredDocs.length,
+                    separatorBuilder: (context, index) =>
+                        SizedBox(height: screenHeight * 0.02),
+                    itemBuilder: (context, index) {
+                      final data = filteredDocs[index].data() as Map<String, dynamic>;
+                      return _buildListCard(context, data);
+                    },
+                  );
+                }
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  // Figma 디자인을 그대로 옮긴 위젯
-  Widget _buildMenuCard(
-    String name,
-    int kcal,
-    num sugar,
-    String allergy,
-    String imageUrl,
-  ) {
+  Widget _buildGridCard(BuildContext context, Map<String, dynamic> data) {
+    // (기존 코드와 동일하므로 생략하지 않고 전체 코드 유지를 위해 포함)
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double screenHeight = MediaQuery.of(context).size.height;
+
+    final String name = data['menu_name'] ?? '이름 없음';
+    final String imageUrl = data['menu_image_url'] ?? '';
+    final int kcal = data['nutrition']?['calories_kcal'] ?? 0;
+    final num sugar = data['nutrition']?['sugar_g'] ?? 0;
+    final String allergy = "정보 없음";
+
     return Container(
-      // width, height는 GridView 비율에 따라 자동 조정됨
       clipBehavior: Clip.antiAlias,
-      decoration: const BoxDecoration(
-        color: Colors.white, // 카드 배경색
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.grey,
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, 2)),
+        ],
       ),
-      child: Stack(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. 메뉴 이름
-          Positioned(
-            left: 8,
-            top: 202,
-            right: 8, // 글자가 길어지면 잘리지 않게 오른쪽 여백 추가
-            child: Text(
-              name,
-              maxLines: 2, // 두 줄까지만 표시
-              overflow: TextOverflow.ellipsis, // 넘치면 ... 처리
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 16,
-                fontFamily: 'KoPubDotum', // 폰트가 없으면 기본 폰트로 나옴
-                fontWeight: FontWeight.w500, // Medium
-                height: 1.25,
-                letterSpacing: -0.64,
+          Stack(
+            children: [
+              Container(
+                width: double.infinity,
+                height: screenHeight * 0.2,
+                color: const Color(0xFFF1F1F1),
+                child: imageUrl.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.cover,
+                        errorWidget: (context, url, error) =>
+                            const Icon(Icons.broken_image, color: Colors.grey),
+                      )
+                    : const Icon(Icons.coffee, size: 50, color: Colors.grey),
               ),
-            ),
+              Positioned(right: 8, top: 8, child: _buildHeartIcon()),
+            ],
           ),
-
-          // 2. 칼로리 및 가격 (가격은 DB에 없으므로 칼로리만 표시하거나 임시 가격 표시)
-          Positioned(
-            left: 8,
-            top: 244, // 이름이 두 줄일 수 있어서 위치를 살짝 조정함 (기존 224 -> 244)
-            child: Text(
-              '[ ${kcal}Kcal ]  8,700~',
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 14,
-                fontFamily: 'KoPubDotum',
-                fontWeight: FontWeight.w400, // Light
-                height: 1.25,
-                letterSpacing: -0.64,
-              ),
-            ),
-          ),
-
-          // 3. 당류 배지 (Badge)
-          Positioned(
-            left: 5,
-            top: 267,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: ShapeDecoration(
-                color: const Color(0xFFFFE0E1),
-                shape: RoundedRectangleBorder(
-                  side: const BorderSide(width: 1, color: Color(0xFFFF7D7F)),
-                  borderRadius: BorderRadius.circular(30),
-                ),
-              ),
-              child: Text(
-                '당 ${sugar}g',
-                style: const TextStyle(
-                  color: Color(0xFFEF4444),
-                  fontSize: 13,
-                  fontFamily: 'KoPubDotum',
-                  fontWeight: FontWeight.bold,
-                  height: 1.1,
-                ),
-              ),
-            ),
-          ),
-
-          // 4. 메뉴 이미지 (가장 중요!)
-          Positioned(
-            left: 0,
-            top: 0,
-            child: Container(
-              width: 195, // Grid 셀 크기에 맞춤
-              height: 195,
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F1F1), // 이미지 로딩 전 회색 배경
-                //borderRadius: BorderRadius.circular(12), // 둥근 모서리 (선택)
-              ),
-              child: imageUrl.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: imageUrl,
-                      fit: BoxFit.cover, // 이미지를 꽉 차게 (마스킹 효과 대체)
-                      placeholder: (context, url) => const Center(
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.greenAccent,
-                        ),
-                      ),
-                      errorWidget: (context, url, error) =>
-                          const Icon(Icons.broken_image, color: Colors.grey),
-                    )
-                  : const Icon(Icons.coffee, size: 50, color: Colors.grey),
-            ),
-          ),
-
-          // 5. 하트 아이콘 (찜하기 - 현재 기능 없으므로 UI만)
-          Positioned(
-            right: 10,
-            top: 10,
-            child: Container(
-              width: 32,
-              height: 32,
-              decoration: const BoxDecoration(
-                color: Colors.white70, // 반투명 배경
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.favorite_border,
-                size: 20,
-                color: Colors.black54,
-              ),
-            ),
-          ),
-
-          // 6. 알레르기 정보
-          Positioned(
-            left: 8,
-            //top: 175, // top 좌표 대신 bottom 사용 (유동적 배치를 위해)
-            bottom: 1,
-            child: Text(
-              '알레르기: $allergy',
-              style: const TextStyle(
-                color: Color(0xFF7B7B7B),
-                fontSize: 12,
-                fontFamily: 'KoPubDotum',
-                fontWeight: FontWeight.w400,
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: Colors.black,
+                              fontSize: screenWidth * 0.04,
+                              fontWeight: FontWeight.w600,
+                              fontFamily: 'KoPubDotum')),
+                      SizedBox(height: screenHeight * 0.005),
+                      Text('[ ${kcal}Kcal ]  8,700~',
+                          style: TextStyle(
+                              color: Colors.black54,
+                              fontSize: screenWidth * 0.032,
+                              fontFamily: 'KoPubDotum')),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildNutritionBadge(screenWidth, '당 ${sugar}g',
+                          const Color(0xFFFFE0E1), const Color(0xFFEF4444)),
+                      SizedBox(height: screenHeight * 0.005),
+                      Text('알레르기: $allergy',
+                          style: TextStyle(
+                              color: const Color(0xFF7B7B7B),
+                              fontSize: screenWidth * 0.028,
+                              fontFamily: 'KoPubDotum'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildListCard(BuildContext context, Map<String, dynamic> data) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double cardHeight = 110.0;
+    final String name = data['menu_name'] ?? '이름 없음';
+    final String imageUrl = data['menu_image_url'] ?? '';
+    final int kcal = data['nutrition']?['calories_kcal'] ?? 0;
+    final num sugar = data['nutrition']?['sugar_g'] ?? 0;
+    final num protein = 12;
+    final num fat = 5;
+
+    return Container(
+      height: cardHeight,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.grey,
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: cardHeight,
+            height: cardHeight,
+            color: const Color(0xFFF1F1F1),
+            child: imageUrl.isNotEmpty
+                ? CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    fit: BoxFit.cover,
+                    errorWidget: (context, url, error) =>
+                        const Icon(Icons.broken_image, color: Colors.grey),
+                  )
+                : const Icon(Icons.coffee, size: 40, color: Colors.grey),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontSize: screenWidth * 0.042,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: 'KoPubDotum')),
+                            const SizedBox(height: 4),
+                            Text('8,700원  |  ${kcal}Kcal',
+                                style: TextStyle(
+                                    fontSize: screenWidth * 0.032,
+                                    color: Colors.black54,
+                                    fontFamily: 'KoPubDotum')),
+                          ],
+                        ),
+                      ),
+                      _buildHeartIcon(size: 24),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      _buildMiniBadge('당 ${sugar}g'),
+                      const SizedBox(width: 6),
+                      _buildMiniBadge('단백질 ${protein}g'),
+                      const SizedBox(width: 6),
+                      _buildMiniBadge('지방 ${fat}g'),
+                    ],
+                  )
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeartIcon({double size = 30}) {
+    return Container(
+        width: size,
+        height: size,
+        decoration: const BoxDecoration(
+            color: Colors.white70, shape: BoxShape.circle),
+        child: Icon(Icons.favorite_border,
+            size: size * 0.6, color: Colors.black54));
+  }
+
+  Widget _buildNutritionBadge(
+      double screenWidth, String text, Color bgColor, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: ShapeDecoration(
+          color: bgColor,
+          shape: RoundedRectangleBorder(
+              side: BorderSide(width: 1, color: textColor),
+              borderRadius: BorderRadius.circular(30))),
+      child: Text(text,
+          style: TextStyle(
+              color: textColor,
+              fontSize: screenWidth * 0.03,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'KoPubDotum')),
+    );
+  }
+
+  Widget _buildMiniBadge(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(4)),
+      child: Text(text,
+          style: const TextStyle(
+              color: Color(0xFF555555), fontSize: 11, fontFamily: 'KoPubDotum')),
     );
   }
 }
