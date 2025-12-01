@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:slowpick/screen/home_screen.dart';
+import 'package:slowpick/screen/search.dart';
 import 'firebase_options.dart'; // flutterfire configure로 생성된 파일
 
 void main() async {
@@ -11,7 +11,8 @@ void main() async {
   // 2. 파이어베이스 연결
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  runApp(const MaterialApp(home: MyApp()));
+  // 3. 앱 실행
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -19,6 +20,32 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(title: 'SlowPick');
+    return MaterialApp(
+      title: 'SlowPick',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        brightness: Brightness.light,
+        colorScheme: ColorScheme.light(
+          primary: Color(0xFF74AE31),
+          secondary: Color(0xFF74AE31),
+        ),
+      ),
+      home: DefaultTabController(
+        length: 5,
+        child: Scaffold(
+          backgroundColor: Color(0xFFFCFCFC),
+          body: TabBarView(
+            physics: NeverScrollableScrollPhysics(),
+            children: [
+              HomeScreen(),
+              SearchScreen(),
+              Container(child: Center(child: Text('save'))),
+              Container(child: Center(child: Text('more'))),
+              Container(child: Center(child: Text('test'))),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
