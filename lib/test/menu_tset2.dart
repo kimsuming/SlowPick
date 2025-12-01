@@ -1,17 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:slowpick/widget/bottomBar_new.dart';
 
-class MenuScreen extends StatefulWidget {
-  const MenuScreen({super.key});
+class MenuScreen2 extends StatefulWidget {
+  const MenuScreen2({super.key});
 
   @override
-  State<MenuScreen> createState() => _MenuScreen();
+  State<MenuScreen2> createState() => _MenuScreen2();
 }
 
-class _MenuScreen extends State<MenuScreen> {
+class _MenuScreen2 extends State<MenuScreen2> {
   // 보기 모드 상태 변수 (true: 그리드(2열), false: 리스트(1열))
   bool _isGridView = true;
+
+  Map<String, Color> _getSugarColor(num sugar) {
+    if (sugar >= 20) {
+      // 위험 (빨강) - 20g 이상
+      return {'bg': const Color(0xFFFFE0E1), 'text': const Color(0xFFEF4444)};
+    } else if (sugar >= 5) {
+      // 보통 (파랑) - 5g 이상 ~ 20g 미만
+      return {
+        'bg': const Color(0xFFE3F2FD), // 연한 파랑
+        'text': const Color(0xFF1E88E5), // 진한 파랑
+      };
+    } else {
+      // 안전 (초록) - 5g 미만
+      return {
+        'bg': const Color(0xFFE8F5E9), // 연한 초록
+        'text': const Color(0xFF43A047), // 진한 초록
+      };
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +70,12 @@ class _MenuScreen extends State<MenuScreen> {
           const SizedBox(width: 8),
         ],
       ),
+
+      bottomNavigationBar: Container( //바텀 바
+        color: Color(0xFFFCFCFC),
+        child: SafeArea(top: false, child: BottomBarNew()),
+      ),
+
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('menus').snapshots(),
         builder: (context, snapshot) {
@@ -99,9 +125,7 @@ class _MenuScreen extends State<MenuScreen> {
     );
   }
 
-  // ==========================================
-  // 1. 그리드형 카드 위젯 (기존 디자인 유지)
-  // ==========================================
+   // === 그리드 뷰 카드 ===
   Widget _buildGridCard(BuildContext context, Map<String, dynamic> data) {
     final double screenWidth = MediaQuery.of(context).size.width;
     final double screenHeight = MediaQuery.of(context).size.height;
@@ -111,6 +135,9 @@ class _MenuScreen extends State<MenuScreen> {
     final int kcal = data['nutrition']?['calories_kcal'] ?? 0;
     final num sugar = data['nutrition']?['sugar_g'] ?? 0;
     final String allergy = "정보 없음";
+
+    // 당류 색상 가져오기
+    final Map<String, Color> sugarColors = _getSugarColor(sugar);
 
     return Container(
       clipBehavior: Clip.antiAlias,
@@ -144,11 +171,7 @@ class _MenuScreen extends State<MenuScreen> {
                       )
                     : const Icon(Icons.coffee, size: 50, color: Colors.grey),
               ),
-              Positioned(
-                right: 8,
-                top: 8,
-                child: _buildHeartIcon(),
-              ),
+              Positioned(right: 8, top: 8, child: _buildHeartIcon()),
             ],
           ),
           Expanded(
@@ -186,8 +209,13 @@ class _MenuScreen extends State<MenuScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildNutritionBadge(screenWidth, '당 ${sugar}g',
-                          const Color(0xFFFFE0E1), const Color(0xFFEF4444)),
+                      // 동적 색상 적용
+                      _buildNutritionBadge(
+                        screenWidth,
+                        '당 ${sugar}g',
+                        sugarColors['bg']!, // 배경색
+                        sugarColors['text']!, // 글자색
+                      ),
                       SizedBox(height: screenHeight * 0.005),
                       Text(
                         '알레르기: $allergy',
@@ -210,21 +238,19 @@ class _MenuScreen extends State<MenuScreen> {
     );
   }
 
-  // ==========================================
-  // 2. 리스트형 카드 위젯 (새로운 디자인)
-  // ==========================================
+  // === 리스트 뷰 카드 ===
   Widget _buildListCard(BuildContext context, Map<String, dynamic> data) {
     final double screenWidth = MediaQuery.of(context).size.width;
-    // 리스트 카드의 높이는 고정값이나 비율로 적절히 작게 설정
-    final double cardHeight = 110.0; // 픽셀 단위로 적절히 고정하거나 비율 사용 가능
-
+    final double cardHeight = 110.0;
     final String name = data['menu_name'] ?? '이름 없음';
     final String imageUrl = data['menu_image_url'] ?? '';
     final int kcal = data['nutrition']?['calories_kcal'] ?? 0;
     final num sugar = data['nutrition']?['sugar_g'] ?? 0;
-    // DB에 없는 데이터 임시 처리 (3개 보여주기 위함)
-    final num protein = 12; // 예시 데이터
-    final num fat = 5; // 예시 데이터
+    final num protein = 12; // 임시 데이터
+    final num fat = 5; // 임시 데이터
+
+    // 당류 색상 가져오기
+    final Map<String, Color> sugarColors = _getSugarColor(sugar);
 
     return Container(
       height: cardHeight,
@@ -243,9 +269,8 @@ class _MenuScreen extends State<MenuScreen> {
       ),
       child: Row(
         children: [
-          // 좌측 이미지
           Container(
-            width: cardHeight, // 정사각형 비율
+            width: cardHeight,
             height: cardHeight,
             color: const Color(0xFFF1F1F1),
             child: imageUrl.isNotEmpty
@@ -257,8 +282,6 @@ class _MenuScreen extends State<MenuScreen> {
                   )
                 : const Icon(Icons.coffee, size: 40, color: Colors.grey),
           ),
-
-          // 우측 정보 영역
           Expanded(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
@@ -266,7 +289,6 @@ class _MenuScreen extends State<MenuScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // 상단: 이름 + 가격/칼로리 + 하트
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -300,17 +322,23 @@ class _MenuScreen extends State<MenuScreen> {
                       _buildHeartIcon(size: 24),
                     ],
                   ),
-
-                  // 하단: 영양 성분 3개 (Row로 배치)
                   Row(
                     children: [
-                      _buildMiniBadge('당 ${sugar}g'),
+                      // 리스트뷰에서도 색상을 적용하기 위해 함수를 조금 수정하여 사용하거나,
+                      // _buildNutritionBadge 스타일을 작게 만들어 씁니다.
+                      // 여기서는 _buildMiniBadge를 수정해서 색상을 받도록 처리합니다.
+                      _buildColorMiniBadge(
+                        '당 ${sugar}g',
+                        sugarColors['bg']!,
+                        sugarColors['text']!,
+                      ),
                       const SizedBox(width: 6),
+                      // 다른 성분은 기본 회색 유지
                       _buildMiniBadge('단백질 ${protein}g'),
                       const SizedBox(width: 6),
                       _buildMiniBadge('지방 ${fat}g'),
                     ],
-                  )
+                  ),
                 ],
               ),
             ),
@@ -320,7 +348,6 @@ class _MenuScreen extends State<MenuScreen> {
     );
   }
 
-  // 공통: 하트 아이콘
   Widget _buildHeartIcon({double size = 30}) {
     return Container(
       width: size,
@@ -337,9 +364,13 @@ class _MenuScreen extends State<MenuScreen> {
     );
   }
 
-  // 공통: 영양성분 뱃지 (그리드용 - 조금 큼)
+  // 그리드용 뱃지
   Widget _buildNutritionBadge(
-      double screenWidth, String text, Color bgColor, Color textColor) {
+    double screenWidth,
+    String text,
+    Color bgColor,
+    Color textColor,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: ShapeDecoration(
@@ -361,7 +392,7 @@ class _MenuScreen extends State<MenuScreen> {
     );
   }
 
-  // 공통: 영양성분 미니 뱃지 (리스트용 - 작고 심플하게)
+  // 리스트용 기본 미니 뱃지 (회색)
   Widget _buildMiniBadge(String text) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -375,6 +406,26 @@ class _MenuScreen extends State<MenuScreen> {
           color: Color(0xFF555555),
           fontSize: 11,
           fontFamily: 'KoPubDotum',
+        ),
+      ),
+    );
+  }
+
+  // 리스트용 컬러 미니 뱃지 (당류용)
+  Widget _buildColorMiniBadge(String text, Color bgColor, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 11,
+          fontFamily: 'KoPubDotum',
+          fontWeight: FontWeight.bold,
         ),
       ),
     );

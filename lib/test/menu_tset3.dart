@@ -3,36 +3,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 
-class SearchScreen extends StatefulWidget {
-  final String? initialQuery;
-
-  const SearchScreen({super.key, this.initialQuery});
+class MenuScreen3 extends StatefulWidget {
+  const MenuScreen3({super.key});
 
   @override
-  State<SearchScreen> createState() => _SearchScreenState();
+  State<MenuScreen3> createState() => _MenuScreen3();
 }
 
-class _SearchScreenState extends State<SearchScreen> {
+class _MenuScreen3 extends State<MenuScreen3> {
+  // 보기 모드 상태 변수 (true: 그리드(2열), false: 리스트(1열))
   bool _isGridView = true;
-  late TextEditingController _searchController;
-  String _searchText = "";
 
   @override
-  void initState() {
-    super.initState();
-    String initialText = widget.initialQuery ?? "";
-    _searchController = TextEditingController(text: initialText);
-    _searchText = initialText;
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  // _getSugarColor: 당류 수치에 따라 색상을 반환하는 함수
-  // 'bg': 배경색, 'text': 글자색
   Map<String, Color> _getSugarColor(num sugar) {
     if (sugar >= 20) {
       // 위험 (빨강) - 20g 이상
@@ -40,8 +22,8 @@ class _SearchScreenState extends State<SearchScreen> {
     } else if (sugar >= 5) {
       // 보통 (파랑) - 5g 이상 ~ 20g 미만
       return {
-        'bg': const Color(0xFFE3F2FD), // 연한 파랑
-        'text': const Color(0xFF1E88E5), // 진한 파랑
+        'bg': const Color(0xFFFEF9D0), // 연한 노랑
+        'text': const Color(0xFFC7A600), // 진한 노랑
       };
     } else {
       // 안전 (초록) - 5g 미만
@@ -54,14 +36,17 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 반응형 크기 계산
     final double screenWidth = MediaQuery.of(context).size.width;
     final double screenHeight = MediaQuery.of(context).size.height;
+
+    // 그리드 뷰용 비율 계산
     final double gridAspectRatio = (screenWidth / 2) / (screenHeight * 0.38);
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('메뉴 검색'),
+        title: const Text('전체 메뉴'),
         backgroundColor: Colors.white,
         elevation: 0,
         titleTextStyle: TextStyle(
@@ -69,8 +54,8 @@ class _SearchScreenState extends State<SearchScreen> {
           fontSize: screenWidth * 0.05,
           fontWeight: FontWeight.bold,
         ),
-        iconTheme: const IconThemeData(color: Colors.black),
         actions: [
+          // 보기 모드 전환 버튼
           IconButton(
             onPressed: () {
               setState(() {
@@ -81,127 +66,67 @@ class _SearchScreenState extends State<SearchScreen> {
               _isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
               color: Colors.black54,
             ),
+            tooltip: _isGridView ? '리스트로 보기' : '그리드로 보기',
           ),
           const SizedBox(width: 8),
         ],
       ),
 
-      bottomNavigationBar: Container(
-        //바텀 바
+      bottomNavigationBar: Container( //바텀 바
         color: Color(0xFFFCFCFC),
         child: SafeArea(top: false, child: BottomBarNew()),
       ),
 
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (value) {
-                setState(() {
-                  _searchText = value;
-                });
-              },
-              decoration: InputDecoration(
-                hintText: '메뉴 이름을 검색해보세요!',
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                suffixIcon: _searchText.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.grey),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {
-                            _searchText = "";
-                          });
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: const Color(0xFFF5F5F5),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,
-                ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('menus').snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(color: Colors.greenAccent),
+            );
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text('저장된 메뉴가 없습니다.'));
+          }
+
+          final docs = snapshot.data!.docs;
+
+          // 모드에 따라 다른 뷰 반환
+          if (_isGridView) {
+            // 1. 기존 그리드 뷰 (2열)
+            return GridView.builder(
+              padding: EdgeInsets.all(screenWidth * 0.04),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: gridAspectRatio,
+                crossAxisSpacing: screenWidth * 0.04,
+                mainAxisSpacing: screenWidth * 0.04,
               ),
-            ),
-          ),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('menus')
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: Colors.greenAccent),
-                  );
-                }
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text('저장된 메뉴가 없습니다.'));
-                }
-
-                final allDocs = snapshot.data!.docs;
-                final filteredDocs = allDocs.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  final name = data['menu_name'] as String? ?? '';
-                  if (_searchText.isEmpty) return true;
-                  return name.toLowerCase().contains(_searchText.toLowerCase());
-                }).toList();
-
-                if (filteredDocs.isEmpty) {
-                  return Center(child: Text('\'$_searchText\' 검색 결과가 없습니다.'));
-                }
-
-                if (_isGridView) {
-                  return GridView.builder(
-                    padding: EdgeInsets.fromLTRB(
-                      screenWidth * 0.04,
-                      0,
-                      screenWidth * 0.04,
-                      16,
-                    ),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: gridAspectRatio,
-                      crossAxisSpacing: screenWidth * 0.04,
-                      mainAxisSpacing: screenWidth * 0.04,
-                    ),
-                    itemCount: filteredDocs.length,
-                    itemBuilder: (context, index) {
-                      final data =
-                          filteredDocs[index].data() as Map<String, dynamic>;
-                      return _buildGridCard(context, data);
-                    },
-                  );
-                } else {
-                  return ListView.separated(
-                    padding: EdgeInsets.fromLTRB(
-                      screenWidth * 0.04,
-                      0,
-                      screenWidth * 0.04,
-                      16,
-                    ),
-                    itemCount: filteredDocs.length,
-                    separatorBuilder: (context, index) =>
-                        SizedBox(height: screenHeight * 0.02),
-                    itemBuilder: (context, index) {
-                      final data =
-                          filteredDocs[index].data() as Map<String, dynamic>;
-                      return _buildListCard(context, data);
-                    },
-                  );
-                }
+              itemCount: docs.length,
+              itemBuilder: (context, index) {
+                final data = docs[index].data() as Map<String, dynamic>;
+                return _buildGridCard(context, data);
               },
-            ),
-          ),
-        ],
+            );
+          } else {
+            // 2. 새로운 리스트 뷰 (1열, 가로 배치)
+            return ListView.separated(
+              padding: EdgeInsets.all(screenWidth * 0.04),
+              itemCount: docs.length,
+              separatorBuilder: (context, index) =>
+                  SizedBox(height: screenHeight * 0.02), // 아이템 간 간격
+              itemBuilder: (context, index) {
+                final data = docs[index].data() as Map<String, dynamic>;
+                return _buildListCard(context, data);
+              },
+            );
+          }
+        },
       ),
     );
   }
 
-  // === 그리드 뷰 카드 ===
+   // === 그리드 뷰 카드 ===
   Widget _buildGridCard(BuildContext context, Map<String, dynamic> data) {
     final double screenWidth = MediaQuery.of(context).size.width;
     final double screenHeight = MediaQuery.of(context).size.height;

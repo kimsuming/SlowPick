@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:slowpick/screen/home_screen.dart';
 import 'package:slowpick/screen/search.dart';
+import 'package:slowpick/screen/my_page.dart';
+import 'package:slowpick/screen/community_screen.dart';
+import 'package:slowpick/screen/likedmenu_screen.dart';
 
 class BottomBarNew extends StatelessWidget {
   const BottomBarNew({super.key});
@@ -47,7 +50,7 @@ class BottomBarNew extends StatelessWidget {
             onTap: () {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => SearchScreen()),
+                MaterialPageRoute(builder: (context) => CommunityScreen()),
               );
             },
             child: Column(
@@ -75,7 +78,10 @@ class BottomBarNew extends StatelessWidget {
           // 중앙 버튼
           GestureDetector(
             onTap: () {
-              print("좋아요 클릭"); // 나중에 화면 이동 가능
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => SearchScreen()),
+              );
             },
             child: Image.asset(
               "images/main_icon/crown.png",
@@ -87,7 +93,10 @@ class BottomBarNew extends StatelessWidget {
           // 좋아요 버튼
           GestureDetector(
             onTap: () {
-              print("좋아요 클릭"); // 나중에 화면 이동 가능
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => LikedmenuScreen()),
+              );
             },
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -114,7 +123,10 @@ class BottomBarNew extends StatelessWidget {
           // 내 정보 버튼
           GestureDetector(
             onTap: () {
-              print("내 정보 클릭"); // 나중에 화면 이동 가능
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => MyPageScreen()),
+              );
             },
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
