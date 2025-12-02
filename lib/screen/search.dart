@@ -292,7 +292,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         sugarColors['bg']!, // 배경색
                         sugarColors['text']!, // 글자색
                       ),
-                      SizedBox(height: screenHeight * 0.005),
+                      SizedBox(height: screenHeight * 0.005, width:screenWidth * 0.0001),
                       Text(
                         '알레르기: $allergy',
                         style: TextStyle(

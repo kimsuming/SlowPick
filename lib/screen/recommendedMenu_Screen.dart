@@ -142,6 +142,21 @@ class _RecommendedMenuScreenState extends State<RecommendedMenuScreen> {
                       SizedBox(
                         height: MediaQuery.of(context).size.height * 0.5,
                         child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            image: const DecorationImage(
+                              image: AssetImage(
+                                "images/comment_menu/Frame 17.png",
+                              ),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      /*SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.5,
+                        child: Container(
                           clipBehavior: Clip.antiAlias,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
@@ -151,7 +166,7 @@ class _RecommendedMenuScreenState extends State<RecommendedMenuScreen> {
                             ),
                           ),
                         ),
-                      ),
+                      ),*/
                     ],
                   ),
                 ),

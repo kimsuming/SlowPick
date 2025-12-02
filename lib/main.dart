@@ -12,7 +12,9 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // 3. 앱 실행
-  runApp(const MyApp());
+  runApp(const MyApp(
+
+  ));
 }
 
 class MyApp extends StatelessWidget {

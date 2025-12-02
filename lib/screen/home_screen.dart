@@ -70,7 +70,9 @@ class _HomeScreenState extends State<HomeScreen> {
               SizedBox(
                 width: 326,
                 child: StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance.collection('menus').snapshots(),
+                  stream: FirebaseFirestore.instance
+                      .collection('menus')
+                      .snapshots(),
                   builder: (context, snapshot) {
                     // 데이터 로딩 중이거나 에러가 있을 때는 기존 디자인의 껍데기만 보여줌
                     if (!snapshot.hasData) {
@@ -85,7 +87,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             SizedBox(width: 12),
                             Icon(Icons.search, size: 25, color: Colors.grey),
                             SizedBox(width: 8),
-                            Text("불러오는 중...", style: TextStyle(color: Colors.grey)),
+                            Text(
+                              "불러오는 중...",
+                              style: TextStyle(color: Colors.grey),
+                            ),
                           ],
                         ),
                       );
@@ -93,7 +98,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     // DB에서 메뉴 이름 리스트 추출
                     final List<String> menuNames = snapshot.data!.docs
-                        .map((doc) => (doc.data() as Map<String, dynamic>)['menu_name'] as String? ?? '')
+                        .map(
+                          (doc) =>
+                              (doc.data() as Map<String, dynamic>)['menu_name']
+                                  as String? ??
+                              '',
+                        )
                         .where((name) => name.isNotEmpty)
                         .toList();
 
@@ -104,36 +114,50 @@ class _HomeScreenState extends State<HomeScreen> {
                           return const Iterable<String>.empty();
                         }
                         return menuNames.where((String option) {
-                          return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                          return option.toLowerCase().contains(
+                            textEditingValue.text.toLowerCase(),
+                          );
                         });
                       },
                       onSelected: (String selection) {
                         _navigateToSearch(selection);
                       },
-                      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                        return SizedBox(
-                          height: 45,
-                          child: TextField(
-                            controller: controller,
-                            focusNode: focusNode,
-                            onSubmitted: (value) => _navigateToSearch(value),
-                            textAlignVertical: TextAlignVertical.center, // 텍스트 수직 중앙 정렬
-                            decoration: InputDecoration(
-                              hintText: '메뉴를 검색해보세요!',
-                              hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-                              filled: true,
-                              fillColor: const Color(0xFFEEEEEE),
-                              prefixIcon: const Icon(Icons.search, size: 25, color: Colors.black54),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                              // 테두리 없애고 둥글게 처리
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(20),
-                                borderSide: BorderSide.none,
+                      fieldViewBuilder:
+                          (context, controller, focusNode, onFieldSubmitted) {
+                            return SizedBox(
+                              height: 45,
+                              child: TextField(
+                                controller: controller,
+                                focusNode: focusNode,
+                                onSubmitted: (value) =>
+                                    _navigateToSearch(value),
+                                textAlignVertical:
+                                    TextAlignVertical.center, // 텍스트 수직 중앙 정렬
+                                decoration: InputDecoration(
+                                  hintText: '메뉴를 검색해보세요!',
+                                  hintStyle: const TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 14,
+                                  ),
+                                  filled: true,
+                                  fillColor: const Color(0xFFEEEEEE),
+                                  prefixIcon: const Icon(
+                                    Icons.search,
+                                    size: 25,
+                                    color: Colors.black54,
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                  ),
+                                  // 테두리 없애고 둥글게 처리
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        );
-                      },
+                            );
+                          },
                       // 추천 검색어 목록 디자인
                       optionsViewBuilder: (context, onSelected, options) {
                         return Align(
@@ -148,10 +172,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                 shrinkWrap: true,
                                 itemCount: options.length,
                                 itemBuilder: (BuildContext context, int index) {
-                                  final String option = options.elementAt(index);
+                                  final String option = options.elementAt(
+                                    index,
+                                  );
                                   return ListTile(
                                     title: Text(option),
-                                    leading: const Icon(Icons.search, size: 18, color: Colors.grey),
+                                    leading: const Icon(
+                                      Icons.search,
+                                      size: 18,
+                                      color: Colors.grey,
+                                    ),
                                     onTap: () => onSelected(option),
                                   );
                                 },
@@ -187,7 +217,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               height: 113,
                               decoration: const BoxDecoration(
                                 image: DecorationImage(
-                                  image: AssetImage("images/home/mainTurtle.png"),
+                                  image: AssetImage(
+                                    "images/home/mainTurtle.png",
+                                  ),
                                   fit: BoxFit.cover,
                                 ),
                               ),
@@ -205,7 +237,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: const Padding(
                                 padding: EdgeInsets.only(left: 25, right: 10),
                                 child: Text(
-                                  '오늘도 느리게, 슬로우픽과 \n함께해요!',
+                                  '오늘의 추천 메뉴\n한 번 보시겠어요?',
                                   style: TextStyle(
                                     color: Colors.black,
                                     fontSize: 12,
