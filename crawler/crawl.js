@@ -1,81 +1,76 @@
-const puppeteer = require('puppeteer');
 const fs = require('fs');
-const db = require('./firebase');
-const { parseStarbucks } = require('./parsers/starbucksParser');
-
-/*async function crawlWithPuppeteer() {
-  try {
-    // Puppeteer 이용한 크롤링 코드
-    const browser = await puppeteer.launch();
-    const page = await browser.newPage();
-    
-    await page.goto("https://www.starbucks.co.kr/menu/drink_list.do");
-
-    await page.waitForSelector("li.menuDataSet"); 
-
-    const htmlContent = await page.content(); 
-    
-    await browser.close();
-
-    
-    fs.writeFileSync('starbucks.html', htmlContent);
-
-  } catch (error) {
-    console.error("Puppeteer 크롤링 오류:", error);
-  }
-
-crawlWithPuppeteer();
-}*/
+const db = require('./firebase'); // 비서(DB) 불러오기
+const { parseMega } = require('./parsers/megaParser'); // 메가커피 파서 불러오기
 
 async function main() {
   try {
-    console.log("📂 저장된 starbucks.html 파일을 읽습니다...");
-    const html = fs.readFileSync('starbucks.html', 'utf-8');
+    console.log("🚀 메가커피 데이터 DB 업로드를 시작합니다...");
 
-    // 2. 파싱 (데이터 추출)
-    console.log("☕️ 데이터를 추출(Parsing) 중입니다...");
-    const menuList = parseStarbucks(html);
-    console.log(`✨ 총 ${menuList.length}개의 메뉴 데이터를 준비했습니다.`);
+    // 1. 모든 HTML 파일 읽어서 데이터 합치기
+    let allMenus = [];
+    let page = 1;
 
-    // 3. Firestore에 저장
+    while (true) {
+      const filename = `mega_${page}.html`;
+      
+      // 파일이 존재하지 않으면 반복문 종료 (더 이상 읽을 페이지 없음)
+      if (!fs.existsSync(filename)) {
+        break;
+      }
+
+      console.log(`📂 ${filename} 읽는 중...`);
+      const html = fs.readFileSync(filename, 'utf-8');
+      
+      // 파싱 수행
+      const menus = parseMega(html);
+      allMenus = [...allMenus, ...menus]; // 기존 리스트에 추가
+      
+      page++;
+    }
+
+    console.log(`✨ 총 ${allMenus.length}개의 메뉴 데이터를 추출했습니다.`);
+
+    if (allMenus.length === 0) {
+      console.log("⚠️ 저장할 데이터가 없습니다. HTML 파일이 있는지 확인해주세요.");
+      return;
+    }
+
+    // 2. Firestore에 저장 (Batch Write)
+    // (스타벅스 때와 동일한 배치 로직)
     console.log("🔥 Firestore에 업로드를 시작합니다...");
     
-    // Firestore는 한 번에 최대 500개까지만 배치(일괄) 작업이 가능합니다.
-    // 메뉴가 많을 수 있으니 500개씩 끊어서 저장하는 안전한 방식을 사용합니다.
-    
-    const CHUNK_SIZE = 400; // 안전하게 400개씩 끊기
+    const CHUNK_SIZE = 400; // 400개씩 끊어서 처리
     const chunks = [];
     
-    for (let i = 0; i < menuList.length; i += CHUNK_SIZE) {
-      chunks.push(menuList.slice(i, i + CHUNK_SIZE));
+    for (let i = 0; i < allMenus.length; i += CHUNK_SIZE) {
+      chunks.push(allMenus.slice(i, i + CHUNK_SIZE));
     }
 
     let totalCount = 0;
 
-    // 각 덩어리(chunk)마다 작업 수행
     for (const chunk of chunks) {
       const batch = db.batch(); // 배치 생성
 
       chunk.forEach(menu => {
-        // (A) 문서 ID 만들기: "브랜드명-메뉴명" (예: starbucks-아이스 아메리카노)
-        // (공백은 놔둬도 되지만, ID로 쓸 때는 보통 제거하거나 -로 바꿉니다. 여기선 그냥 씁니다.)
-        const docId = `${menu.brand_name}-${menu.menu_name}`;
+        // (A) 문서 ID 생성: "브랜드명-메뉴명"
+        // 슬래시(/) 등 특수문자가 메뉴명에 있으면 ID로 쓸 수 없으므로 제거하거나 대체하는 것이 안전합니다.
+        const safeName = menu.menu_name.replace(/\//g, '&'); 
+        const docId = `${menu.brand_name}-${safeName}`;
         
-        // (B) 저장 위치 지정: 'menus' 컬렉션의 'docId' 문서
+        // (B) 저장 위치 지정
         const docRef = db.collection('menus').doc(docId);
 
-        // (C) 배치에 '저장(set)' 명령 담기
-        // { merge: true } 옵션: 이미 데이터가 있으면 덮어쓰고, 없으면 새로 만듦
+        // (C) 배치에 저장 명령 담기
         batch.set(docRef, menu, { merge: true });
       });
 
-      // (D) 덩어리 저장 실행 (Commit)
+      // (D) 덩어리 저장 실행
       await batch.commit();
       totalCount += chunk.length;
-      console.log(`... ${totalCount} / ${menuList.length} 개 저장 완료`);
+      console.log(`... ${totalCount} / ${allMenus.length} 개 저장 완료`);
     }
 
-    console.log("✅ 모든 데이터가 Firestore에 저장되었습니다!");
+    console.log("✅ 메가커피 데이터 업로드 완료!");
 
   } catch (error) {
     console.error("❌ 오류 발생:", error);

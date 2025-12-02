@@ -53,5 +53,8 @@ slowpick-ebc24-*.json
 # Node.js 의존성 폴더
 node_modules/
 
-# 3. 환경 변수 파일
+# 환경 변수 파일
 .env
+
+# 카페 html 파일
+*.html
