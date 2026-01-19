@@ -208,7 +208,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
     final String name = data['menu_name'] ?? '이름 없음';
     final String imageUrl = data['menu_image_url'] ?? '';
-    final int kcal = data['nutrition']?['calories_kcal'] ?? 0;
+    final num kcal = data['nutrition']?['calories_kcal'] ?? 0;
     final num sugar = data['nutrition']?['sugar_g'] ?? 0;
     final String allergy = "정보 없음";
 
@@ -320,7 +320,7 @@ class _SearchScreenState extends State<SearchScreen> {
     final double cardHeight = 110.0;
     final String name = data['menu_name'] ?? '이름 없음';
     final String imageUrl = data['menu_image_url'] ?? '';
-    final int kcal = data['nutrition']?['calories_kcal'] ?? 0;
+    final num kcal = data['nutrition']?['calories_kcal'] ?? 0;
     final num sugar = data['nutrition']?['sugar_g'] ?? 0;
     final num protein = 12; // 임시 데이터
     final num fat = 5; // 임시 데이터
