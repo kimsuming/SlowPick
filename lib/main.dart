@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:slowpick/screen/home_screen.dart';
-import 'package:slowpick/screen/search.dart';
 import 'firebase_options.dart'; // flutterfire configure로 생성된 파일
 
 void main() async {
@@ -12,9 +11,7 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // 3. 앱 실행
-  runApp(const MyApp(
-
-  ));
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -31,22 +28,11 @@ class MyApp extends StatelessWidget {
           primary: Color(0xFF74AE31),
           secondary: Color(0xFF74AE31),
         ),
+        fontFamily: 'KoPubDotum',
       ),
       home: DefaultTabController(
         length: 5,
-        child: Scaffold(
-          backgroundColor: Color(0xFFFCFCFC),
-          body: TabBarView(
-            physics: NeverScrollableScrollPhysics(),
-            children: [
-              HomeScreen(),
-              SearchScreen(),
-              Container(child: Center(child: Text('save'))),
-              Container(child: Center(child: Text('more'))),
-              Container(child: Center(child: Text('test'))),
-            ],
-          ),
-        ),
+        child: Scaffold(backgroundColor: Color(0xFFFCFCFC), body: HomeScreen()),
       ),
     );
   }
