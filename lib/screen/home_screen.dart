@@ -492,7 +492,7 @@ class _HomeScreenState extends State<HomeScreen> {
               '주간 인기 검색어 TOP3',
               style: TextStyle(
                 fontSize: 16,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w500,
                 letterSpacing: -1,
               ),
             ),
@@ -623,14 +623,14 @@ class _HomeScreenState extends State<HomeScreen> {
         SizedBox(height: 10),
 
         Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.only(left: 20.0, bottom: 5.0, top: 10.0),
           child: Container(
             alignment: Alignment.centerLeft,
             child: Text(
               '놓칠 수 없는 카페들의 콜라보 상품!',
               style: TextStyle(
                 fontSize: 16,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w500,
                 letterSpacing: -1,
               ),
             ),
@@ -660,49 +660,40 @@ class _HomeScreenState extends State<HomeScreen> {
                 }).toList(),
               ),
 
-              Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // 왼쪽 화살표
-                    Positioned(
-                      left: 0,
-                      top: 0,
-                      bottom: 0,
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        icon: const Icon(Icons.chevron_left, size: 50),
-                        color: Colors.white,
-                        onPressed: () {
-                          _carouselController.animateToPage(
-                            _currentIndex2 - 1,
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                        },
-                      ),
-                    ),
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  icon: const Icon(Icons.chevron_left, size: 50),
+                  color: Colors.white,
+                  onPressed: () {
+                    _carouselController.animateToPage(
+                      _currentIndex2 - 1,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
+                  },
+                ),
+              ),
 
-                    // 오른쪽 화살표
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      bottom: 0,
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        icon: const Icon(Icons.chevron_right, size: 50),
-                        color: Colors.white,
-                        onPressed: () {
-                          _carouselController.animateToPage(
-                            _currentIndex2 + 1,
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                        },
-                      ),
-                    ),
-                  ],
+              // 오른쪽 화살표
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  icon: const Icon(Icons.chevron_right, size: 50),
+                  color: Colors.white,
+                  onPressed: () {
+                    _carouselController.animateToPage(
+                      _currentIndex2 + 1,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
+                  },
                 ),
               ),
 
