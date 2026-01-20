@@ -4,6 +4,7 @@ const { parseMega } = require('../parsers/megaParser');
 const { parseStarbucks } = require('../parsers/starbucksParser');
 const { parseCompose } = require('../parsers/composeParser');
 const { parseEdiya } = require('../parsers/ediyaParser');
+const { parsePaulBassettList, parsePaulBassettDetail } = require('../parsers/paulParser');
 
 const ValidatorService = require('./services/validatorService');
 const FirebaseService = require('./services/firebaseService');
@@ -262,6 +263,68 @@ async function runEdiya(page) {
   await finalizeDeactivation(BRAND, oldIds, foundIds);
 }
 
+/**
+ * 5. 폴 바셋 실행 로직 (다중 카테고리 순회)
+ * - cid1=A (커피), B (음료), C (아이스크림)
+ */
+async function runPaulBassett(page) {
+  const BRAND = "폴 바셋";
+  console.log(`🚀 ${BRAND} 크롤링 시작...`);
+
+  const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  const foundIds = new Set();
+
+  // 순회할 카테고리 목록
+  const CATEGORIES = ['A', 'B', 'C'];
+
+  for (const catId of CATEGORIES) {
+    const LIST_URL = `https://www.baristapaulbassett.co.kr/menu/List.pb?cid1=${catId}`;
+    console.log(`📂 카테고리(ID:${catId}) 진입 중...`);
+
+    // 1. 리스트 페이지 접속
+    await page.goto(LIST_URL, { waitUntil: 'networkidle2' });
+
+    // 2. 리스트 파싱 (상세 URL 확보)
+    const listHtml = await page.content();
+    const menuItems = parsePaulBassettList(listHtml);
+
+    console.log(`   🔗 [Category ${catId}] ${menuItems.length}개의 메뉴 발견.`);
+
+    // 3. 상세 페이지 순회
+    for (const [index, item] of menuItems.entries()) {
+      try {
+        // 상세 페이지 이동
+        await page.goto(item.detailUrl, { waitUntil: 'networkidle2' });
+        
+        // 상세 HTML 파싱
+        const detailHtml = await page.content();
+        const menuData = parsePaulBassettDetail(detailHtml, item);
+
+        // 데이터 검증
+        const { isValid, data } = ValidatorService.validate(menuData);
+        
+        // 카테고리 필터링 (제외대상 아니면 업로드)
+        if (isValid && data.category !== "제외대상") {
+          const result = await FirebaseService.uploadMenu(data);
+          
+          if (result.success && result.docId) {
+            foundIds.add(result.docId);
+          }
+          console.log(`      ✅ [${index + 1}/${menuItems.length}] 업로드: ${data.menu_name}`);
+        }
+
+        // 서버 부하 방지 (0.5초 대기)
+        await new Promise(r => setTimeout(r, 500));
+
+      } catch (err) {
+        console.error(`      ❌ [${item.name}] 처리 실패:`, err.message);
+      }
+    }
+  }
+
+  // 4. 모든 카테고리 순회 후 비활성화 처리 (Snapshot 비교)
+  await finalizeDeactivation(BRAND, oldIds, foundIds);
+}
 
 async function main() {
   const browser = await puppeteer.launch({ 
@@ -280,8 +343,10 @@ async function main() {
     console.log("-----------------------------------------");
     await runCompose(page);
     console.log("-----------------------------------------");
-    */
     await runEdiya(page);
+    console.log("-----------------------------------------");
+    */
+    await runPaulBassett(page);
     console.log("-----------------------------------------");
   } catch (error) {
     console.error("❌ 전체 프로세스 중 오류 발생:", error);
