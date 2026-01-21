@@ -7,8 +7,15 @@ class FirebaseService {
    */
   static async uploadMenu(menuData) {
     try {
-      // 문서 ID 생성 규칙: "브랜드명_메뉴명" (공백은 언더바로 치환)
-      const docId = `${menuData.brand_name}_${menuData.menu_name}`.replace(/\s+/g, '_');
+      // [수정됨] 문서 ID 생성 규칙
+      // 1. 공백(\s) -> 언더바(_)
+      // 2. 슬래시(/) -> 언더바(_) : "라지/점보" 같은 경우 경로 오류 방지
+      const safeMenuName = menuData.menu_name
+        .replace(/\s+/g, '_')
+        .replace(/\//g, '_'); 
+
+      const docId = `${menuData.brand_name}_${safeMenuName}`;
+      
       const menuRef = db.collection('menus').doc(docId);
 
       await menuRef.set({
@@ -47,9 +54,14 @@ class FirebaseService {
     const batch = db.batch();
     const CHUNK_SIZE = 400; // Firestore 배치 제한(500개) 안전턱
 
+    //Ids를 배열로 변환 (Set으로 들어올 경우 대비)
+    const idArray = Array.from(ids);
+
     // 500개씩 끊어서 처리
-    for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
-      const chunk = ids.slice(i, i + CHUNK_SIZE);
+    let totalUpdated = 0;
+    
+    for (let i = 0; i < idArray.length; i += CHUNK_SIZE) {
+      const chunk = idArray.slice(i, i + CHUNK_SIZE);
       const subBatch = db.batch();
 
       chunk.forEach(docId => {
@@ -61,8 +73,9 @@ class FirebaseService {
       });
 
       await subBatch.commit();
+      totalUpdated += chunk.length;
     }
-    console.log(`📉 총 ${ids.length}개의 메뉴가 비활성화(Sold Out) 처리되었습니다.`);
+    console.log(`📉 총 ${totalUpdated}개의 메뉴가 비활성화(Sold Out) 처리되었습니다.`);
   }
 }
 

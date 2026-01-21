@@ -1,10 +1,14 @@
 const puppeteer = require('puppeteer');
 const cheerio = require('cheerio');
+const axios = require('axios');
 const { parseMega } = require('../parsers/megaParser');
 const { parseStarbucks } = require('../parsers/starbucksParser');
 const { parseCompose } = require('../parsers/composeParser');
 const { parseEdiya } = require('../parsers/ediyaParser');
 const { parsePaulBassettList, parsePaulBassettDetail } = require('../parsers/paulParser');
+const { getMenuIds, parseDetail } = require('../parsers/mammothParser');
+const { parsePaik } = require('../parsers/paikParser');
+const { getMenuUrls, parseDetail: parseVentiDetail } = require('../parsers/theventiParser');
 
 const ValidatorService = require('./services/validatorService');
 const FirebaseService = require('./services/firebaseService');
@@ -326,6 +330,199 @@ async function runPaulBassett(page) {
   await finalizeDeactivation(BRAND, oldIds, foundIds);
 }
 
+/**
+ * 6. 매머드 통합 실행 로직 (익스프레스 & 매머드커피)
+ */
+async function runMammoth() {
+  // 크롤링할 대상 목록 정의
+  const TARGETS = [
+    {
+      brandName: "매머드 익스프레스",
+      listUrl: "https://mmthcoffee.com/sub/menu/list.html"
+    },
+    {
+      brandName: "매머드커피",
+      listUrl: "https://mmthcoffee.com/sub/menu/list_coffee.php"
+    }
+  ];
+
+  for (const target of TARGETS) {
+    console.log(`🚀 [${target.brandName}] 크롤링 시작...`);
+    
+    // 해당 브랜드의 기존 ID 목록 가져오기 (비활성화 로직용)
+    const oldIds = await FirebaseService.getAllMenuIdsByBrand(target.brandName);
+    const foundIds = new Set();
+
+    try {
+      // 1. 목록 페이지 요청
+      const { data: listHtml } = await axios.get(target.listUrl);
+
+      // 2. 파서를 통해 메뉴 ID 목록 추출
+      const menuList = getMenuIds(listHtml);
+      console.log(`   🔗 [${target.brandName}] 총 ${menuList.length}개의 타겟 메뉴 발견.`);
+
+      // 3. 상세 조회 및 업로드
+      for (const [index, menu] of menuList.entries()) {
+        // 상세 페이지 URL 구조는 두 브랜드가 동일함 (menuSeq만 다름)
+        const detailUrl = `https://mmthcoffee.com/sub/menu/list_coffee_view.php?menuSeq=${menu.id}`;
+        
+        try {
+          const { data: detailHtml } = await axios.get(detailUrl);
+          
+          // 파서 호출 (파서가 리턴하는 brand_name은 무시하고 아래에서 덮어씌움)
+          const variants = parseDetail(detailHtml, menu); 
+
+          for (const variant of variants) {
+            const mergedData = {
+              ...variant,          // 파서가 준 데이터 전개
+              brand_name: target.brandName, // ★ 여기서 브랜드명을 현재 타겟으로 강제 지정
+              // 필요하다면 categoryCode 등도 여기서 보정 가능
+            };
+
+            // 데이터 검증
+            const { isValid, data, error } = ValidatorService.validate(mergedData);
+            
+            if (isValid) {
+              const result = await FirebaseService.uploadMenu(data);
+              if (result.success && result.docId) {
+                foundIds.add(result.docId);
+              }
+              console.log(`      ✅ [${target.brandName}] (${index + 1}/${menuList.length}) 업로드: ${data.menu_name}`);
+            } else {
+              // console.log(`      ⚠️ 검증 실패 [${variant.menu_name}]:`, error);
+            }
+          }
+
+          // 서버 부하 방지
+          await new Promise(r => setTimeout(r, 100));
+
+        } catch (err) {
+          console.error(`      ❌ [${menu.name}] 상세 조회 실패:`, err.message);
+        }
+      }
+
+      // 4. 해당 브랜드에 대한 비활성화 처리
+      await finalizeDeactivation(target.brandName, oldIds, foundIds);
+
+    } catch (err) {
+      console.error(`   ❌ [${target.brandName}] 전체 프로세스 오류:`, err.message);
+    }
+    
+    console.log(`-----------------------------------------`);
+  }
+}
+
+/**
+ * 7. 빽다방 실행 로직 (다중 URL 순회)
+ */
+async function runPaik(page) {
+  const BRAND = "빽다방";
+  console.log(`🚀 ${BRAND} 크롤링 시작...`);
+
+  const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  const foundIds = new Set();
+
+  // 빽다방은 카테고리별로 URL이 다름
+  const TARGET_URLS = [
+    "https://paikdabang.com/menu/menu_coffee/",   // 커피
+    "https://paikdabang.com/menu/menu_drink/",    // 음료
+    "https://paikdabang.com/menu/menu_ccino/",    // 빽스치노
+    "https://paikdabang.com/menu/menu_dessert/"   // 아이스크림/디저트
+  ];
+
+  for (const url of TARGET_URLS) {
+    try {
+      console.log(`   📂 페이지 이동 중: ${url}`);
+      await page.goto(url, { waitUntil: 'networkidle2' });
+      
+      // 메뉴 리스트가 로딩될 때까지 대기 (안전장치)
+      await page.waitForSelector('.menu_list', { timeout: 5000 }).catch(() => {
+        console.log("      ⚠️ 메뉴 리스트를 찾을 수 없음 (빈 페이지 가능성)");
+      });
+
+      const html = await page.content();
+      const rawMenus = parsePaik(html); // 파서 호출
+
+      console.log(`      🔗 ${rawMenus.length}개의 메뉴 발견.`);
+
+      // 공통 업로드 로직 사용
+      await processMenus(BRAND, rawMenus, foundIds);
+
+      // 서버 부하 방지 대기
+      await new Promise(r => setTimeout(r, 1000));
+
+    } catch (err) {
+      console.error(`   ❌ [${url}] 처리 중 오류:`, err.message);
+    }
+  }
+
+  // 비활성화 처리
+  await finalizeDeactivation(BRAND, oldIds, foundIds);
+}
+
+/**
+ * 8. 더벤티 실행 로직
+ * - mode=1 ~ 7 순회
+ */
+async function runTheVenti(page) {
+  const BRAND = "더벤티";
+  console.log(`🚀 ${BRAND} 크롤링 시작...`);
+
+  const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  const foundIds = new Set();
+
+  // 모드 1(신메뉴) ~ 7(베버리지) 순회
+  for (let mode = 1; mode <= 7; mode++) {
+    const listUrl = `https://www.theventi.co.kr/new2022/menu/all.html?mode=${mode}`;
+    console.log(`   📂 페이지 이동 중: mode=${mode}`);
+
+    try {
+      // 1. 리스트 페이지 가져오기 (Axios 사용 권장, 속도 때문)
+      // 더벤티는 SSR(Server Side Rendering)에 가까워 Axios로 충분히 가져올 수 있습니다.
+      const { data: listHtml } = await axios.get(listUrl);
+      
+      // 2. 메뉴 URL 목록 파싱
+      const menuList = getMenuUrls(listHtml);
+      console.log(`      🔗 ${menuList.length}개의 메뉴 발견.`);
+
+      // 3. 상세 페이지 순회
+      for (const [index, menu] of menuList.entries()) {
+        try {
+          const { data: detailHtml } = await axios.get(menu.detailUrl);
+          
+          // 파서 호출 (배열 반환: HOT/ICE 분리됨)
+          const variants = parseVentiDetail(detailHtml, menu);
+
+          for (const variant of variants) {
+            const { isValid, data, error } = ValidatorService.validate(variant);
+
+            if (isValid) {
+              const result = await FirebaseService.uploadMenu(data);
+              if (result.success && result.docId) {
+                foundIds.add(result.docId);
+              }
+              console.log(`      ✅ [${mode}-${index + 1}] 업로드: ${data.menu_name}`);
+            } else {
+               // 검증 실패 로그 (필요시 주석 해제)
+               // console.log(`      ⚠️ 검증 실패 [${variant.menu_name}]: ${error}`);
+            }
+          }
+          
+          // 서버 부하 방지
+          await new Promise(r => setTimeout(r, 100));
+
+        } catch (err) {
+          console.error(`      ❌ [${menu.name}] 상세 조회 실패:`, err.message);
+        }
+      }
+    } catch (err) {
+      console.error(`   ❌ [mode=${mode}] 페이지 로드 실패:`, err.message);
+    }
+  }
+
+  await finalizeDeactivation(BRAND, oldIds, foundIds);
+}
+
 async function main() {
   const browser = await puppeteer.launch({ 
     headless: "new",
@@ -344,10 +541,15 @@ async function main() {
     await runCompose(page);
     console.log("-----------------------------------------");
     await runEdiya(page);
-    console.log("-----------------------------------------");
-    */
+    console.log("-----------------------------------------");    
     await runPaulBassett(page);
     console.log("-----------------------------------------");
+    await runPaik(page);
+    console.log("-----------------------------------------");
+    await runMammoth(); 
+    console.log("-----------------------------------------");
+    */
+    await runTheVenti();
   } catch (error) {
     console.error("❌ 전체 프로세스 중 오류 발생:", error);
   } finally {

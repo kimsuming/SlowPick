@@ -1,42 +1,60 @@
-const FirebaseService = require('./src/services/firebaseService');
-const ValidatorService = require('./src/services/validatorService');
+const admin = require('firebase-admin');
+const serviceAccount = require('./slowpick-ebc24-firebase-adminsdk-fbsvc-e20328a442.json'); // 키 파일 경로 확인
 
-async function testSingleUpload() {
-  // 1. 테스트용 가짜 데이터 (컴포즈커피 스타일)
-  const mockMenu = {
-    brand_name: "컴포즈커피",
-    category: "음료",
-    menu_name: "테스트용 아메리카노",
-    menu_image_url: "https://composecoffee.com/files/test.jpg",
-    is_active: true,
-    menu_type: "regular",
-    nutrition: {
-      caffeine_mg: 150,
-      calories_kcal: 15,
-      protein_g: 1,
-      saturated_fat_g: 0,
-      sodium_mg: 5,
-      sugar_g: 0,
-      size_standard: "20oz"
-    },
-    allergy_info: ["우유"],
-    description: "테스트 데이터입니다."
-  };
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
+}
 
-  console.log("🔍 1. 데이터 검증 시작...");
-  const { isValid, data, errors } = ValidatorService.validate(mockMenu);
+const db = admin.firestore();
+const COLLECTION_NAME = 'menus';
 
-  if (isValid) {
-    console.log("✅ 검증 통과! Firebase 업로드 시도...");
-    try {
-      const result = await FirebaseService.uploadMenu(data);
-      console.log(`🚀 업로드 성공! 문서 ID: ${result.docId}`);
-    } catch (err) {
-      console.error("❌ 업로드 실패:", err);
+async function migrateBrandName() {
+  console.log("🔄 브랜드명 변경 시작: '매머드커피' -> '매머드 익스프레스'");
+
+  try {
+    // 1. 기존 '매머드커피'로 저장된 문서들 찾기
+    const snapshot = await db.collection(COLLECTION_NAME)
+      .where('brand_name', '==', '매머드커피')
+      .get();
+
+    if (snapshot.empty) {
+      console.log("✨ 변경할 문서가 없습니다.");
+      return;
     }
-  } else {
-    console.error("❌ 검증 실패:", errors);
+
+    console.log(`📦 총 ${snapshot.size}개의 문서를 찾았습니다. 업데이트 진행 중...`);
+
+    const BATCH_SIZE = 400;
+    let batch = db.batch();
+    let counter = 0;
+    let totalUpdated = 0;
+
+    for (const doc of snapshot.docs) {
+      // 브랜드명을 '매머드 익스프레스'로 업데이트
+      batch.update(doc.ref, { brand_name: '매머드 익스프레스' });
+      counter++;
+
+      if (counter >= BATCH_SIZE) {
+        await batch.commit();
+        totalUpdated += counter;
+        console.log(`   ⏳ ${totalUpdated}개 업데이트 완료...`);
+        batch = db.batch();
+        counter = 0;
+      }
+    }
+
+    if (counter > 0) {
+      await batch.commit();
+      totalUpdated += counter;
+    }
+
+    console.log(`✅ 최종 완료: 총 ${totalUpdated}개의 메뉴 브랜드명을 변경했습니다.`);
+
+  } catch (error) {
+    console.error("❌ 업데이트 중 오류 발생:", error);
   }
 }
 
-testSingleUpload();
+migrateBrandName();

@@ -210,7 +210,8 @@ class _SearchScreenState extends State<SearchScreen> {
     final String imageUrl = data['menu_image_url'] ?? '';
     final num kcal = data['nutrition']?['calories_kcal'] ?? 0;
     final num sugar = data['nutrition']?['sugar_g'] ?? 0;
-    final String allergy = "정보 없음";
+    final List<String> allergyList = data['allergy_info'] != null ? List<String>.from(data['allergy_info']) : [];
+    final String allergyText = allergyList.isEmpty ? '-' : allergyList.join(', ');
 
     // 당류 색상 가져오기
     final Map<String, Color> sugarColors = _getSugarColor(sugar);
@@ -294,14 +295,14 @@ class _SearchScreenState extends State<SearchScreen> {
                       ),
                       SizedBox(height: screenHeight * 0.005),
                       Text(
-                        '알레르기: $allergy',
-                        style: TextStyle(
-                          color: const Color(0xFF7B7B7B),
-                          fontSize: screenWidth * 0.028,
-                          fontFamily: 'KoPubDotum',
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      '알레르기: $allergyText', // 변환된 문자열 변수 사용
+                      style: TextStyle(
+                        color: const Color(0xFF7B7B7B),
+                        fontSize: screenWidth * 0.028,
+                        fontFamily: 'KoPubDotum',
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -400,9 +401,6 @@ class _SearchScreenState extends State<SearchScreen> {
                   ),
                   Row(
                     children: [
-                      // 리스트뷰에서도 색상을 적용하기 위해 함수를 조금 수정하여 사용하거나,
-                      // _buildNutritionBadge 스타일을 작게 만들어 씁니다.
-                      // 여기서는 _buildMiniBadge를 수정해서 색상을 받도록 처리합니다.
                       _buildColorMiniBadge(
                         '당 ${sugar}g',
                         sugarColors['bg']!,
