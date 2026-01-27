@@ -74,7 +74,7 @@ class _SearchScreenState extends State<SearchScreen> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(10.0),
             child: TextField(
               controller: _searchController,
               onChanged: (value) {
@@ -83,7 +83,10 @@ class _SearchScreenState extends State<SearchScreen> {
                 });
               },
               decoration: InputDecoration(
-                hintText: '메뉴 이름을 검색해보세요!',
+                hintText: '메뉴를 검색해보세요!',
+                hintStyle: TextStyle(
+                color: Colors.black38,
+                ),
                 prefixIcon: const Icon(Icons.search, color: Colors.grey),
                 suffixIcon: _searchText.isNotEmpty
                     ? IconButton(
@@ -132,7 +135,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 if (filteredDocs.isEmpty) {
                   return Center(child: Text('\'$_searchText\' 검색 결과가 없습니다.'));
                 }
-
+                // 그리드뷰
                 if (_isGridView) {
                   return GridView.builder(
                     padding: EdgeInsets.fromLTRB(
@@ -150,11 +153,11 @@ class _SearchScreenState extends State<SearchScreen> {
                     itemCount: filteredDocs.length,
                     itemBuilder: (context, index) {
                       final data = filteredDocs[index].data() as Map<String, dynamic>;
-                      // 분리한 위젯 사용!
                       return MenuGridCard(data: data); 
                     },
                   );
                 } else {
+                // 리스트뷰
                   return ListView.separated(
                     padding: EdgeInsets.fromLTRB(
                       screenWidth * 0.04,
