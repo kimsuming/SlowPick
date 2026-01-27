@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:slowpick/widget/bottomBar_new.dart';
 
 class SearchScreen extends StatefulWidget {
   // 메인에서 전달받을 초기 검색어 (없을 수도 있으므로 nullable)
