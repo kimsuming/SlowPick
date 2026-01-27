@@ -8,7 +8,11 @@ const { parseEdiya } = require('../parsers/ediyaParser');
 const { parsePaulBassettList, parsePaulBassettDetail } = require('../parsers/paulParser');
 const { getMenuIds, parseDetail } = require('../parsers/mammothParser');
 const { parsePaik } = require('../parsers/paikParser');
-const { getMenuUrls, parseDetail: parseVentiDetail } = require('../parsers/theventiParser');
+const { getMenuUrls: getVentiMenuUrls, parseDetail: parseVentiDetail } = require('../parsers/theVentiParser');
+const { parseAngel, parseAngelImages, parseAngelDescription } = require('../parsers/angelinusParser');
+const { parseTwosomeList, parseTwosomeDetail } = require('../parsers/twosomeParser');
+const { getMenuUrls: getYogerMenuUrls, parseDetail: parseYogerDetail } = require('../parsers/yogerParser');
+const { parseTomNTomsDetail } = require('../parsers/tmntmsParser');
 
 const ValidatorService = require('./services/validatorService');
 const FirebaseService = require('./services/firebaseService');
@@ -482,7 +486,7 @@ async function runTheVenti(page) {
       const { data: listHtml } = await axios.get(listUrl);
       
       // 2. 메뉴 URL 목록 파싱
-      const menuList = getMenuUrls(listHtml);
+      const menuList = getVentiMenuUrls(listHtml); 
       console.log(`      🔗 ${menuList.length}개의 메뉴 발견.`);
 
       // 3. 상세 페이지 순회
@@ -523,6 +527,384 @@ async function runTheVenti(page) {
   await finalizeDeactivation(BRAND, oldIds, foundIds);
 }
 
+/**
+ * 9. 엔제리너스 실행 로직
+ * - 영양성분(Data) + 주문페이지(Image/ID) + 상세페이지(Description)
+ */
+async function runAngel() {
+  const BRAND = "엔제리너스";
+  console.log(`🚀 ${BRAND} 크롤링 시작...`);
+
+  const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  const foundIds = new Set();
+
+  try {
+    const nutritionUrl = "https://www.lotteeatz.com/upload/etc/angel/items.html";
+    const orderingUrl = "https://www.lotteeatz.com/brand/angel"; 
+
+    console.log(`   📂 기본 데이터 수집 중...`);
+
+    // 1. 영양정보 & 주문페이지 병렬 요청
+    const [nutritionRes, orderingRes] = await Promise.all([
+      axios.get(nutritionUrl),
+      axios.get(orderingUrl) 
+    ]);
+
+    // 2. 이미지 & ID 맵핑 생성
+    const infoMap = parseAngelImages(orderingRes.data);
+    console.log(`      🖼️ 매핑 정보 ${infoMap.size}개 확보.`);
+
+    // 3. 1차 파싱 (영양정보 + 이미지 + ID)
+    const rawMenus = parseAngel(nutritionRes.data, infoMap);
+    console.log(`      🔗 총 ${rawMenus.length}개의 메뉴 1차 파싱 완료.`);
+
+    // 4. 상세 페이지 순회 (Description 수집) 및 업로드
+    for (const [index, menu] of rawMenus.entries()) {
+      
+      // 상품 ID가 있는 경우에만 상세 페이지 접속
+      if (menu.productId) {
+        try {
+          const detailUrl = `https://www.lotteeatz.com/products/introductions/${menu.productId}?rccode=brnd_main`;
+          const { data: detailHtml } = await axios.get(detailUrl);
+          
+          // 설명글 파싱하여 덮어쓰기
+          const desc = parseAngelDescription(detailHtml);
+          if (desc) {
+            menu.description = desc;
+          }
+        } catch (detailErr) {
+          // 상세 페이지 조회 실패해도 크리티컬하지 않으므로 로그만 남기고 진행
+          // console.warn(`      ⚠️ 상세 조회 실패 [${menu.menu_name}]: ${detailErr.message}`);
+        }
+      }
+
+      // DB 저장을 위해 임시 필드(productId) 삭제
+      delete menu.productId;
+
+      // 데이터 검증 및 업로드
+      const { isValid, data, error } = ValidatorService.validate(menu);
+
+      if (isValid) {
+        const result = await FirebaseService.uploadMenu(data);
+        if (result.success && result.docId) {
+          foundIds.add(result.docId);
+        }
+        console.log(`      ✅ [${index + 1}/${rawMenus.length}] 업로드: ${data.menu_name}`);
+      } else {
+         // console.log(`      ⚠️ 검증 실패 [${menu.menu_name}]: ${error}`);
+      }
+      
+      // 서버 부하 방지 (상세 페이지 호출이 많으므로 텀을 줌)
+      if (index % 10 === 0) await new Promise(r => setTimeout(r, 200));
+    }
+
+  } catch (err) {
+    console.error(`   ❌ ${BRAND} 로직 실패:`, err.message);
+  }
+
+  await finalizeDeactivation(BRAND, oldIds, foundIds);
+}
+
+/**
+ * 10. 투썸플레이스 실행 로직
+ * - 커피/음료 탭 -> 하위 탭 순회
+ */
+async function runTwosome(page) {
+  const BRAND = "투썸플레이스";
+  console.log(`🚀 ${BRAND} 크롤링 시작...`);
+
+  const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  const foundIds = new Set();
+
+  const TABS = ['01', '02', '03']; 
+
+  for (const midCd of TABS) {
+    let listUrl = `https://mo.twosome.co.kr/mn/menuInfoList.do?grtCd=1&pMidCd=${midCd}`;
+    console.log(`   📂 탭 이동 중: ${midCd}`);
+    
+    try {
+      await page.goto(listUrl, { waitUntil: 'networkidle2' });
+
+      // 목록 파싱
+      const listHtml = await page.content();
+      const menuList = parseTwosomeList(listHtml);
+      console.log(`      🔗 ${midCd}: ${menuList.length}개의 메뉴 발견.`);
+
+      for (const [index, menuItem] of menuList.entries()) {
+        try {
+          await page.goto(menuItem.detailUrl, { waitUntil: 'networkidle2' });
+          
+          try { await page.waitForSelector('.text_list_ts24_type02', { timeout: 3000 }); } catch(e) {}
+
+          // ⭐️ [수정된 로직] 첫 번째 컨테이너만 타겟팅 ⭐️
+          // 전체 문서에서 탭을 찾지 않고, 첫 번째 컨테이너 안에서만 찾음
+          const container = await page.$('.ts24_select_drink_size'); 
+
+          if (container) {
+            // 컨테이너 내부의 탭만 조회
+            const sizeTabs = await container.$$('ul li a'); 
+            const tabCount = sizeTabs.length; // 이제 중복 없이 3개(레,라,맥)만 잡힐 것임
+
+            if (tabCount > 0) {
+              for (let i = 0; i < tabCount; i++) {
+                // 스코프 내에서 클릭
+                await page.evaluate((idx) => {
+                  // querySelectorAll은 문서 전체에서 찾지만, 우리는 첫 번째 놈만 클릭하면 됨
+                  // (투썸 로직상 하나를 클릭하면 나머지도 연동되거나, 첫 번째가 메인임)
+                  const container = document.querySelector('.ts24_select_drink_size');
+                  const tabs = container.querySelectorAll('ul li a');
+                  if (tabs[idx]) tabs[idx].click();
+                }, i);
+
+                await new Promise(r => setTimeout(r, 500)); // AJAX 대기
+
+                const currentHtml = await page.content();
+                const menuData = parseTwosomeDetail(currentHtml, menuItem);
+
+                await uploadAndLog(menuData, index, menuList.length, `[Size ${i+1}/${tabCount}]`);
+              }
+            } else {
+               // 탭이 없는 경우 (컨테이너는 있는데 탭이 없을 수 있음?)
+               const currentHtml = await page.content();
+               const menuData = parseTwosomeDetail(currentHtml, menuItem);
+               await uploadAndLog(menuData, index, menuList.length, '[Single]');
+            }
+          } else {
+            // 탭 컨테이너 자체가 없는 경우 (단일 사이즈)
+            const currentHtml = await page.content();
+            const menuData = parseTwosomeDetail(currentHtml, menuItem);
+            await uploadAndLog(menuData, index, menuList.length, '[Single]');
+          }
+
+        } catch (err) {
+          console.error(`      ❌ [${menuItem.name}] 상세 실패:`, err.message);
+        }
+      }
+
+    } catch (err) {
+      console.error(`   ❌ 탭 [${midCd}] 처리 실패:`, err.message);
+    }
+  }
+
+  await finalizeDeactivation(BRAND, oldIds, foundIds);
+
+  // 헬퍼 함수: 업로드 및 로그 출력
+  async function uploadAndLog(menuData, index, total, suffixLog) {
+    const { isValid, data, error } = ValidatorService.validate(menuData);
+    if (isValid) {
+      const result = await FirebaseService.uploadMenu(data);
+      if (result.success && result.docId) foundIds.add(result.docId);
+      console.log(`      ✅ [${index + 1}/${total}]${suffixLog} 업로드: ${data.menu_name}`);
+    } else {
+       // console.log(`      ⚠️ 검증 실패 [${menuData.menu_name}]: ${error}`);
+    }
+  }
+}
+
+/**
+ * 11. 요거프레소 실행 로직
+ */
+async function runYogerpresso() {
+  const BRAND = "요거프레소";
+  console.log(`🚀 ${BRAND} 크롤링 시작...`);
+
+  const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  const foundIds = new Set();
+
+  // 수집할 카테고리 목록 (cateno)
+  // 1:커피, 34:요거트라떼, 2:스무디, 36:쉐이크, 23:한입, 32:토핑, 35:에이드/티, 3:빙수, 22:신메뉴
+  const CATEGORIES = [
+    { id: 22, name: '신메뉴' },
+    { id: 1, name: '커피/음료' },
+    { id: 34, name: '요거트 라떼' },
+    { id: 2, name: '요거트 스무디' },
+    { id: 36, name: '요거트 쉐이크' },
+    { id: 23, name: '한입요거트' },
+    { id: 35, name: '에이드/티' },
+    { id: 3, name: '빙수' }
+  ];
+
+  for (const cat of CATEGORIES) {
+    const listUrl = `https://www.yogerpresso.co.kr/menu/menu.html?cateno=${cat.id}`;
+    console.log(`   📂 카테고리 이동 중: ${cat.name} (${cat.id})`);
+
+    try {
+      // 1. 목록 페이지 요청
+      const { data: listHtml } = await axios.get(listUrl);
+      
+      // 2. 상세 페이지 URL 추출
+      const menuList = getYogerMenuUrls(listHtml);
+      console.log(`      🔗 ${menuList.length}개의 메뉴 발견.`);
+
+      // 3. 상세 페이지 순회
+      for (const [index, menuItem] of menuList.entries()) {
+        try {
+          // 팝업 HTML 요청
+          const { data: detailHtml } = await axios.get(menuItem.detailUrl);
+          
+          // 파싱
+          const menuData = parseYogerDetail(detailHtml, menuItem, cat.name);
+
+          // 검증 및 업로드
+          const { isValid, data } = ValidatorService.validate(menuData);
+          if (isValid) {
+            const result = await FirebaseService.uploadMenu(data);
+            if (result.success && result.docId) foundIds.add(result.docId);
+            console.log(`      ✅ [${cat.name}-${index + 1}] 업로드: ${data.menu_name}`);
+          }
+
+          // 부하 방지
+          await new Promise(r => setTimeout(r, 100));
+
+        } catch (err) {
+          console.error(`      ❌ [${menuItem.name}] 상세 실패:`, err.message);
+        }
+      }
+
+    } catch (err) {
+      console.error(`   ❌ [${cat.name}] 페이지 로드 실패:`, err.message);
+    }
+  }
+
+  await finalizeDeactivation(BRAND, oldIds, foundIds);
+}
+
+/**
+ * 12. 탐앤탐스 실행 로직
+ * - 더보기 버튼 반복 클릭 (메뉴 개수 변화 감지)
+ * - 각 메뉴 클릭 -> 팝업 띄우기 -> 파싱 -> 닫기
+ */
+async function runTomNToms(page) {
+  const BRAND = "탐앤탐스";
+  console.log(`🚀 ${BRAND} 크롤링 시작...`);
+
+  const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  const foundIds = new Set();
+
+  try {
+    const url = "https://www.tomntoms.com/menu";
+    await page.goto(url, { waitUntil: 'networkidle2' });
+
+    // 1. "음료" 탭 클릭
+    const tabClicked = await page.evaluate(() => {
+      const buttons = Array.from(document.querySelectorAll('button'));
+      const drinkBtn = buttons.find(b => b.textContent.trim() === '음료');
+      if (drinkBtn) {
+        drinkBtn.click();
+        return true;
+      }
+      return false;
+    });
+
+    if (tabClicked) {
+      console.log("   🖱️ '음료' 탭 클릭 완료");
+      await new Promise(r => setTimeout(r, 2000));
+    }
+
+    // 2. "더보기" 버튼 반복 클릭 로직 (수정됨)
+    console.log("   🖱️ 전체 메뉴 로딩 중...");
+    
+    let prevItemCount = 0;
+
+    while (true) {
+      try {
+        // 현재 로딩된 메뉴 개수 확인
+        // 탐앤탐스 메뉴 버튼 ID 패턴: headlessui-popover-button-
+        const currentItems = await page.$$('button[id^="headlessui-popover-button-"]');
+        const currentItemCount = currentItems.length;
+
+        // 더보기 버튼 찾기
+        const moreBtn = await page.$('button.custom-button.main-tab');
+
+        // 종료 조건 1: 버튼이 아예 없음
+        if (!moreBtn) {
+            console.log("   ✅ 더보기 버튼이 없습니다.");
+            break; 
+        }
+
+        // 종료 조건 2: 버튼이 비활성화(disabled) 됨
+        const isDisabled = await page.evaluate(btn => btn.disabled, moreBtn);
+        if (isDisabled) {
+            console.log("   ✅ 더보기 버튼이 비활성화되었습니다.");
+            break;
+        }
+
+        // 종료 조건 3: 클릭을 했는데도 메뉴 개수가 늘어나지 않음 (첫 루프 제외)
+        if (prevItemCount > 0 && currentItemCount === prevItemCount) {
+            console.log(`   ✅ 메뉴가 더 이상 추가되지 않습니다. (총 ${currentItemCount}개)`);
+            break;
+        }
+
+        // 상태 업데이트 및 클릭 실행
+        prevItemCount = currentItemCount;
+        
+        await moreBtn.click();
+        process.stdout.write("."); // 진행 표시
+        await new Promise(r => setTimeout(r, 1000)); // 로딩 대기 (충분히 줌)
+
+      } catch (e) {
+        console.log(`   ⚠️ 더보기 처리 중 예외 발생: ${e.message}`);
+        break;
+      }
+    }
+    console.log("\n   ✅ 전체 메뉴 로딩 완료");
+
+    // 3. 메뉴 리스트 확보
+    const menuButtons = await page.$$('button[id^="headlessui-popover-button-"]');
+    console.log(`      🔗 총 ${menuButtons.length}개의 메뉴 버튼 발견.`);
+
+    // 4. 순회하며 상세 정보 수집 (기존과 동일)
+    for (let i = 0; i < menuButtons.length; i++) {
+      try {
+        // DOM Element가 리렌더링으로 인해 끊길 수 있으므로 매번 다시 쿼리
+        const buttons = await page.$$('button[id^="headlessui-popover-button-"]');
+        const btn = buttons[i];
+
+        if (!btn) continue;
+
+        const imageUrl = await btn.$eval('img', el => el.src).catch(() => "");
+
+        await btn.click();
+        
+        try {
+           await page.waitForSelector('div[id^="headlessui-popover-panel-"]', { timeout: 2000, visible: true });
+        } catch (e) {
+           // console.log(`      ⚠️ 팝업 열기 실패 (Index: ${i})`);
+           continue;
+        }
+
+        const popoverContent = await page.$eval('div[id^="headlessui-popover-panel-"]', el => el.outerHTML);
+        const menuData = parseTomNTomsDetail(popoverContent, imageUrl);
+
+        const { isValid, data } = ValidatorService.validate(menuData);
+        if (isValid) {
+          const result = await FirebaseService.uploadMenu(data);
+          if (result.success && result.docId) foundIds.add(result.docId);
+          console.log(`      ✅ [${i + 1}/${menuButtons.length}] 업로드: ${data.menu_name}`);
+        }
+
+        const closeBtn = await page.$('div[id^="headlessui-popover-panel-"] div.flex.justify-between button');
+        if (closeBtn) {
+            await closeBtn.click();
+        } else {
+            await page.keyboard.press('Escape');
+        }
+        
+        await new Promise(r => setTimeout(r, 200));
+
+      } catch (err) {
+        console.error(`      ❌ 메뉴 처리 중 오류:`, err.message);
+        await page.keyboard.press('Escape');
+      }
+    }
+
+  } catch (err) {
+    console.error(`   ❌ ${BRAND} 로직 실패:`, err.message);
+  }
+
+  await finalizeDeactivation(BRAND, oldIds, foundIds);
+}
+
 async function main() {
   const browser = await puppeteer.launch({ 
     headless: "new",
@@ -548,8 +930,18 @@ async function main() {
     console.log("-----------------------------------------");
     await runMammoth(); 
     console.log("-----------------------------------------");
-    */
     await runTheVenti();
+    console.log("-----------------------------------------");
+    await runAngel();
+    console.log("-----------------------------------------");
+    await runTwosome(page);
+    console.log("-----------------------------------------");
+    await runYogerpresso(page);
+    console.log("-----------------------------------------");
+    await runTomNToms(page);
+    */
+    await runMammoth(); 
+    console.log("-----------------------------------------");
   } catch (error) {
     console.error("❌ 전체 프로세스 중 오류 발생:", error);
   } finally {

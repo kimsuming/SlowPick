@@ -31,7 +31,7 @@ function parseMega(htmlContent) {
           const calMatch = text.match(/[\d\.]+/); 
           nutrition.calories_kcal = calMatch ? parseFloat(calMatch[0]) : 0;
         } else if (text.match(/\d+ml|\d+oz/i)) {
-          nutrition.size_standard = text; 
+          nutrition.size_standard = text;
         }
       });
     });

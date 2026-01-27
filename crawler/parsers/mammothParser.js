@@ -2,13 +2,22 @@ const cheerio = require('cheerio');
 const { normalizeCategory } = require('../utils/categoryMapper');
 
 /**
- * 1. 목록 페이지에서 메뉴 ID 및 기본 정보 추출
+ * 숫자 파싱 헬퍼
+ */
+const parseNum = (val) => {
+  if (!val) return 0;
+  const str = val.toString().trim().replace(/,/g, '');
+  if (str === '-' || str === '' || str === '–') return 0;
+  const num = parseFloat(str);
+  return isNaN(num) ? 0 : num;
+};
+
+/**
+ * 1. 목록 페이지 파싱 (기존과 동일)
  */
 const getMenuIds = (html) => {
   const $ = cheerio.load(html);
   const menuList = [];
-  
-  // 매머드 카테고리 정의
   const targetCategories = ['.cate.cate01', '.cate.cate02', '.cate.cate03'];
 
   targetCategories.forEach((selector) => {
@@ -36,34 +45,26 @@ const getMenuIds = (html) => {
 };
 
 /**
- * 2. 상세(Modal HTML) 파싱 및 Schema 맞춤 변환
+ * 2. 상세(Modal HTML) 파싱
+ * - 동적 컬럼 매핑 적용 (HOT/ICE 유동적 대응)
  */
 const parseDetail = (detailHtml, baseInfo) => {
   const $ = cheerio.load(detailHtml);
   const { name: baseName, originalCategory } = baseInfo;
 
-  // --- [1] 설명 및 알레르기 정보 추출 (핵심 수정 부분) ---
-  let fullText = $('.txt_area').text().trim(); // 전체 텍스트 가져오기
+  // --- [1] 설명 및 알레르기 정보 추출 ---
+  let fullText = $('.txt_area').text().trim();
   let description = fullText;
   let allergyList = [];
 
-  // 정규식: "알레르기" 문구가 포함된 패턴 찾기 (■ 기호나 공백 유동적 대응)
-  // 예: "■ 알레르기 유발 성분 : 우유, 대두"
   const allergyRegex = /[■\s]*알레르기.*[:](.*)/i;
   const match = fullText.match(allergyRegex);
 
   if (match) {
-    // 1. 알레르기 정보 배열화 (쉼표 기준 분리)
-    const rawAllergyStr = match[1]; // 콜론(:) 뒤의 텍스트 (예: " 우유, 대두")
-    allergyList = rawAllergyStr
-      .split(',')
-      .map(s => s.trim())
-      .filter(s => s !== '' && s !== '-'); // 빈 값이나 하이픈 제외
-
-    // 2. 설명글에서 알레르기 문구 제거 (전체 매치된 문자열을 삭제)
+    const rawAllergyStr = match[1];
+    allergyList = rawAllergyStr.split(',').map(s => s.trim()).filter(s => s !== '' && s !== '-');
     description = fullText.replace(match[0], '').replace(/\s+/g, ' ').trim();
   } else {
-    // 알레르기 정보가 없는 경우 공백 정리만 수행
     description = description.replace(/\s+/g, ' ').trim();
   }
 
@@ -75,59 +76,71 @@ const parseDetail = (detailHtml, baseInfo) => {
 
   // --- [3] 카테고리 정규화 ---
   const normalizedCategory = normalizeCategory("매머드커피", originalCategory, baseName);
-  const menuType = (normalizedCategory === '디저트' || originalCategory === '디저트') 
-    ? 'food' 
-    : 'beverage';
+  const menuType = (normalizedCategory === '디저트' || originalCategory === '디저트') ? 'food' : 'beverage';
 
-  // --- [4] 옵션(HOT/ICE) 추출 ---
-  const options = [];
-  $('.i_table table thead tr th').each((index, el) => {
-    if (index > 0) { 
-      let optName = $(el).text().trim();
-      if (!optName) optName = 'Standard';
-      options.push(optName);
+
+  // --- [4] 테이블 구조 동적 분석 (핵심 수정) ---
+  // 헤더를 먼저 읽어서 유효한 컬럼의 인덱스와 옵션명을 파악합니다.
+  const validColumns = []; // { index: 1, label: 'HOT', size: '16oz' } 형태
+
+  $('.i_table table thead tr th').each((idx, th) => {
+    if (idx === 0) return; // 첫 번째 '구분' 컬럼 제외
+
+    const headerText = $(th).text().trim(); // 예: "HOT(16oz)" 또는 ""
+    
+    // 헤더 텍스트가 비어있으면 데이터가 없는 컬럼이므로 무시
+    if (headerText) {
+      let optName = 'Standard';
+      let sizeStr = headerText; // 기본적으로 전체 텍스트를 사이즈로 사용
+
+      if (headerText.toUpperCase().includes('HOT')) {
+        optName = 'HOT';
+      } else if (headerText.toUpperCase().includes('ICE') || headerText.includes('아이스')) {
+        optName = 'ICE';
+      }
+
+      // 괄호 안에 사이즈가 있는 경우 추출 (예: "HOT(16oz)" -> "16oz")
+      const sizeMatch = headerText.match(/\((.*?)\)/);
+      if (sizeMatch) {
+        sizeStr = sizeMatch[1];
+      }
+
+      validColumns.push({
+        colIndex: idx, // 실제 td 인덱스
+        optName: optName,
+        size: sizeStr
+      });
     }
   });
 
-  if (options.length === 0) return []; 
+  // 유효한 컬럼이 하나도 없으면 리턴
+  if (validColumns.length === 0) return [];
 
-  // --- [5] 결과 객체 생성 ---
-  const results = options.map((opt) => {
-    const suffix = opt === 'Standard' ? '' : ` [${opt}]`;
-    
-    return {
-      brand_name: "매머드커피",
-      category: normalizedCategory,
-      menu_name: `${baseName}${suffix}`,
-      description: description, // 알레르기 문구가 제거된 깔끔한 설명
-      is_active: true,
-      menu_image_url: imageUrl || "",
-      menu_type: menuType,
-      allergy_info: allergyList, // 추출된 알레르기 배열 (예: ["우유", "대두"])
-      nutrition: {
-        calories_kcal: 0,
-        sugar_g: 0,
-        protein_g: 0,
-        saturated_fat_g: 0, 
-        sodium_mg: 0,
-        caffeine_mg: 0,
-        size_standard: opt 
-      }
-    };
-  });
 
-  // --- [6] 영양성분 매핑 ---
+  // --- [5] 데이터 파싱 ---
+  // validColumns 정보를 기반으로 결과 객체 초기화
+  const variants = validColumns.map(col => ({
+    ...col,
+    nutrition: {
+      calories_kcal: 0, sugar_g: 0, protein_g: 0, saturated_fat_g: 0,
+      sodium_mg: 0, caffeine_mg: 0, size_standard: col.size
+    }
+  }));
+
   const nutrientMap = {
     '칼로리': 'calories_kcal',
     '당류': 'sugar_g',
     '단백질': 'protein_g',
     '나트륨': 'sodium_mg',
-    '카페인': 'caffeine_mg'
+    '카페인': 'caffeine_mg',
+    '포화지방': 'saturated_fat_g'
   };
 
+  // tbody 순회
   $('.i_table table tbody tr').each((i, tr) => {
-    const labelText = $(tr).find('td').eq(0).text().trim();
-    
+    const $tds = $(tr).find('td');
+    const labelText = $tds.eq(0).text().trim(); // 영양소 이름
+
     let targetKey = null;
     for (const [kor, schemaKey] of Object.entries(nutrientMap)) {
       if (labelText.includes(kor)) {
@@ -137,22 +150,43 @@ const parseDetail = (detailHtml, baseInfo) => {
     }
 
     if (targetKey) {
-      options.forEach((opt, optIdx) => {
-        const valText = $(tr).find('td').eq(optIdx + 1).text().trim();
-        let valNum = 0;
-
-        if (valText === '-' || valText === '–' || valText === '') {
-          valNum = 0;
-        } else {
-          valNum = parseFloat(valText.replace(/[^0-9.]/g, ''));
-          if (isNaN(valNum)) valNum = 0;
-        }
-
-        if (results[optIdx]) {
-          results[optIdx].nutrition[targetKey] = valNum;
-        }
+      // 미리 파악해둔 유효 컬럼 인덱스에서만 데이터를 가져옴
+      variants.forEach(variant => {
+        const valText = $tds.eq(variant.colIndex).text().trim();
+        variant.nutrition[targetKey] = parseNum(valText);
       });
     }
+  });
+
+
+  // --- [6] 최종 결과 생성 ---
+  const results = [];
+
+  variants.forEach((variant) => {
+    // 이미 headerText가 빈칸인 경우는 validColumns 생성 시 걸러졌으므로,
+    // 여기서는 별도의 hasValidData 체크를 안 해도 됨 (헤더가 있으면 데이터가 있다고 가정)
+    
+    // 이름 중복 방지
+    let suffix = '';
+    // 옵션명이 Standard가 아니고, 원래 이름에 해당 옵션이 없을 경우만 붙임
+    if (variant.optName !== 'Standard') {
+      const upperBase = baseName.toUpperCase();
+      if (!upperBase.includes(variant.optName)) {
+        suffix = ` [${variant.optName}]`;
+      }
+    }
+
+    results.push({
+      brand_name: "매머드커피",
+      category: normalizedCategory,
+      menu_name: `${baseName}${suffix}`,
+      description: description,
+      is_active: true,
+      menu_image_url: imageUrl || "",
+      menu_type: menuType,
+      allergy_info: allergyList,
+      nutrition: variant.nutrition
+    });
   });
 
   return results;
