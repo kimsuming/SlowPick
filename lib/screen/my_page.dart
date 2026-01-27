@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
-import 'package:slowpick/test/button_UI_test.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 
 class MyPageScreen extends StatelessWidget {
@@ -17,19 +16,6 @@ class MyPageScreen extends StatelessWidget {
 
       backgroundColor: Colors.white,
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(
-            Icons.chevron_left,
-            color: Color(0xFF808080),
-            size: 40,
-          ),
-          onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => HomeScreen()),
-            );
-          },
-        ),
         title: const Text('내 정보'),
         centerTitle: true,
         backgroundColor: Colors.white,
