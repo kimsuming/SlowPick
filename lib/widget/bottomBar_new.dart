@@ -35,10 +35,9 @@ class BottomBarNew extends StatelessWidget {
                 Text(
                   '홈',
                   style: TextStyle(
-                    color: Color(0xFF73AD31),
+                    color: Color(0xFF187100),
                     fontSize: 13,
-                    fontFamily: 'NEXON Lv1 Gothic',
-                    fontWeight: FontWeight.w400,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
@@ -65,10 +64,9 @@ class BottomBarNew extends StatelessWidget {
                 Text(
                   '커뮤니티',
                   style: TextStyle(
-                    color: Color(0xFF73AD31),
+                    color: Color(0xFF187100),
                     fontSize: 13,
-                    fontFamily: 'NEXON Lv1 Gothic',
-                    fontWeight: FontWeight.w400,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
@@ -108,12 +106,11 @@ class BottomBarNew extends StatelessWidget {
                 ),
                 SizedBox(height: 4),
                 Text(
-                  '좋아요',
+                  '찜',
                   style: TextStyle(
-                    color: Color(0xFF73AD31),
+                    color: Color(0xFF187100),
                     fontSize: 13,
-                    fontFamily: 'NEXON Lv1 Gothic',
-                    fontWeight: FontWeight.w400,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
@@ -140,10 +137,9 @@ class BottomBarNew extends StatelessWidget {
                 Text(
                   '내 정보',
                   style: TextStyle(
-                    color: Color(0xFF73AD31),
+                    color: Color(0xFF187100),
                     fontSize: 13,
-                    fontFamily: 'NEXON Lv1 Gothic',
-                    fontWeight: FontWeight.w400,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],

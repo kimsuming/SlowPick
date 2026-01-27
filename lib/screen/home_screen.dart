@@ -147,10 +147,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // 첫 번째 배너 위젯
   Widget _firstBanner() {
     return Container(height: 75, color: Colors.red);
   }
 
+  // 카페 목록 위젯
   Widget _cafeBtn({Color? color, String? imagePath}) {
     return GestureDetector(
       onTap: () => debugPrint("버튼 클릭"),
@@ -169,6 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // 카페 목록 가로 스크롤 위젯
   Widget _cafeCatalog() {
     return SizedBox(
       height: 69,
@@ -191,70 +194,82 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // 추천 메뉴 위젯
   Widget _recomendedMenu() {
-    return Container(
-      width: double.infinity,
-      height: 140,
-      color: Color(0xFFF6F6F6),
-      child: Padding(
-        padding: const EdgeInsets.all(26.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "환영해요, OO 님!",
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.24,
-                  ),
-                ),
-                Text(
-                  "제가 OO 님을 위한 추천메뉴를\n만들어 왔어요. 한번 보시겠어요?",
-                  style: TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: -1.5, // 글자 간격 조정
-                  ),
-                ),
-              ],
-            ),
-
-            // 화살표 버튼
-            Container(
-              width: 40,
-              height: 40,
-              decoration: const BoxDecoration(
-                color: Color(0xFF74AE31), // 초록색
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const RecommendedMenuScreen(),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const RecommendedMenuScreen(),
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        height: 140,
+        color: Color(0xFFF6F6F6),
+        child: Padding(
+          padding: const EdgeInsets.all(26.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "환영해요, OO 님!",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.24,
                     ),
-                  );
-                },
-                icon: const Icon(
-                  Icons.arrow_forward,
-                  color: Colors.white,
-                  size: 30,
-                ),
-                padding: EdgeInsets.zero,
-                constraints: BoxConstraints(),
+                  ),
+                  Text(
+                    "제가 OO 님을 위한 추천메뉴를\n만들어 왔어요. 한번 보시겠어요?",
+                    style: TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: -1.5, // 글자 간격 조정
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
+
+              // 화살표 버튼
+              Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF74AE31), // 초록색
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const RecommendedMenuScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(
+                    Icons.arrow_forward,
+                    color: Colors.white,
+                    size: 30,
+                  ),
+                  padding: EdgeInsets.zero,
+                  constraints: BoxConstraints(),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
+  // 첫 번째 슬라이더 위젯
   Widget _firstSlider() {
     return SizedBox(
       height: MediaQuery.of(context).size.height * 0.28,
@@ -288,14 +303,23 @@ class _HomeScreenState extends State<HomeScreen> {
             right: 15,
             bottom: 15,
             child: Container(
+              width: 67,
+              height: 30,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
+                border: Border.all(color: Colors.white, width: 1),
                 color: Colors.black.withValues(alpha: 0.49),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(50),
               ),
               child: Text(
                 '${_currentIndex1 + 1} / ${_sliderItems.length}',
-                style: const TextStyle(color: Colors.white, fontSize: 15),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.24,
+                ),
               ),
             ),
           ),
@@ -304,6 +328,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // 메뉴 검색 바 위젯
   Widget _menuSearchBar() {
     // 기존 GestureDetector를 StreamBuilder + Autocomplete로 교체
     return SizedBox(
@@ -441,6 +466,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // [여기까지 수정됨]
   }
 
+  // 두 번째 슬라이더 위젯
   Widget _secondSlider() {
     return CarouselSlider(
       options: CarouselOptions(
@@ -479,6 +505,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // 메뉴 순위 위젯
   Widget _menuRank() {
     return Column(
       children: [
@@ -521,6 +548,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // 개별 랭킹 아이템 위젯
   Widget _rankingItem(int boxSize, String cafeName, String menuName) {
     return Column(
       children: [
@@ -552,6 +580,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // 정보 카드 위젯
   Widget _informationCard() {
     return Column(
       children: [
@@ -617,6 +646,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // 콜라보 카테고리 위젯
   Widget _collaborationCategory() {
     return Column(
       children: [
@@ -726,6 +756,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // 두 번째 배너 위젯
   Widget _secondBanner() {
     return Column(
       children: [
