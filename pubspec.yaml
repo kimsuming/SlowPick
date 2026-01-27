@@ -62,6 +62,7 @@ flutter:
     - images/main_icon/
     - images/home/
     - images/comment_menu/
+    - images/myPage/
 
   
   fonts:

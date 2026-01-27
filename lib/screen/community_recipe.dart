@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
-import 'package:slowpick/screen/community_recipe.dart';
+import 'package:slowpick/screen/community_screen.dart';
 
-class CommunityScreen extends StatefulWidget {
-  const CommunityScreen({super.key});
+class CommunityRecipe extends StatefulWidget {
+  const CommunityRecipe({super.key});
 
   @override
-  State<CommunityScreen> createState() => _CommunityScreenState();
+  State<CommunityRecipe> createState() => _CommunityRecipeState();
 }
 
-class _CommunityScreenState extends State<CommunityScreen> {
-  bool postFilter = true;
+class _CommunityRecipeState extends State<CommunityRecipe> {
+  bool allPosts = true;
+  bool popularPosts = false;
+  bool myRegisteredPosts = false;
+  bool favoritePosts = false;
+
   int currentPage = 1;
   final int totalPage = 5;
 
@@ -73,31 +77,37 @@ class _CommunityScreenState extends State<CommunityScreen> {
         child: SafeArea(top: false, child: BottomBarNew()),
       ),
 
-      body: Column(
-        children: [
-          //소통&레시피 창 선택 버튼
-          _communicationRecipeSelector(),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            //소통&레시피 창 선택 버튼
+            _communicationRecipeSelector(),
 
-          //게시글 검색바
-          _searchBar(),
+            //게시글 검색바
+            _searchBar(),
 
-          //공지바
-          _noticeBar(),
+            //공지바
+            _noticeBar(),
 
-          //전체글&인기글 선택 버튼
-          _postFilterTab(),
+            //인기 레시피
+            _recommendedRecipeNotice(),
 
-          //페이지 넘기는 버튼
-          _pagination(),
+            SizedBox(height: 19),
 
-          Container(height: 1.3, color: const Color(0xFFD7D7D7)), // 구분선
-          //게시글 형식
-          _postListItem(),
-          //게시글 형식
-          _postListItem(),
-          //게시글 형식
-          _postListItem(),
-        ],
+            //전체글 & 인기글 & 내등록 & 찜 선택 버튼
+            _postFilterTab(),
+
+            SizedBox(height: 20),
+
+            Container(height: 1.3, color: const Color(0xFFD7D7D7)), // 구분선
+            //게시글 형식
+            _postListItem(),
+            //게시글 형식
+            _postListItem(),
+            //게시글 형식
+            _postListItem(),
+          ],
+        ),
       ),
     );
   }
@@ -111,7 +121,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
 
         children: [
-          //소통 버튼
+          //소통버튼
           GestureDetector(
             onTap: () {
               Navigator.push(
@@ -121,19 +131,14 @@ class _CommunityScreenState extends State<CommunityScreen> {
                 ),
               );
             },
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: Colors.black, width: 2),
-                ),
-              ),
-              width: 140,
+            child: SizedBox(
+              width: 150,
               height: 50,
               child: Center(
                 child: Text(
                   '소통',
                   style: TextStyle(
-                    color: Colors.black,
+                    color: const Color(0xFFB5B5B5),
                     fontSize: 20,
                     fontFamily: 'KoPubDotum Medium',
                     fontWeight: FontWeight.w400,
@@ -147,7 +152,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
 
           SizedBox(width: 30),
 
-          //레시피버튼
+          //레시피 버튼
           GestureDetector(
             onTap: () {
               Navigator.push(
@@ -157,14 +162,19 @@ class _CommunityScreenState extends State<CommunityScreen> {
                 ),
               );
             },
-            child: SizedBox(
-              width: 150,
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: Colors.black, width: 2),
+                ),
+              ),
+              width: 140,
               height: 50,
               child: Center(
                 child: Text(
                   '레시피',
                   style: TextStyle(
-                    color: const Color(0xFFB5B5B5),
+                    color: Colors.black,
                     fontSize: 20,
                     fontFamily: 'KoPubDotum Medium',
                     fontWeight: FontWeight.w400,
@@ -274,142 +284,197 @@ class _CommunityScreenState extends State<CommunityScreen> {
     );
   }
 
-  Widget _postFilterTab() {
+  Widget _recommendedRecipeNotice() {
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Row(
-        children: [
-          SizedBox(width: 15),
-
-          //전체글 버튼
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                postFilter = true;
-              });
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                color: postFilter ? Color(0xFFAEAEAE) : Colors.white,
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Color(0xFFAEAEAE), width: 2),
-              ),
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  child: Text(
-                    '전체글',
-                    style: TextStyle(
-                      color: postFilter ? Colors.white : Color(0xFFAEAEAE),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -1.70,
-                    ),
-                  ),
-                ),
+      padding: const EdgeInsets.all(4.0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Color(0xFFF3F3F3),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Padding(
+              padding: EdgeInsets.only(bottom: 2, left: 8),
+              child: Icon(
+                Icons.thumb_up_outlined,
+                color: const Color(0xFF666666),
+                size: 28,
               ),
             ),
-          ),
 
-          SizedBox(width: 6),
+            SizedBox(width: 5),
 
-          //인기글 버튼
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                postFilter = false;
-              });
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                color: postFilter ? Colors.white : Color(0xFFAEAEAE),
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Color(0xFFAEAEAE), width: 2),
-              ),
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  child: Text(
-                    '인기글',
-                    style: TextStyle(
-                      color: postFilter ? Color(0xFFAEAEAE) : Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -1.70,
-                    ),
-                  ),
-                ),
+            Text(
+              '3월 인기 레시피 바로 보러가기',
+              style: TextStyle(
+                color: const Color(0xFF666666),
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -1.70,
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _pagination() {
+  Widget _postFilterTab() {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // 이전 버튼
-        IconButton(
-          onPressed: currentPage > 1
-              ? () {
-                  setState(() {
-                    currentPage--;
-                  });
-                }
-              : null,
-          icon: const Icon(Icons.arrow_back),
-          color: const Color(0xFF7CB342),
-        ),
+        SizedBox(width: 15),
 
-        const SizedBox(width: 8),
-
-        // 페이지 숫자
-        ...List.generate(totalPage, (index) {
-          final page = index + 1;
-          final isSelected = page == currentPage;
-
-          return GestureDetector(
-            onTap: () {
-              setState(() {
-                currentPage = page;
-              });
-            },
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 6),
-              child: Text(
-                '$page',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? Colors.black : const Color(0xFF666666),
+        //전체글 버튼
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              allPosts = true;
+              popularPosts = false;
+              myRegisteredPosts = false;
+              favoritePosts = false;
+            });
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: allPosts ? Color(0xFFAEAEAE) : Colors.white,
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: Color(0xFFAEAEAE), width: 2),
+            ),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                child: Text(
+                  '전체글',
+                  style: TextStyle(
+                    color: allPosts ? Colors.white : Color(0xFFAEAEAE),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -1.70,
+                  ),
                 ),
               ),
             ),
-          );
-        }),
+          ),
+        ),
 
-        const SizedBox(width: 8),
+        SizedBox(width: 5),
 
-        // 다음 버튼
-        IconButton(
-          onPressed: currentPage < totalPage
-              ? () {
-                  setState(() {
-                    currentPage++;
-                  });
-                }
-              : null,
-          icon: const Icon(Icons.arrow_forward),
-          color: const Color(0xFF7CB342),
+        //인기 버튼
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              allPosts = false;
+              popularPosts = true;
+              myRegisteredPosts = false;
+              favoritePosts = false;
+            });
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: popularPosts ? Color(0xFFAEAEAE) : Colors.white,
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: Color(0xFFAEAEAE), width: 2),
+            ),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                child: Text(
+                  '인기',
+                  style: TextStyle(
+                    color: popularPosts ? Colors.white : Color(0xFFAEAEAE),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -1.70,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        SizedBox(width: 5),
+
+        //내 등록 버튼
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              allPosts = false;
+              popularPosts = false;
+              myRegisteredPosts = true;
+              favoritePosts = false;
+            });
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: myRegisteredPosts ? Color(0xFFAEAEAE) : Colors.white,
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: Color(0xFFAEAEAE), width: 2),
+            ),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                child: Text(
+                  '내 등록',
+                  style: TextStyle(
+                    color: myRegisteredPosts ? Colors.white : Color(0xFFAEAEAE),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -1.70,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        SizedBox(width: 5),
+
+        //찜 버튼
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              allPosts = false;
+              popularPosts = false;
+              myRegisteredPosts = false;
+              favoritePosts = true;
+            });
+          },
+          child: Container(
+            width: 49,
+            decoration: BoxDecoration(
+              color: favoritePosts ? Color(0xFFAEAEAE) : Colors.white,
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: Color(0xFFAEAEAE), width: 2),
+            ),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                child: Text(
+                  '찜',
+                  style: TextStyle(
+                    color: favoritePosts ? Colors.white : Color(0xFFAEAEAE),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -1.70,
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
       ],
     );

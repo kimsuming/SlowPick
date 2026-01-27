@@ -10,8 +10,7 @@ class LikedmenuScreen extends StatefulWidget {
 }
 
 class _LikedmenuScreenState extends State<LikedmenuScreen> {
-  bool fullSeeIsPressed = true;
-  bool categorySeePressed = false;
+  bool isCategoryView = false;
 
   @override
   Widget build(BuildContext context) {
@@ -54,31 +53,19 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
       ),
 
       // 본문
-      body: Column(
-        children: [
-          Center(child: _categoryFilter()),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            Center(child: _categoryFilter()),
 
-          SizedBox(height: 20),
-
-          Container(
-            padding: const EdgeInsets.only(left: 20.0, bottom: 10.0),
-            alignment: Alignment.centerLeft,
-            child: Text(
-              "총 n개",
-              style: TextStyle(
-                color: const Color(0xFFB7B7B7),
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                height: 1.25,
-                letterSpacing: -1,
-              ),
-            ),
-          ),
-        ],
+            _contentArea(),
+          ],
+        ),
       ),
     );
   }
 
+  // 카테고리 필터 위젯
   Widget _categoryFilter() {
     return Container(
       decoration: BoxDecoration(
@@ -95,15 +82,14 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
             GestureDetector(
               onTap: () {
                 setState(() {
-                  fullSeeIsPressed = true;
-                  categorySeePressed = false;
+                  isCategoryView = false;
                 });
               },
               child: Container(
                 width: 150,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: fullSeeIsPressed ? Colors.white : Color(0xFFF5F5F5),
+                  color: !isCategoryView ? Colors.white : Color(0xFFF5F5F5),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Center(
@@ -122,15 +108,14 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
             GestureDetector(
               onTap: () {
                 setState(() {
-                  fullSeeIsPressed = false;
-                  categorySeePressed = true;
+                  isCategoryView = true;
                 });
               },
               child: Container(
                 width: 150,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: categorySeePressed ? Colors.white : Color(0xFFF5F5F5),
+                  color: isCategoryView ? Colors.white : Color(0xFFF5F5F5),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Center(
@@ -144,6 +129,166 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // 화면 전환 위젯
+  Widget _contentArea() {
+    if (isCategoryView) {
+      return _categoryListView(); // 오른쪽 화면
+    } else {
+      return _likedMenuGrid(); // 왼쪽 화면
+    }
+  }
+
+  // 찜한 메뉴 그리드 화면
+  Widget _likedMenuGrid() {
+    return Column(
+      children: [
+        _menuNumber(),
+        Container(height: 700, color: Colors.amber),
+      ],
+    );
+  }
+
+  // 찜한 메뉴 개수 표시 위젯
+  Widget _menuNumber() {
+    return Container(
+      padding: const EdgeInsets.only(left: 20.0, bottom: 10.0, top: 20.0),
+      alignment: Alignment.centerLeft,
+      child: Text(
+        "총 n개",
+        style: TextStyle(
+          color: const Color(0xFFB7B7B7),
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          height: 1.25,
+          letterSpacing: -1,
+        ),
+      ),
+    );
+  }
+
+  // 카테고리별 보기 화면
+  Widget _categoryListView() {
+    return Column(
+      children: [
+        _gridbutton(),
+        GridView.count(
+          padding: const EdgeInsets.only(
+            left: 10,
+            right: 10,
+            bottom: 10,
+            top: 0,
+          ),
+          crossAxisCount: 2,
+          crossAxisSpacing: 5,
+          mainAxisSpacing: 9,
+          childAspectRatio: 3,
+          shrinkWrap: true,
+          physics: NeverScrollableScrollPhysics(),
+          children: [
+            _gridItem(color: Colors.green, cafeTitle: '메가커피'),
+            _gridItem(color: Colors.indigo, cafeTitle: '컴포즈'),
+            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
+            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
+            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
+            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
+            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
+            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
+            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
+            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
+            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
+            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
+            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
+            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
+            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
+            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
+            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
+            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
+            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // 그리드 버튼 위젯
+  Widget _gridbutton() {
+    return Container(
+      padding: const EdgeInsets.only(right: 10.0),
+      alignment: Alignment.centerRight,
+      child: IconButton(
+        icon: const Icon(Icons.drag_handle, color: Color(0xFF909090), size: 40),
+        onPressed: () {},
+      ),
+    );
+  }
+
+  Widget _gridItem({Color? color, String? imagePath, String? cafeTitle}) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Color(0xFFE2E2E2), width: 1.5),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              SizedBox(width: 10),
+
+              // 원형 이미지 또는 색상 박스
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Color(0xFFE2E2E2), width: 1.5),
+                  color: imagePath == null ? color : null,
+                  image: imagePath != null
+                      ? DecorationImage(
+                          image: AssetImage(imagePath),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                ),
+              ),
+              SizedBox(width: 5),
+
+              // 카페 이름
+              SizedBox(
+                width: 75,
+                child: Text(
+                  cafeTitle ?? '',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -1,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+
+          //기본 패딩값이 너무 커서 나중에 이미지로 변경해야할 필요가 있음
+          // 화살표 아이콘
+          IconButton(
+            icon: const Icon(
+              Icons.chevron_right,
+              color: Color(0xFFE3E3E3),
+              size: 30,
+            ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            onPressed: () {},
+          ),
+        ],
       ),
     );
   }

@@ -208,7 +208,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
     final String name = data['menu_name'] ?? '이름 없음';
     final String imageUrl = data['menu_image_url'] ?? '';
-    final int kcal = data['nutrition']?['calories_kcal'] ?? 0;
+    final num kcal = data['nutrition']?['calories_kcal'] ?? 0;
     final num sugar = data['nutrition']?['sugar_g'] ?? 0;
     final String allergy = "정보 없음";
 
@@ -292,7 +292,10 @@ class _SearchScreenState extends State<SearchScreen> {
                         sugarColors['bg']!, // 배경색
                         sugarColors['text']!, // 글자색
                       ),
-                      SizedBox(height: screenHeight * 0.005, width:screenWidth * 0.0001),
+                      SizedBox(
+                        height: screenHeight * 0.005,
+                        width: screenWidth * 0.0001,
+                      ),
                       Text(
                         '알레르기: $allergy',
                         style: TextStyle(
@@ -320,7 +323,7 @@ class _SearchScreenState extends State<SearchScreen> {
     final double cardHeight = 110.0;
     final String name = data['menu_name'] ?? '이름 없음';
     final String imageUrl = data['menu_image_url'] ?? '';
-    final int kcal = data['nutrition']?['calories_kcal'] ?? 0;
+    final num kcal = data['nutrition']?['calories_kcal'] ?? 0;
     final num sugar = data['nutrition']?['sugar_g'] ?? 0;
     final num protein = 12; // 임시 데이터
     final num fat = 5; // 임시 데이터
