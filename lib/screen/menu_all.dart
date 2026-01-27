@@ -1,47 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:slowpick/widget/bottomBar_new.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
-import 'package:slowpick/widget/menu_cards.dart'; 
-
-class SearchScreen extends StatefulWidget {
-  final String? initialQuery;
-
-  const SearchScreen({super.key, this.initialQuery});
+class MenuScreen extends StatefulWidget {
+  const MenuScreen({super.key});
 
   @override
-  State<SearchScreen> createState() => _SearchScreenState();
+  State<MenuScreen> createState() => _MenuScreen();
 }
 
-class _SearchScreenState extends State<SearchScreen> {
+class _MenuScreen extends State<MenuScreen> {
+  // 보기 모드 상태 변수 (true: 그리드(2열), false: 리스트(1열))
   bool _isGridView = true;
-  late TextEditingController _searchController;
-  String _searchText = "";
-
-  @override
-  void initState() {
-    super.initState();
-    String initialText = widget.initialQuery ?? "";
-    _searchController = TextEditingController(text: initialText);
-    _searchText = initialText;
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
+    // 반응형 크기 계산
     final double screenWidth = MediaQuery.of(context).size.width;
     final double screenHeight = MediaQuery.of(context).size.height;
+
+    // 그리드 뷰용 비율 계산
     final double gridAspectRatio = (screenWidth / 2) / (screenHeight * 0.38);
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('메뉴 검색'),
+        title: const Text('전체 메뉴'),
         backgroundColor: Colors.white,
         elevation: 0,
         titleTextStyle: TextStyle(
@@ -49,8 +33,8 @@ class _SearchScreenState extends State<SearchScreen> {
           fontSize: screenWidth * 0.05,
           fontWeight: FontWeight.bold,
         ),
-        iconTheme: const IconThemeData(color: Colors.black),
         actions: [
+          // 보기 모드 전환 버튼
           IconButton(
             onPressed: () {
               setState(() {
@@ -61,137 +45,72 @@ class _SearchScreenState extends State<SearchScreen> {
               _isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
               color: Colors.black54,
             ),
+            tooltip: _isGridView ? '리스트로 보기' : '그리드로 보기',
           ),
           const SizedBox(width: 8),
         ],
       ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('menus').snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(color: Colors.greenAccent),
+            );
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text('저장된 메뉴가 없습니다.'));
+          }
 
-      bottomNavigationBar: Container(
-        color: Color(0xFFFCFCFC),
-        child: SafeArea(top: false, child: BottomBarNew()),
-      ),
+          final docs = snapshot.data!.docs;
 
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (value) {
-                setState(() {
-                  _searchText = value;
-                });
-              },
-              decoration: InputDecoration(
-                hintText: '메뉴 이름을 검색해보세요!',
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                suffixIcon: _searchText.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.grey),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {
-                            _searchText = "";
-                          });
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: const Color(0xFFF5F5F5),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,
-                ),
+          // 모드에 따라 다른 뷰 반환
+          if (_isGridView) {
+            // 1. 기존 그리드 뷰 (2열)
+            return GridView.builder(
+              padding: EdgeInsets.all(screenWidth * 0.04),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: gridAspectRatio,
+                crossAxisSpacing: screenWidth * 0.04,
+                mainAxisSpacing: screenWidth * 0.04,
               ),
-            ),
-          ),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('menus')
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: Colors.greenAccent),
-                  );
-                }
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text('저장된 메뉴가 없습니다.'));
-                }
-
-                final allDocs = snapshot.data!.docs;
-                final filteredDocs = allDocs.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  final name = data['menu_name'] as String? ?? '';
-                  if (_searchText.isEmpty) return true;
-                  return name.toLowerCase().contains(_searchText.toLowerCase());
-                }).toList();
-
-                if (filteredDocs.isEmpty) {
-                  return Center(child: Text('\'$_searchText\' 검색 결과가 없습니다.'));
-                }
-
-                if (_isGridView) {
-                  return GridView.builder(
-                    padding: EdgeInsets.fromLTRB(
-                      screenWidth * 0.04,
-                      0,
-                      screenWidth * 0.04,
-                      16,
-                    ),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: gridAspectRatio,
-                      crossAxisSpacing: screenWidth * 0.04,
-                      mainAxisSpacing: screenWidth * 0.04,
-                    ),
-                    itemCount: filteredDocs.length,
-                    itemBuilder: (context, index) {
-                      final data = filteredDocs[index].data() as Map<String, dynamic>;
-                      // 분리한 위젯 사용!
-                      return MenuGridCard(data: data); 
-                    },
-                  );
-                } else {
-                  return ListView.separated(
-                    padding: EdgeInsets.fromLTRB(
-                      screenWidth * 0.04,
-                      0,
-                      screenWidth * 0.04,
-                      16,
-                    ),
-                    itemCount: filteredDocs.length,
-                    separatorBuilder: (context, index) =>
-                        SizedBox(height: screenHeight * 0.02),
-                    itemBuilder: (context, index) {
-                      final data = filteredDocs[index].data() as Map<String, dynamic>;
-                      return MenuListCard(data: data);
-                    },
-                  );
-                }
+              itemCount: docs.length,
+              itemBuilder: (context, index) {
+                final data = docs[index].data() as Map<String, dynamic>;
+                return _buildGridCard(context, data);
               },
-            ),
-          ),
-        ],
+            );
+          } else {
+            // 2. 새로운 리스트 뷰 (1열, 가로 배치)
+            return ListView.separated(
+              padding: EdgeInsets.all(screenWidth * 0.04),
+              itemCount: docs.length,
+              separatorBuilder: (context, index) =>
+                  SizedBox(height: screenHeight * 0.02), // 아이템 간 간격
+              itemBuilder: (context, index) {
+                final data = docs[index].data() as Map<String, dynamic>;
+                return _buildListCard(context, data);
+              },
+            );
+          }
+        },
       ),
     );
   }
 
-  // === 그리드 뷰 카드 ===
+  // ==========================================
+  // 1. 그리드형 카드 위젯 (기존 디자인 유지)
+  // ==========================================
   Widget _buildGridCard(BuildContext context, Map<String, dynamic> data) {
     final double screenWidth = MediaQuery.of(context).size.width;
     final double screenHeight = MediaQuery.of(context).size.height;
 
     final String name = data['menu_name'] ?? '이름 없음';
     final String imageUrl = data['menu_image_url'] ?? '';
-    final num kcal = data['nutrition']?['calories_kcal'] ?? 0;
+    final int kcal = data['nutrition']?['calories_kcal'] ?? 0;
     final num sugar = data['nutrition']?['sugar_g'] ?? 0;
     final String allergy = "정보 없음";
-
-    // 당류 색상 가져오기
-    final Map<String, Color> sugarColors = _getSugarColor(sugar);
 
     return Container(
       clipBehavior: Clip.antiAlias,
@@ -225,7 +144,11 @@ class _SearchScreenState extends State<SearchScreen> {
                       )
                     : const Icon(Icons.coffee, size: 50, color: Colors.grey),
               ),
-              Positioned(right: 8, top: 8, child: _buildHeartIcon()),
+              Positioned(
+                right: 8,
+                top: 8,
+                child: _buildHeartIcon(),
+              ),
             ],
           ),
           Expanded(
@@ -263,17 +186,9 @@ class _SearchScreenState extends State<SearchScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 동적 색상 적용
-                      _buildNutritionBadge(
-                        screenWidth,
-                        '당 ${sugar}g',
-                        sugarColors['bg']!, // 배경색
-                        sugarColors['text']!, // 글자색
-                      ),
-                      SizedBox(
-                        height: screenHeight * 0.005,
-                        width: screenWidth * 0.0001,
-                      ),
+                      _buildNutritionBadge(screenWidth, '당 ${sugar}g',
+                          const Color(0xFFFFE0E1), const Color(0xFFEF4444)),
+                      SizedBox(height: screenHeight * 0.005),
                       Text(
                         '알레르기: $allergy',
                         style: TextStyle(
@@ -295,19 +210,21 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  // === 리스트 뷰 카드 ===
+  // ==========================================
+  // 2. 리스트형 카드 위젯 (새로운 디자인)
+  // ==========================================
   Widget _buildListCard(BuildContext context, Map<String, dynamic> data) {
     final double screenWidth = MediaQuery.of(context).size.width;
-    final double cardHeight = 110.0;
+    // 리스트 카드의 높이는 고정값이나 비율로 적절히 작게 설정
+    final double cardHeight = 110.0; // 픽셀 단위로 적절히 고정하거나 비율 사용 가능
+
     final String name = data['menu_name'] ?? '이름 없음';
     final String imageUrl = data['menu_image_url'] ?? '';
-    final num kcal = data['nutrition']?['calories_kcal'] ?? 0;
+    final int kcal = data['nutrition']?['calories_kcal'] ?? 0;
     final num sugar = data['nutrition']?['sugar_g'] ?? 0;
-    final num protein = 12; // 임시 데이터
-    final num fat = 5; // 임시 데이터
-
-    // 당류 색상 가져오기
-    final Map<String, Color> sugarColors = _getSugarColor(sugar);
+    // DB에 없는 데이터 임시 처리 (3개 보여주기 위함)
+    final num protein = 12; // 예시 데이터
+    final num fat = 5; // 예시 데이터
 
     return Container(
       height: cardHeight,
@@ -326,8 +243,9 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
       child: Row(
         children: [
+          // 좌측 이미지
           Container(
-            width: cardHeight,
+            width: cardHeight, // 정사각형 비율
             height: cardHeight,
             color: const Color(0xFFF1F1F1),
             child: imageUrl.isNotEmpty
@@ -339,6 +257,8 @@ class _SearchScreenState extends State<SearchScreen> {
                   )
                 : const Icon(Icons.coffee, size: 40, color: Colors.grey),
           ),
+
+          // 우측 정보 영역
           Expanded(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
@@ -346,6 +266,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  // 상단: 이름 + 가격/칼로리 + 하트
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -379,23 +300,17 @@ class _SearchScreenState extends State<SearchScreen> {
                       _buildHeartIcon(size: 24),
                     ],
                   ),
+
+                  // 하단: 영양 성분 3개 (Row로 배치)
                   Row(
                     children: [
-                      // 리스트뷰에서도 색상을 적용하기 위해 함수를 조금 수정하여 사용하거나,
-                      // _buildNutritionBadge 스타일을 작게 만들어 씁니다.
-                      // 여기서는 _buildMiniBadge를 수정해서 색상을 받도록 처리합니다.
-                      _buildColorMiniBadge(
-                        '당 ${sugar}g',
-                        sugarColors['bg']!,
-                        sugarColors['text']!,
-                      ),
+                      _buildMiniBadge('당 ${sugar}g'),
                       const SizedBox(width: 6),
-                      // 다른 성분은 기본 회색 유지
                       _buildMiniBadge('단백질 ${protein}g'),
                       const SizedBox(width: 6),
                       _buildMiniBadge('지방 ${fat}g'),
                     ],
-                  ),
+                  )
                 ],
               ),
             ),
@@ -405,6 +320,7 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
+  // 공통: 하트 아이콘
   Widget _buildHeartIcon({double size = 30}) {
     return Container(
       width: size,
@@ -421,13 +337,9 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  // 그리드용 뱃지
+  // 공통: 영양성분 뱃지 (그리드용 - 조금 큼)
   Widget _buildNutritionBadge(
-    double screenWidth,
-    String text,
-    Color bgColor,
-    Color textColor,
-  ) {
+      double screenWidth, String text, Color bgColor, Color textColor) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: ShapeDecoration(
@@ -449,7 +361,7 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  // 리스트용 기본 미니 뱃지 (회색)
+  // 공통: 영양성분 미니 뱃지 (리스트용 - 작고 심플하게)
   Widget _buildMiniBadge(String text) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -463,26 +375,6 @@ class _SearchScreenState extends State<SearchScreen> {
           color: Color(0xFF555555),
           fontSize: 11,
           fontFamily: 'KoPubDotum',
-        ),
-      ),
-    );
-  }
-
-  // 리스트용 컬러 미니 뱃지 (당류용)
-  Widget _buildColorMiniBadge(String text, Color bgColor, Color textColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: textColor,
-          fontSize: 11,
-          fontFamily: 'KoPubDotum',
-          fontWeight: FontWeight.bold,
         ),
       ),
     );
