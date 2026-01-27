@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 
 class SearchScreen extends StatefulWidget {
+  // 메인에서 전달받을 초기 검색어 (없을 수도 있으므로 nullable)
   final String? initialQuery;
 
   const SearchScreen({super.key, this.initialQuery});
@@ -14,12 +15,13 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   bool _isGridView = true;
-  late TextEditingController _searchController;
+  late TextEditingController _searchController; // late로 변경
   String _searchText = "";
 
   @override
   void initState() {
     super.initState();
+    // 전달받은 초기 검색어가 있으면 설정, 없으면 빈 문자열
     String initialText = widget.initialQuery ?? "";
     _searchController = TextEditingController(text: initialText);
     _searchText = initialText;
@@ -29,27 +31,6 @@ class _SearchScreenState extends State<SearchScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  // _getSugarColor: 당류 수치에 따라 색상을 반환하는 함수
-  // 'bg': 배경색, 'text': 글자색
-  Map<String, Color> _getSugarColor(num sugar) {
-    if (sugar >= 20) {
-      // 위험 (빨강) - 20g 이상
-      return {'bg': const Color(0xFFFFE0E1), 'text': const Color(0xFFEF4444)};
-    } else if (sugar >= 5) {
-      // 보통 (파랑) - 5g 이상 ~ 20g 미만
-      return {
-        'bg': const Color(0xFFE3F2FD), // 연한 파랑
-        'text': const Color(0xFF1E88E5), // 진한 파랑
-      };
-    } else {
-      // 안전 (초록) - 5g 미만
-      return {
-        'bg': const Color(0xFFE8F5E9), // 연한 초록
-        'text': const Color(0xFF43A047), // 진한 초록
-      };
-    }
   }
 
   @override
@@ -69,6 +50,7 @@ class _SearchScreenState extends State<SearchScreen> {
           fontSize: screenWidth * 0.05,
           fontWeight: FontWeight.bold,
         ),
+        // 뒤로가기 버튼 색상 (메인에서 넘어왔으므로 필요)
         iconTheme: const IconThemeData(color: Colors.black),
         actions: [
           IconButton(
@@ -85,13 +67,6 @@ class _SearchScreenState extends State<SearchScreen> {
           const SizedBox(width: 8),
         ],
       ),
-
-      bottomNavigationBar: Container(
-        //바텀 바
-        color: Color(0xFFFCFCFC),
-        child: SafeArea(top: false, child: BottomBarNew()),
-      ),
-
       body: Column(
         children: [
           Padding(
@@ -104,7 +79,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 });
               },
               decoration: InputDecoration(
-                hintText: '메뉴 이름을 검색해보세요!',
+                hintText: '메뉴 이름을 검색해보세요',
                 prefixIcon: const Icon(Icons.search, color: Colors.grey),
                 suffixIcon: _searchText.isNotEmpty
                     ? IconButton(
@@ -129,9 +104,7 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('menus')
-                  .snapshots(),
+              stream: FirebaseFirestore.instance.collection('menus').snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
@@ -151,17 +124,15 @@ class _SearchScreenState extends State<SearchScreen> {
                 }).toList();
 
                 if (filteredDocs.isEmpty) {
-                  return Center(child: Text('\'$_searchText\' 검색 결과가 없습니다.'));
+                  return Center(
+                    child: Text('\'$_searchText\' 검색 결과가 없습니다.'),
+                  );
                 }
 
                 if (_isGridView) {
                   return GridView.builder(
                     padding: EdgeInsets.fromLTRB(
-                      screenWidth * 0.04,
-                      0,
-                      screenWidth * 0.04,
-                      16,
-                    ),
+                        screenWidth * 0.04, 0, screenWidth * 0.04, 16),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
                       childAspectRatio: gridAspectRatio,
@@ -170,25 +141,19 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                     itemCount: filteredDocs.length,
                     itemBuilder: (context, index) {
-                      final data =
-                          filteredDocs[index].data() as Map<String, dynamic>;
+                      final data = filteredDocs[index].data() as Map<String, dynamic>;
                       return _buildGridCard(context, data);
                     },
                   );
                 } else {
                   return ListView.separated(
                     padding: EdgeInsets.fromLTRB(
-                      screenWidth * 0.04,
-                      0,
-                      screenWidth * 0.04,
-                      16,
-                    ),
+                        screenWidth * 0.04, 0, screenWidth * 0.04, 16),
                     itemCount: filteredDocs.length,
                     separatorBuilder: (context, index) =>
                         SizedBox(height: screenHeight * 0.02),
                     itemBuilder: (context, index) {
-                      final data =
-                          filteredDocs[index].data() as Map<String, dynamic>;
+                      final data = filteredDocs[index].data() as Map<String, dynamic>;
                       return _buildListCard(context, data);
                     },
                   );
@@ -201,20 +166,16 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  // === 그리드 뷰 카드 ===
   Widget _buildGridCard(BuildContext context, Map<String, dynamic> data) {
+    // (기존 코드와 동일하므로 생략하지 않고 전체 코드 유지를 위해 포함)
     final double screenWidth = MediaQuery.of(context).size.width;
     final double screenHeight = MediaQuery.of(context).size.height;
 
     final String name = data['menu_name'] ?? '이름 없음';
     final String imageUrl = data['menu_image_url'] ?? '';
-    final num kcal = data['nutrition']?['calories_kcal'] ?? 0;
+    final int kcal = data['nutrition']?['calories_kcal'] ?? 0;
     final num sugar = data['nutrition']?['sugar_g'] ?? 0;
-    final List<String> allergyList = data['allergy_info'] != null ? List<String>.from(data['allergy_info']) : [];
-    final String allergyText = allergyList.isEmpty ? '-' : allergyList.join(', ');
-
-    // 당류 색상 가져오기
-    final Map<String, Color> sugarColors = _getSugarColor(sugar);
+    final String allergy = "정보 없음";
 
     return Container(
       clipBehavior: Clip.antiAlias,
@@ -223,11 +184,10 @@ class _SearchScreenState extends State<SearchScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey,
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
+              color: Colors.grey,
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, 2)),
         ],
       ),
       child: Column(
@@ -261,49 +221,35 @@ class _SearchScreenState extends State<SearchScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: screenWidth * 0.04,
-                          fontWeight: FontWeight.w600,
-                          fontFamily: 'KoPubDotum',
-                        ),
-                      ),
+                      Text(name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: Colors.black,
+                              fontSize: screenWidth * 0.04,
+                              fontWeight: FontWeight.w600,
+                              fontFamily: 'KoPubDotum')),
                       SizedBox(height: screenHeight * 0.005),
-                      Text(
-                        '[ ${kcal}Kcal ]  8,700~',
-                        style: TextStyle(
-                          color: Colors.black54,
-                          fontSize: screenWidth * 0.032,
-                          fontFamily: 'KoPubDotum',
-                        ),
-                      ),
+                      Text('[ ${kcal}Kcal ]  8,700~',
+                          style: TextStyle(
+                              color: Colors.black54,
+                              fontSize: screenWidth * 0.032,
+                              fontFamily: 'KoPubDotum')),
                     ],
                   ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 동적 색상 적용
-                      _buildNutritionBadge(
-                        screenWidth,
-                        '당 ${sugar}g',
-                        sugarColors['bg']!, // 배경색
-                        sugarColors['text']!, // 글자색
-                      ),
-                      SizedBox(height: screenHeight * 0.005, width:screenWidth * 0.0001),
-                      Text(
-                      '알레르기: $allergyText', // 변환된 문자열 변수 사용
-                      style: TextStyle(
-                        color: const Color(0xFF7B7B7B),
-                        fontSize: screenWidth * 0.028,
-                        fontFamily: 'KoPubDotum',
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      ),
+                      _buildNutritionBadge(screenWidth, '당 ${sugar}g',
+                          const Color(0xFFFFE0E1), const Color(0xFFEF4444)),
+                      SizedBox(height: screenHeight * 0.005),
+                      Text('알레르기: $allergy',
+                          style: TextStyle(
+                              color: const Color(0xFF7B7B7B),
+                              fontSize: screenWidth * 0.028,
+                              fontFamily: 'KoPubDotum'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
                     ],
                   ),
                 ],
@@ -315,19 +261,15 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  // === 리스트 뷰 카드 ===
   Widget _buildListCard(BuildContext context, Map<String, dynamic> data) {
     final double screenWidth = MediaQuery.of(context).size.width;
     final double cardHeight = 110.0;
     final String name = data['menu_name'] ?? '이름 없음';
     final String imageUrl = data['menu_image_url'] ?? '';
-    final num kcal = data['nutrition']?['calories_kcal'] ?? 0;
+    final int kcal = data['nutrition']?['calories_kcal'] ?? 0;
     final num sugar = data['nutrition']?['sugar_g'] ?? 0;
-    final num protein = 12; // 임시 데이터
-    final num fat = 5; // 임시 데이터
-
-    // 당류 색상 가져오기
-    final Map<String, Color> sugarColors = _getSugarColor(sugar);
+    final num protein = 12;
+    final num fat = 5;
 
     return Container(
       height: cardHeight,
@@ -337,11 +279,10 @@ class _SearchScreenState extends State<SearchScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey,
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
+              color: Colors.grey,
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, 2)),
         ],
       ),
       child: Row(
@@ -374,25 +315,19 @@ class _SearchScreenState extends State<SearchScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: screenWidth * 0.042,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: 'KoPubDotum',
-                              ),
-                            ),
+                            Text(name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontSize: screenWidth * 0.042,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: 'KoPubDotum')),
                             const SizedBox(height: 4),
-                            Text(
-                              '8,700원  |  ${kcal}Kcal',
-                              style: TextStyle(
-                                fontSize: screenWidth * 0.032,
-                                color: Colors.black54,
-                                fontFamily: 'KoPubDotum',
-                              ),
-                            ),
+                            Text('8,700원  |  ${kcal}Kcal',
+                                style: TextStyle(
+                                    fontSize: screenWidth * 0.032,
+                                    color: Colors.black54,
+                                    fontFamily: 'KoPubDotum')),
                           ],
                         ),
                       ),
@@ -401,18 +336,13 @@ class _SearchScreenState extends State<SearchScreen> {
                   ),
                   Row(
                     children: [
-                      _buildColorMiniBadge(
-                        '당 ${sugar}g',
-                        sugarColors['bg']!,
-                        sugarColors['text']!,
-                      ),
+                      _buildMiniBadge('당 ${sugar}g'),
                       const SizedBox(width: 6),
-                      // 다른 성분은 기본 회색 유지
                       _buildMiniBadge('단백질 ${protein}g'),
                       const SizedBox(width: 6),
                       _buildMiniBadge('지방 ${fat}g'),
                     ],
-                  ),
+                  )
                 ],
               ),
             ),
@@ -424,84 +354,41 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildHeartIcon({double size = 30}) {
     return Container(
-      width: size,
-      height: size,
-      decoration: const BoxDecoration(
-        color: Colors.white70,
-        shape: BoxShape.circle,
-      ),
-      child: Icon(
-        Icons.favorite_border,
-        size: size * 0.6,
-        color: Colors.black54,
-      ),
-    );
+        width: size,
+        height: size,
+        decoration: const BoxDecoration(
+            color: Colors.white70, shape: BoxShape.circle),
+        child: Icon(Icons.favorite_border,
+            size: size * 0.6, color: Colors.black54));
   }
 
-  // 그리드용 뱃지
   Widget _buildNutritionBadge(
-    double screenWidth,
-    String text,
-    Color bgColor,
-    Color textColor,
-  ) {
+      double screenWidth, String text, Color bgColor, Color textColor) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: ShapeDecoration(
-        color: bgColor,
-        shape: RoundedRectangleBorder(
-          side: BorderSide(width: 1, color: textColor),
-          borderRadius: BorderRadius.circular(30),
-        ),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: textColor,
-          fontSize: screenWidth * 0.03,
-          fontWeight: FontWeight.bold,
-          fontFamily: 'KoPubDotum',
-        ),
-      ),
+          color: bgColor,
+          shape: RoundedRectangleBorder(
+              side: BorderSide(width: 1, color: textColor),
+              borderRadius: BorderRadius.circular(30))),
+      child: Text(text,
+          style: TextStyle(
+              color: textColor,
+              fontSize: screenWidth * 0.03,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'KoPubDotum')),
     );
   }
 
-  // 리스트용 기본 미니 뱃지 (회색)
   Widget _buildMiniBadge(String text) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Color(0xFF555555),
-          fontSize: 11,
-          fontFamily: 'KoPubDotum',
-        ),
-      ),
-    );
-  }
-
-  // 리스트용 컬러 미니 뱃지 (당류용)
-  Widget _buildColorMiniBadge(String text, Color bgColor, Color textColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: textColor,
-          fontSize: 11,
-          fontFamily: 'KoPubDotum',
-          fontWeight: FontWeight.bold,
-        ),
-      ),
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(4)),
+      child: Text(text,
+          style: const TextStyle(
+              color: Color(0xFF555555), fontSize: 11, fontFamily: 'KoPubDotum')),
     );
   }
 }
