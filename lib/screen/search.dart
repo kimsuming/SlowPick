@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 
-import 'package:slowpick/widget/menu_cards.dart'; 
+import 'package:slowpick/widget/menu_cards.dart';
 
 class SearchScreen extends StatefulWidget {
   final String? initialQuery;
@@ -36,7 +36,7 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
     final double screenHeight = MediaQuery.of(context).size.height;
-    final double gridAspectRatio = (screenWidth / 2) / (screenHeight * 0.38);
+    final double gridAspectRatio = (screenWidth / 2) / (screenHeight * 0.37);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -84,9 +84,7 @@ class _SearchScreenState extends State<SearchScreen> {
               },
               decoration: InputDecoration(
                 hintText: '메뉴를 검색해보세요!',
-                hintStyle: TextStyle(
-                color: Colors.black38,
-                ),
+                hintStyle: TextStyle(color: Colors.black38),
                 prefixIcon: const Icon(Icons.search, color: Colors.grey),
                 suffixIcon: _searchText.isNotEmpty
                     ? IconButton(
@@ -140,9 +138,9 @@ class _SearchScreenState extends State<SearchScreen> {
                   return GridView.builder(
                     padding: EdgeInsets.fromLTRB(
                       screenWidth * 0.04,
-                      0,
+                      18,
                       screenWidth * 0.04,
-                      16,
+                      18,
                     ),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
@@ -152,12 +150,13 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                     itemCount: filteredDocs.length,
                     itemBuilder: (context, index) {
-                      final data = filteredDocs[index].data() as Map<String, dynamic>;
-                      return MenuGridCard(data: data); 
+                      final data =
+                          filteredDocs[index].data() as Map<String, dynamic>;
+                      return MenuGridCard(data: data);
                     },
                   );
                 } else {
-                // 리스트뷰
+                  // 리스트뷰
                   return ListView.separated(
                     padding: EdgeInsets.fromLTRB(
                       screenWidth * 0.04,
@@ -169,7 +168,8 @@ class _SearchScreenState extends State<SearchScreen> {
                     separatorBuilder: (context, index) =>
                         SizedBox(height: screenHeight * 0.02),
                     itemBuilder: (context, index) {
-                      final data = filteredDocs[index].data() as Map<String, dynamic>;
+                      final data =
+                          filteredDocs[index].data() as Map<String, dynamic>;
                       return MenuListCard(data: data);
                     },
                   );
