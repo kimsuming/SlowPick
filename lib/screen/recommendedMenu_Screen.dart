@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:slowpick/widget/menu_cards.dart'; 
+import 'package:slowpick/screen/menu_detail_screen.dart';
 
 class RecommendedMenuScreen extends StatefulWidget {
   const RecommendedMenuScreen({super.key});
@@ -11,6 +14,12 @@ class RecommendedMenuScreen extends StatefulWidget {
 class _RecommendedMenuScreenState extends State<RecommendedMenuScreen> {
   @override
   Widget build(BuildContext context) {
+
+    // 그리드 뷰 비율 계산
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double screenHeight = MediaQuery.of(context).size.height;
+    final double gridAspectRatio = (screenWidth / 2) / (screenHeight * 0.38);
+
     return Scaffold(
       bottomNavigationBar: Container(
         color: Color(0xFFFCFCFC), // << 여기 색이 하단까지 채워짐
@@ -136,37 +145,72 @@ class _RecommendedMenuScreenState extends State<RecommendedMenuScreen> {
                         ),
                       ),
                       // 흰박스 상단 여백 조절
-                      SizedBox(
-                        height: MediaQuery.of(context).size.height * 0.05,
-                      ),
-                      SizedBox(
-                        height: MediaQuery.of(context).size.height * 0.5,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            image: const DecorationImage(
-                              image: AssetImage(
-                                "images/comment_menu/Frame 17.png",
-                              ),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                      ),
+                      SizedBox(height: screenHeight * 0.03),
 
-                      /*SizedBox(
-                        height: MediaQuery.of(context).size.height * 0.5,
-                        child: Container(
-                          clipBehavior: Clip.antiAlias,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment(0.50, -0.00),
-                              end: Alignment(0.50, 1.00),
-                              colors: [Colors.white, const Color(0xFFF4FFE5)],
-                            ),
-                          ),
+                      // === 저당 메뉴 6개 ===
+                      Expanded(
+                        child: StreamBuilder<QuerySnapshot>(
+                          // nutrition.sugar_g 기준으로 오름차순 정렬 후 6개 제한
+                          stream: FirebaseFirestore.instance
+                              .collection('menus')
+                              .orderBy('nutrition.sugar_g', descending: false)
+                              .limit(6)
+                              .snapshots(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Center(
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFFADF950),
+                                ),
+                              );
+                            }
+                            if (!snapshot.hasData ||
+                                snapshot.data!.docs.isEmpty) {
+                              return const Center(
+                                child: Text('추천 메뉴 데이터가 없습니다.'),
+                              );
+                            }
+
+                            final docs = snapshot.data!.docs;
+
+                            return GridView.builder(
+                              padding: EdgeInsets.fromLTRB(
+                                screenWidth * 0.04,
+                                0,
+                                screenWidth * 0.04,
+                                20, // 하단 여백
+                              ),
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    childAspectRatio: gridAspectRatio,
+                                    crossAxisSpacing: screenWidth * 0.04,
+                                    mainAxisSpacing: screenWidth * 0.04,
+                                  ),
+                              itemCount: docs.length,
+                              itemBuilder: (context, index) {
+                                final data =
+                                    docs[index].data() as Map<String, dynamic>;
+
+                                // 카드 클릭 시 상세 페이지 이동
+                                return GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            MenuDetailScreen(data: data),
+                                      ),
+                                    );
+                                  },
+                                  child: MenuGridCard(data: data),
+                                );
+                              },
+                            );
+                          },
                         ),
-                      ),*/
+                      ),
                     ],
                   ),
                 ),
