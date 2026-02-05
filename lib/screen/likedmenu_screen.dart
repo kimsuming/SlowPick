@@ -172,43 +172,53 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
 
   // 카테고리별 보기 화면
   Widget _categoryListView() {
+    final List<Map<String, dynamic>> cafes = [
+      {'color': Colors.green, 'title': '메가커피'},
+      {'color': Colors.indigo, 'title': '컴포즈'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+    ];
+
     return Column(
       children: [
         _gridbutton(),
-        GridView.count(
+
+        GridView.builder(
           padding: const EdgeInsets.only(
             left: 10,
             right: 10,
             bottom: 10,
             top: 0,
           ),
-          crossAxisCount: 2,
-          crossAxisSpacing: 5,
-          mainAxisSpacing: 9,
-          childAspectRatio: 3,
           shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
-          children: [
-            _gridItem(color: Colors.green, cafeTitle: '메가커피'),
-            _gridItem(color: Colors.indigo, cafeTitle: '컴포즈'),
-            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
-            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
-            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
-            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
-            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
-            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
-            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
-            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
-            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
-            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
-            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
-            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
-            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
-            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
-            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
-            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
-            _gridItem(color: Colors.orange, cafeTitle: '이디야'),
-          ],
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: cafes.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 5,
+            mainAxisSpacing: 9,
+            childAspectRatio: 3,
+          ),
+          itemBuilder: (context, index) {
+            final cafe = cafes[index];
+
+            return _gridItem(color: cafe['color'], cafeTitle: cafe['title']);
+          },
         ),
       ],
     );

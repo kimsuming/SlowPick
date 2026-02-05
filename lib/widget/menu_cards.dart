@@ -6,28 +6,26 @@ Map<String, Color> _getSugarColor(num sugar) {
   if (sugar >= 20) {
     return {'bg': const Color(0xFFFFE0E1), 'text': const Color(0xFFEF4444)};
   } else if (sugar >= 5) {
-    return {
-      'bg': const Color(0xFFE3F2FD),
-      'text': const Color(0xFF1E88E5),
-    };
+    return {'bg': const Color(0xFFE3F2FD), 'text': const Color(0xFF1E88E5)};
   } else {
-    return {
-      'bg': const Color(0xFFE8F5E9),
-      'text': const Color(0xFF43A047),
-    };
+    return {'bg': const Color(0xFFE8F5E9), 'text': const Color(0xFF43A047)};
   }
 }
 
-// === 그리드 뷰 카드 위젯 ===
+// === 그리드 뷰 카드 위젯 === 세로로 긴 카드
 class MenuGridCard extends StatelessWidget {
+  // 메뉴 데이터를 담는 Map 변수 (Firebase에서 받아온 데이터)
   final Map<String, dynamic> data;
 
+  // 생성자: data를 필수로 받음
   const MenuGridCard({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
+    // 화면 너비 가져오기 (반응형 디자인용)
     final double screenHeight = MediaQuery.of(context).size.height;
+    // 화면 높이 가져오기 (반응형 디자인용)
 
     final String name = data['menu_name'] ?? '이름 없음';
     final String brandName = data['brand_name'] ?? '-';
@@ -37,11 +35,15 @@ class MenuGridCard extends StatelessWidget {
     final List<String> allergyList = data['allergy_info'] != null
         ? List<String>.from(data['allergy_info'])
         : [];
-    final String allergyText =
-        allergyList.isEmpty ? '-' : allergyList.join(', ');
+    // 알러지 리스트를 쉼표로 연결, 없으면 '-'
+    final String allergyText = allergyList.isEmpty
+        ? '-'
+        : allergyList.join(', ');
 
+    // 당류 수치에 따른 배경색/텍스트색 가져오기
     final Map<String, Color> sugarColors = _getSugarColor(sugar);
 
+    // 카드의 최외곽 컨테이너(카드위젯)
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
@@ -104,7 +106,7 @@ class MenuGridCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          '$brandName',
+                          brandName,
                           style: TextStyle(
                             fontSize: screenWidth * 0.04,
                             fontWeight: FontWeight.w700,
@@ -159,7 +161,7 @@ class MenuGridCard extends StatelessWidget {
   }
 }
 
-// === 리스트 뷰 카드 위젯 ===
+// === 리스트 뷰 카드 위젯 === 가로로 긴 카드
 class MenuListCard extends StatelessWidget {
   final Map<String, dynamic> data;
 
@@ -169,20 +171,21 @@ class MenuListCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
     final double cardHeight = 110.0;
-    
+
     final String name = data['menu_name'] ?? '이름 없음';
     final String imageUrl = data['menu_image_url'] ?? '';
     final num kcal = data['nutrition']?['calories_kcal'] ?? 0;
     final num sugar = data['nutrition']?['sugar_g'] ?? 0;
     // 임시 데이터 (나중에 실제 데이터 연결 필요)
-    final num protein = 12; 
-    final num fat = 5; 
-    
+    final num protein = 12;
+    final num fat = 5;
+
     final List<String> allergyList = data['allergy_info'] != null
         ? List<String>.from(data['allergy_info'])
         : [];
-    final String allergyText =
-        allergyList.isEmpty ? '-' : allergyList.join(', ');
+    final String allergyText = allergyList.isEmpty
+        ? '-'
+        : allergyList.join(', ');
 
     final Map<String, Color> sugarColors = _getSugarColor(sugar);
 

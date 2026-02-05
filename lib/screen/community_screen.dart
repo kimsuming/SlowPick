@@ -432,13 +432,18 @@ class _CommunityScreenState extends State<CommunityScreen> {
             children: [
               SizedBox(width: 10),
               //게시글 제목
-              Text(
-                '메가 귤젤리 스무디 당류 80g 넘는거 알고계셨어요?? ',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: -1,
+              SizedBox(
+                width: MediaQuery.of(context).size.width * 0.75,
+                child: Text(
+                  '메가 귤젤리 스무디 당류 80g 넘는거 알고계셨어요??',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: -1,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
 
