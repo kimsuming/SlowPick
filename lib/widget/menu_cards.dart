@@ -115,13 +115,13 @@ class MenuGridCard extends StatelessWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // 메뉴명 배경
+                          // 브랜드명
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 3),
                             decoration: BoxDecoration(
                               color: const Color(0xFFFFE586),
                               borderRadius: BorderRadius.circular(4),
-                            ),
+                            ),   
                             child: Text(
                               '$brandName',
                               style: TextStyle(
