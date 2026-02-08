@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
-import 'package:slowpick/widget/menu_cards.dart'; // 메뉴 카드 위젯 import 확인 필요
+import 'package:slowpick/widget/menu_cards.dart';
 
 class SearchScreen extends StatefulWidget {
   final String? initialQuery;
@@ -17,9 +17,28 @@ class _SearchScreenState extends State<SearchScreen> {
   late TextEditingController _searchController;
   String _searchText = "";
 
-  // 정렬 옵션 관리
+  // 정렬 옵션
   final List<String> _sortOptions = ['모든 메뉴', '최신순', '당류 낮은순', '칼로리 낮은순'];
   String _selectedSort = '모든 메뉴';
+
+  // [추가] 브랜드 필터링 옵션
+  final List<String> _brandList = [
+    '전체', // '전체' 옵션 추가 (필터 해제용)
+    '더벤티',
+    '매머드 익스프레스',
+    '매머드커피',
+    '메가MGC커피',
+    '빽다방',
+    '스타벅스',
+    '엔제리너스',
+    '요거프레소',
+    '이디야커피',
+    '컴포즈커피',
+    '탐앤탐스',
+    '투썸플레이스',
+    '폴 바셋'
+  ];
+  String _selectedBrand = '전체'; // 기본값
 
   @override
   void initState() {
@@ -35,6 +54,73 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
+  // [추가] 브랜드 선택 바텀 시트 보여주기 함수
+  void _showBrandBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent, // 모서리 둥글게 하기 위해 투명 처리
+      builder: (BuildContext context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.5, // 화면 절반 높이
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          child: Column(
+            children: [
+              // 바텀 시트 헤더
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  '브랜드 선택',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'KoPubDotum',
+                  ),
+                ),
+              ),
+              const Divider(height: 1, color: Colors.black26),
+              // 브랜드 리스트
+              Expanded(
+                child: ListView.builder(
+                  itemCount: _brandList.length,
+                  itemBuilder: (context, index) {
+                    final brand = _brandList[index];
+                    final isSelected = brand == _selectedBrand;
+                    return ListTile(
+                      title: Text(
+                        brand,
+                        style: TextStyle(
+                          color: isSelected ? Colors.green : Colors.black,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
+                          fontFamily: 'KoPubDotum',
+                        ),
+                      ),
+                      trailing: isSelected
+                          ? const Icon(Icons.check, color: Colors.green)
+                          : null,
+                      onTap: () {
+                        setState(() {
+                          _selectedBrand = brand;
+                        });
+                        Navigator.pop(context); // 창 닫기
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
@@ -42,7 +128,6 @@ class _SearchScreenState extends State<SearchScreen> {
     final double gridAspectRatio = (screenWidth / 2) / (screenHeight * 0.37);
 
     return Scaffold(
-      // 키보드가 올라올 때 화면이 찌그러지는 것 방지
       resizeToAvoidBottomInset: false,
       bottomNavigationBar: Container(
         color: const Color(0xFFFCFCFC),
@@ -50,7 +135,6 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
       body: Stack(
         children: [
-          // 1. 배경 그라디언트
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -59,13 +143,11 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
           ),
-          // 2. 메인 컨텐츠 (SafeArea 적용)
           SafeArea(
             bottom: false,
             child: Column(
               children: [
                 SizedBox(height: screenHeight * 0.02),
-                // === 흰색 라운드 컨테이너 (결과 영역) ===
                 Expanded(
                   child: Container(
                     width: double.infinity,
@@ -78,26 +160,21 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                     child: Column(
                       children: [
-                        // === 상단 헤더 영역 (뒤로가기, 검색창, 음성버튼) ===
+                        // 상단 검색 헤더
                         Padding(
                           padding: const EdgeInsets.fromLTRB(10, 20, 10, 0),
                           child: Row(
                             children: [
-                              // 1. 뒤로 가기 버튼
                               IconButton(
-                                icon: const Icon(
-                                  Icons.arrow_back_ios_new,
-                                  color: Colors.black54,
-                                ),
+                                icon: const Icon(Icons.arrow_back_ios_new,
+                                    color: Colors.black54),
                                 onPressed: () => Navigator.pop(context),
                               ),
-
-                              // 2. 검색창
                               Expanded(
                                 child: Container(
                                   height: 40,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFEEEEEE), // Figma 색상
+                                    color: const Color(0xFFEEEEEE),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: TextField(
@@ -113,22 +190,14 @@ class _SearchScreenState extends State<SearchScreen> {
                                       isDense: true,
                                       hintText: '메뉴를 검색해보세요!',
                                       hintStyle: const TextStyle(
-                                        color: Colors.black38,
-                                        fontSize: 16,
-                                      ),
+                                          color: Colors.black38, fontSize: 16),
                                       border: InputBorder.none,
-                                      prefixIcon: const Icon(
-                                        Icons.search,
-                                        color: Colors.grey,
-                                        size: 20,
-                                      ),
+                                      prefixIcon: const Icon(Icons.search,
+                                          color: Colors.grey, size: 20),
                                       suffixIcon: _searchText.isNotEmpty
                                           ? IconButton(
-                                              icon: const Icon(
-                                                Icons.cancel,
-                                                color: Colors.grey,
-                                                size: 18,
-                                              ),
+                                              icon: const Icon(Icons.cancel,
+                                                  color: Colors.grey, size: 18),
                                               onPressed: () {
                                                 _searchController.clear();
                                                 setState(() {
@@ -137,27 +206,19 @@ class _SearchScreenState extends State<SearchScreen> {
                                               },
                                             )
                                           : null,
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                          ),
+                                      contentPadding: const EdgeInsets.symmetric(
+                                          horizontal: 8),
                                     ),
                                   ),
                                 ),
                               ),
-
-                              // 3. 음성 인식 버튼
                               IconButton(
-                                icon: const Icon(
-                                  Icons.mic,
-                                  color: Colors.black54,
-                                ),
+                                icon:
+                                    const Icon(Icons.mic, color: Colors.black54),
                                 onPressed: () {
-                                  // TODO: 음성 인식 기능 구현
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('음성 인식 기능 준비 중입니다.'),
-                                    ),
+                                        content: Text('음성 인식 기능 준비 중입니다.')),
                                   );
                                 },
                               ),
@@ -165,18 +226,32 @@ class _SearchScreenState extends State<SearchScreen> {
                           ),
                         ),
 
-                        const SizedBox(height: 6), // 라운드 곡선 안쪽 여백
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(30, 0, 0, 0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              const Text('검색 옵션', style: TextStyle(fontWeight: FontWeight.w600),),
+                            ],
+                          ),
+                        ),
                         
                         // === 필터 및 뷰 전환 버튼 영역 ===
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                          padding: const EdgeInsets.fromLTRB(20,0,12,0),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              // 정렬 버튼
-                              _buildSortDropdown(),
+                              // [수정] 정렬 버튼과 브랜드 버튼을 함께 배치
+                              Row(
+                                children: [
+                                  _buildSortDropdown(),
+                                  const SizedBox(width: 8), // 버튼 사이 간격
+                                  _buildBrandFilterButton(), // 브랜드 버튼
+                                ],
+                              ),
 
-                              // 그리드/리스트 뷰 전환 버튼
                               IconButton(
                                 onPressed: () {
                                   setState(() {
@@ -196,7 +271,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
                         const SizedBox(height: 6),
 
-                        // === [D] 검색 결과 리스트 ===
+                        // === 검색 결과 리스트 ===
                         Expanded(
                           child: StreamBuilder<QuerySnapshot>(
                             stream: FirebaseFirestore.instance
@@ -206,74 +281,100 @@ class _SearchScreenState extends State<SearchScreen> {
                               if (snapshot.connectionState ==
                                   ConnectionState.waiting) {
                                 return const Center(
-                                  child: CircularProgressIndicator(
-                                    color: Colors.greenAccent,
-                                  ),
-                                );
+                                    child: CircularProgressIndicator(
+                                        color: Colors.greenAccent));
                               }
                               if (!snapshot.hasData ||
                                   snapshot.data!.docs.isEmpty) {
-                                return const Center(
-                                  child: Text('저장된 메뉴가 없습니다.'),
-                                );
+                                return const Center(child: Text('저장된 메뉴가 없습니다.'));
                               }
 
                               final allDocs = snapshot.data!.docs;
-                              final filteredDocs = allDocs.where((doc) {
+
+                              var filteredDocs = allDocs.where((doc) {
                                 final data = doc.data() as Map<String, dynamic>;
                                 final name = data['menu_name'] as String? ?? '';
-                                if (_searchText.isEmpty) return true;
-                                return name.toLowerCase().contains(
-                                  _searchText.toLowerCase(),
-                                );
+                                final brand = data['brand_name'] as String? ?? '';
+
+                                // 1. 검색어 필터
+                                if (_searchText.isNotEmpty &&
+                                    !name
+                                        .toLowerCase()
+                                        .contains(_searchText.toLowerCase())) {
+                                  return false;
+                                }
+
+                                // [추가] 2. 브랜드 필터
+                                if (_selectedBrand != '전체' &&
+                                    brand != _selectedBrand) {
+                                  return false;
+                                }
+
+                                return true;
                               }).toList();
+
+                              // 3. 정렬 로직
+                              if (_selectedSort == '당류 낮은순') {
+                                filteredDocs.sort((a, b) {
+                                  final aData = a.data() as Map<String, dynamic>;
+                                  final bData = b.data() as Map<String, dynamic>;
+                                  final num aSugar =
+                                      aData['nutrition']?['sugar_g'] ?? 0;
+                                  final num bSugar =
+                                      bData['nutrition']?['sugar_g'] ?? 0;
+                                  return aSugar.compareTo(bSugar);
+                                });
+                              } else if (_selectedSort == '칼로리 낮은순') {
+                                filteredDocs.sort((a, b) {
+                                  final aData = a.data() as Map<String, dynamic>;
+                                  final bData = b.data() as Map<String, dynamic>;
+                                  final num aCal =
+                                      aData['nutrition']?['calories_kcal'] ?? 0;
+                                  final num bCal =
+                                      bData['nutrition']?['calories_kcal'] ?? 0;
+                                  return aCal.compareTo(bCal);
+                                });
+                              }
 
                               if (filteredDocs.isEmpty) {
                                 return Center(
-                                  child: Text('\'$_searchText\' 검색 결과가 없습니다.'),
-                                );
+                                    child: Text('검색 결과가 없습니다.'));
                               }
 
-                              // 그리드 뷰
                               if (_isGridView) {
                                 return GridView.builder(
                                   padding: EdgeInsets.fromLTRB(
-                                    screenWidth * 0.04,
-                                    10,
-                                    screenWidth * 0.04,
-                                    18,
-                                  ),
+                                      screenWidth * 0.04,
+                                      10,
+                                      screenWidth * 0.04,
+                                      18),
                                   gridDelegate:
                                       SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 2,
-                                        childAspectRatio: gridAspectRatio,
-                                        crossAxisSpacing: screenWidth * 0.04,
-                                        mainAxisSpacing: screenWidth * 0.04,
-                                      ),
+                                    crossAxisCount: 2,
+                                    childAspectRatio: gridAspectRatio,
+                                    crossAxisSpacing: screenWidth * 0.04,
+                                    mainAxisSpacing: screenWidth * 0.04,
+                                  ),
                                   itemCount: filteredDocs.length,
                                   itemBuilder: (context, index) {
-                                    final data =
-                                        filteredDocs[index].data()
-                                            as Map<String, dynamic>;
+                                    final data = filteredDocs[index].data()
+                                        as Map<String, dynamic>;
                                     return MenuGridCard(data: data);
                                   },
                                 );
                               } else {
-                                // 리스트 뷰
                                 return ListView.separated(
                                   padding: EdgeInsets.fromLTRB(
-                                    screenWidth * 0.04,
-                                    10,
-                                    screenWidth * 0.04,
-                                    16,
-                                  ),
+                                      screenWidth * 0.04,
+                                      10,
+                                      screenWidth * 0.04,
+                                      16),
                                   itemCount: filteredDocs.length,
                                   separatorBuilder: (context, index) =>
                                       SizedBox(height: screenHeight * 0.02),
                                   itemBuilder: (context, index) {
-                                    final data =
-                                        filteredDocs[index].data()
-                                            as Map<String, dynamic>;
+                                    final data = filteredDocs[index].data()
+                                        as Map<String, dynamic>;
                                     return MenuListCard(data: data);
                                   },
                                 );
@@ -293,52 +394,91 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
+  // 정렬 드롭다운
   Widget _buildSortDropdown() {
     return Container(
       height: 32,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.grey.withOpacity(
-            0.3,
-          ), // Figma: Colors.black.withValues(alpha: 0.05)
-          width: 1,
-        ),
+        borderRadius: BorderRadius.circular(50),
+        border: Border.all(color: Colors.black12, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 2,
-            offset: const Offset(0, 1),
-          ),
+              color: Colors.black12,
+              blurRadius: 2,
+              offset: const Offset(0, 1))
         ],
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedSort,
-          icon: const Icon(
-            Icons.arrow_drop_down,
-            color: Colors.black,
-            size: 20,
-          ),
+          icon: const Icon(Icons.arrow_drop_down, color: Colors.black, size: 20),
           style: const TextStyle(
             color: Colors.black87,
             fontSize: 13,
-            fontFamily: 'KoPubDotum', // Figma 폰트 반영
+            fontFamily: 'KoPubDotum',
             fontWeight: FontWeight.bold,
           ),
           onChanged: (String? newValue) {
             if (newValue != null) {
               setState(() {
                 _selectedSort = newValue;
-                // TODO: 여기서 실제 정렬 로직 연결 (Firebase query orderBy 등)
               });
             }
           },
           items: _sortOptions.map<DropdownMenuItem<String>>((String value) {
             return DropdownMenuItem<String>(value: value, child: Text(value));
           }).toList(),
+        ),
+      ),
+    );
+  }
+
+  // 브랜드 필터 버튼
+  Widget _buildBrandFilterButton() {
+    return GestureDetector(
+      onTap: _showBrandBottomSheet,
+      child: Container(
+        height: 32,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: _selectedBrand == '전체'
+              ? Colors.white
+              : const Color(0xFFE8F5E9), // 선택되면 초록빛 배경
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: _selectedBrand == '전체'
+                ? Colors.black12
+                : Colors.green, // 선택되면 초록 테두리
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black12,
+                blurRadius: 2,
+                offset: const Offset(0, 1))
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _selectedBrand == '전체' ? '브랜드' : _selectedBrand,
+              style: TextStyle(
+                color: _selectedBrand == '전체' ? Colors.black87 : Colors.green,
+                fontSize: 13,
+                fontFamily: 'KoPubDotum',
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.filter_list,
+              color: _selectedBrand == '전체' ? Colors.black54 : Colors.green,
+              size: 16,
+            ),
+          ],
         ),
       ),
     );
