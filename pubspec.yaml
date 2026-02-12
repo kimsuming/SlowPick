@@ -27,6 +27,7 @@ dev_dependencies:
 flutter:
   assets:
     - images/
+    - images/brand_logo/
     - images/main_icon/
     - images/home/
     - images/comment_menu/

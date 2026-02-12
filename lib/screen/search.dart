@@ -5,8 +5,13 @@ import 'package:slowpick/widget/menu_cards.dart';
 
 class SearchScreen extends StatefulWidget {
   final String? initialQuery;
+  final String? initialBrand;
 
-  const SearchScreen({super.key, this.initialQuery});
+  const SearchScreen({
+    super.key, 
+    this.initialQuery, 
+    this.initialBrand
+  });
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -16,6 +21,7 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _isGridView = true;
   late TextEditingController _searchController;
   String _searchText = "";
+  
 
   // 정렬 옵션
   final List<String> _sortOptions = ['모든 메뉴', '최신순', '당류 낮은순', '칼로리 낮은순'];
@@ -46,6 +52,8 @@ class _SearchScreenState extends State<SearchScreen> {
     String initialText = widget.initialQuery ?? "";
     _searchController = TextEditingController(text: initialText);
     _searchText = initialText;
+
+    _selectedBrand = widget.initialBrand ?? '전체';
   }
 
   @override
@@ -54,7 +62,6 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
-  // [추가] 브랜드 선택 바텀 시트 보여주기 함수
   void _showBrandBottomSheet() {
     showModalBottomSheet(
       context: context,
