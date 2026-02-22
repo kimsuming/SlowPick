@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:slowpick/screen/menu_detail_screen.dart';
 
 // 당류 수치에 따라 색상을 반환하는 함수
 Map<String, Color> _getSugarColor(num sugar) {
   if (sugar >= 20) {
     return {'bg': const Color(0xFFFFE0E1), 'text': const Color(0xFFEF4444)};
   } else if (sugar >= 5) {
-    return {'bg': const Color(0xFFE3F2FD), 'text': const Color(0xFF1E88E5)};
+    return {'bg': const Color(0xFFfff6cf), 'text': const Color(0xFFf29500)};
   } else {
     return {'bg': const Color(0xFFE8F5E9), 'text': const Color(0xFF43A047)};
   }
@@ -35,7 +36,6 @@ class MenuGridCard extends StatelessWidget {
     final List<String> allergyList = data['allergy_info'] != null
         ? List<String>.from(data['allergy_info'])
         : [];
-    // 알러지 리스트를 쉼표로 연결, 없으면 '-'
     final String allergyText = allergyList.isEmpty
         ? '-'
         : allergyList.join(', ');
@@ -43,119 +43,147 @@ class MenuGridCard extends StatelessWidget {
     // 당류 수치에 따른 배경색/텍스트색 가져오기
     final Map<String, Color> sugarColors = _getSugarColor(sugar);
 
-    // 카드의 최외곽 컨테이너(카드위젯)
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey,
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => MenuDetailScreen(data: data)),
+        );
+      },
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey,
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: double.infinity,
-                height: screenHeight * 0.2,
-                color: const Color(0xFFF1F1F1),
-                child: imageUrl.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: imageUrl,
-                        fit: BoxFit.cover,
-                        errorWidget: (context, url, error) =>
-                            const Icon(Icons.broken_image, color: Colors.grey),
-                      )
-                    : const Icon(Icons.coffee, size: 50, color: Colors.grey),
-              ),
-              Positioned(
-                left: 8,
-                top: 8,
-                child: _NutritionBadge(
-                  screenWidth: screenWidth,
-                  text: '${sugar}g',
-                  bgColor: sugarColors['bg']!,
-                  textColor: sugarColors['text']!,
-                ),
-              ),
-              Positioned(right: 8, top: 8, child: const _HeartIcon(size: 35)),
-            ],
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Stack(
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 3),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFE586),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          brandName,
-                          style: TextStyle(
-                            fontSize: screenWidth * 0.04,
-                            fontWeight: FontWeight.w700,
-                            fontFamily: 'KoPubDotum',
+                  // 메뉴 이미지
+                  Container(
+                    width: double.infinity,
+                    height: screenHeight * 0.2,
+                    color: const Color(0xFFF1F1F1),
+                    child: imageUrl.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: imageUrl,
+                            fit: BoxFit.cover,
+                            errorWidget: (context, url, error) => const Icon(
+                              Icons.broken_image,
+                              color: Colors.grey,
+                            ),
+                          )
+                        : const Icon(
+                            Icons.coffee,
+                            size: 50,
+                            color: Colors.grey,
                           ),
-                        ),
-                      ),
-                      SizedBox(height: screenHeight * 0.003),
-                      Text(
-                        name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: screenWidth * 0.04,
-                          fontWeight: FontWeight.w500,
-                          fontFamily: 'KoPubDotum',
-                        ),
-                      ),
-                      Text(
-                        '${kcal}Kcal',
-                        style: TextStyle(
-                          color: Colors.black87,
-                          fontSize: screenWidth * 0.04,
-                          fontFamily: 'KoPubDotum',
-                        ),
-                      ),
-                    ],
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '알러지 정보: $allergyText',
-                        style: TextStyle(
-                          color: const Color(0xFF7B7B7B),
-                          fontSize: screenWidth * 0.03,
-                          fontFamily: 'KoPubDotum',
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                  // 당분 뱃지
+                  Positioned(
+                    left: 8,
+                    top: 8,
+                    child: _NutritionBadge(
+                      screenWidth: screenWidth,
+                      text: '${sugar}g',
+                      bgColor: sugarColors['bg']!,
+                      textColor: sugarColors['text']!,
+                    ),
+                  ),
+                  // 찜 버튼
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: const _HeartIcon(size: 35),
                   ),
                 ],
               ),
-            ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 메뉴명 배경
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFE586),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              brandName,
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.04,
+                                fontWeight: FontWeight.w700,
+                                fontFamily: 'KoPubDotum',
+                              ),
+                            ),
+                          ),
+                          // 메뉴명
+                          SizedBox(height: screenHeight * 0.003),
+                          Text(
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: screenWidth * 0.04,
+                              fontWeight: FontWeight.w500,
+                              fontFamily: 'KoPubDotum',
+                            ),
+                          ),
+                          // 칼로리
+                          Text(
+                            '${kcal}Kcal',
+                            style: TextStyle(
+                              color: Colors.black87,
+                              fontSize: screenWidth * 0.04,
+                              fontFamily: 'KoPubDotum',
+                            ),
+                          ),
+                          // 알러지 정보
+                          SizedBox(height: screenHeight * 0.005),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '알러지 정보: $allergyText',
+                                style: TextStyle(
+                                  color: const Color(0xFF7B7B7B),
+                                  fontSize: screenWidth * 0.03,
+                                  fontFamily: 'KoPubDotum',
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -189,101 +217,115 @@ class MenuListCard extends StatelessWidget {
 
     final Map<String, Color> sugarColors = _getSugarColor(sugar);
 
-    return Container(
-      height: cardHeight,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey,
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 2),
+    return GestureDetector(
+      // 혹은 InkWell
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            // data를 그대로 전달
+            builder: (context) => MenuDetailScreen(data: data),
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: cardHeight,
-            height: cardHeight,
-            color: const Color(0xFFF1F1F1),
-            child: imageUrl.isNotEmpty
-                ? CachedNetworkImage(
-                    imageUrl: imageUrl,
-                    fit: BoxFit.cover,
-                    errorWidget: (context, url, error) =>
-                        const Icon(Icons.broken_image, color: Colors.grey),
-                  )
-                : const Icon(Icons.coffee, size: 40, color: Colors.grey),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: screenWidth * 0.042,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: 'KoPubDotum',
+        );
+      },
+      child: Container(
+        height: cardHeight,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey,
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: cardHeight,
+              height: cardHeight,
+              color: const Color(0xFFF1F1F1),
+              child: imageUrl.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: imageUrl,
+                      fit: BoxFit.cover,
+                      errorWidget: (context, url, error) =>
+                          const Icon(Icons.broken_image, color: Colors.grey),
+                    )
+                  : const Icon(Icons.coffee, size: 40, color: Colors.grey),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: screenWidth * 0.042,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'KoPubDotum',
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${kcal}Kcal',
-                              style: TextStyle(
-                                fontSize: screenWidth * 0.032,
-                                fontFamily: 'KoPubDotum',
+                              const SizedBox(height: 4),
+                              Text(
+                                '${kcal}Kcal',
+                                style: TextStyle(
+                                  fontSize: screenWidth * 0.032,
+                                  fontFamily: 'KoPubDotum',
+                                ),
                               ),
-                            ),
-                            Text(
-                              '알러지 정보: $allergyText',
-                              style: TextStyle(
-                                fontSize: screenWidth * 0.032,
-                                color: Colors.black54,
-                                fontFamily: 'KoPubDotum',
+                              Text(
+                                '알러지 정보: $allergyText',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: screenWidth * 0.032,
+                                  color: Colors.black54,
+                                  fontFamily: 'KoPubDotum',
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      const _HeartIcon(size: 24),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      _ColorMiniBadge(
-                        text: '당 ${sugar}g',
-                        bgColor: sugarColors['bg']!,
-                        textColor: sugarColors['text']!,
-                      ),
-                      const SizedBox(width: 6),
-                      _MiniBadge(text: '단백질 ${protein}g'),
-                      const SizedBox(width: 6),
-                      _MiniBadge(text: '지방 ${fat}g'),
-                    ],
-                  ),
-                ],
+                        const _HeartIcon(size: 24),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        _ColorMiniBadge(
+                          text: '당 ${sugar}g',
+                          bgColor: sugarColors['bg']!,
+                          textColor: sugarColors['text']!,
+                        ),
+                        const SizedBox(width: 6),
+                        _MiniBadge(text: '단백질 ${protein}g'),
+                        const SizedBox(width: 6),
+                        _MiniBadge(text: '지방 ${fat}g'),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -308,7 +350,8 @@ class _HeartIcon extends StatelessWidget {
       child: Icon(
         Icons.favorite_border,
         size: size * 0.8,
-        color: const Color(0xFF65B700),
+        color: Colors.black26,
+        //color: const Color(0xFF65B700),
       ),
     );
   }

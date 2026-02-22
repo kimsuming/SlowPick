@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 import 'package:slowpick/screen/community_recipe.dart';
+import 'package:slowpick/screen/community_write.dart';
+import 'package:slowpick/screen/community_post.dart';
 
 class CommunityScreen extends StatefulWidget {
   const CommunityScreen({super.key});
@@ -46,7 +48,16 @@ class _CommunityScreenState extends State<CommunityScreen> {
             ),
           ],
         ),
-        backgroundColor: Color(0xFFADEA67),
+        backgroundColor: Colors.transparent, // 중요
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment(1.00, 0.50),
+              end: Alignment(0.00, 0.50),
+              colors: [Color(0xFFA2F43D), Color(0xFFD5FF72)],
+            ),
+          ),
+        ),
         elevation: 0,
         toolbarHeight: 76,
 
@@ -60,7 +71,10 @@ class _CommunityScreenState extends State<CommunityScreen> {
       // 글쓰기 버튼
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // 글쓰기 화면 이동
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const CommunityWrite()),
+          );
         },
         shape: const CircleBorder(),
         backgroundColor: const Color(0xFF187100),
@@ -73,110 +87,116 @@ class _CommunityScreenState extends State<CommunityScreen> {
         child: SafeArea(top: false, child: BottomBarNew()),
       ),
 
-      body: Column(
-        children: [
-          //소통&레시피 창 선택 버튼
-          _communicationRecipeSelector(),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment(1.00, 0.50),
+            end: Alignment(0.00, 0.50),
+            colors: [Color(0xFFA2F43D), Color(0xFFD5FF72)],
+          ),
+        ),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(30),
+              topRight: Radius.circular(30),
+            ),
+          ),
+          child: Column(
+            children: [
+              //소통&레시피 창 선택 버튼
+              _communicationRecipeSelector(),
 
-          //게시글 검색바
-          _searchBar(),
+              //게시글 검색바
+              _searchBar(),
 
-          //공지바
-          _noticeBar(),
+              //공지바
+              _noticeBar(),
 
-          //전체글&인기글 선택 버튼
-          _postFilterTab(),
+              //전체글&인기글 선택 버튼
+              _postFilterTab(),
 
-          //페이지 넘기는 버튼
-          _pagination(),
+              //페이지 넘기는 버튼
+              _pagination(),
 
-          Container(height: 1.3, color: const Color(0xFFD7D7D7)), // 구분선
-          //게시글 형식
-          _postListItem(),
-          //게시글 형식
-          _postListItem(),
-          //게시글 형식
-          _postListItem(),
-        ],
+              Container(height: 1.3, color: const Color(0xFFD7D7D7)), // 구분선
+              //게시글 형식
+              _postListItem(),
+              //게시글 형식
+              _postListItem(),
+              //게시글 형식
+              _postListItem(),
+            ],
+          ),
+        ),
       ),
     );
   }
 
   Widget _communicationRecipeSelector() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white, // 배경 색상
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-
-        children: [
-          //소통 버튼
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const CommunityScreen(),
-                ),
-              );
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: Colors.black, width: 2),
-                ),
-              ),
-              width: 140,
-              height: 50,
-              child: Center(
-                child: Text(
-                  '소통',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 20,
-                    fontFamily: 'KoPubDotum Medium',
-                    fontWeight: FontWeight.w400,
-                    height: 1,
-                    letterSpacing: -1,
-                  ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        //소통 버튼
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CommunityScreen()),
+            );
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: Colors.black, width: 2)),
+            ),
+            width: 140,
+            height: 50,
+            child: Center(
+              child: Text(
+                '소통',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 20,
+                  fontFamily: 'KoPubDotum Medium',
+                  fontWeight: FontWeight.w400,
+                  height: 1,
+                  letterSpacing: -1,
                 ),
               ),
             ),
           ),
+        ),
 
-          SizedBox(width: 30),
+        SizedBox(width: 30),
 
-          //레시피버튼
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const CommunityRecipe(),
-                ),
-              );
-            },
-            child: SizedBox(
-              width: 150,
-              height: 50,
-              child: Center(
-                child: Text(
-                  '레시피',
-                  style: TextStyle(
-                    color: const Color(0xFFB5B5B5),
-                    fontSize: 20,
-                    fontFamily: 'KoPubDotum Medium',
-                    fontWeight: FontWeight.w400,
-                    height: 1,
-                    letterSpacing: -1,
-                  ),
+        //레시피버튼
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CommunityRecipe()),
+            );
+          },
+          child: SizedBox(
+            width: 150,
+            height: 50,
+            child: Center(
+              child: Text(
+                '레시피',
+                style: TextStyle(
+                  color: const Color(0xFFB5B5B5),
+                  fontSize: 20,
+                  fontFamily: 'KoPubDotum Medium',
+                  fontWeight: FontWeight.w400,
+                  height: 1,
+                  letterSpacing: -1,
                 ),
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -416,25 +436,30 @@ class _CommunityScreenState extends State<CommunityScreen> {
   }
 
   Widget _postListItem() {
-    return Container(
-      width: double.infinity,
-      height: 54,
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: Color(0xFFD7D7D7), width: 1.3),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const CommunityPost()),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        height: 54,
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: Color(0xFFD7D7D7), width: 1.3),
+          ),
         ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              SizedBox(width: 10),
-              //게시글 제목
-              SizedBox(
-                width: MediaQuery.of(context).size.width * 0.75,
-                child: Text(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                SizedBox(width: 10),
+                //게시글 제목
+                Text(
                   '메가 귤젤리 스무디 당류 80g 넘는거 알고계셨어요??',
                   style: TextStyle(
                     color: Colors.black,
@@ -445,37 +470,37 @@ class _CommunityScreenState extends State<CommunityScreen> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-              ),
 
-              //댓글 수
-              Text(
-                '[10]',
+                //댓글 수
+                Text(
+                  '[10]',
+                  style: TextStyle(
+                    color: const Color(0xFF73AD31),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -1,
+                  ),
+                ),
+              ],
+            ),
+
+            // 작성자이름 / 조회수 / 추천수 /시간
+            Padding(
+              padding: const EdgeInsets.only(left: 10),
+              child: Text(
+                '가나다  l  조회 120  l  추천 5  l  30분 전',
                 style: TextStyle(
-                  color: const Color(0xFF73AD31),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFFA7A7A7),
+                  fontSize: 13,
+                  fontFamily: 'KoPubDotum Medium',
+                  fontWeight: FontWeight.w400,
+                  height: 1.54,
                   letterSpacing: -1,
                 ),
               ),
-            ],
-          ),
-
-          // 작성자이름 / 조회수 / 추천수 /시간
-          Padding(
-            padding: const EdgeInsets.only(left: 10),
-            child: Text(
-              '가나다  l  조회 120  l  추천 5  l  30분 전',
-              style: TextStyle(
-                color: const Color(0xFFA7A7A7),
-                fontSize: 13,
-                fontFamily: 'KoPubDotum Medium',
-                fontWeight: FontWeight.w400,
-                height: 1.54,
-                letterSpacing: -1,
-              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

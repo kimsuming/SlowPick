@@ -2,325 +2,222 @@ import 'package:flutter/material.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:slowpick/widget/menu_cards.dart';
+import 'package:slowpick/screen/menu_detail_screen.dart';
 
 class RecommendedMenuScreen extends StatefulWidget {
-  final String? initialQuery;
-
-  const RecommendedMenuScreen({super.key, this.initialQuery});
+  const RecommendedMenuScreen({super.key});
 
   @override
   State<RecommendedMenuScreen> createState() => _RecommendedMenuScreenState();
 }
 
 class _RecommendedMenuScreenState extends State<RecommendedMenuScreen> {
-  final bool _isGridView = true;
-  late TextEditingController _searchController;
-  String _searchText = "";
-
-  @override
-  void initState() {
-    super.initState();
-    String initialText = widget.initialQuery ?? "";
-    _searchController = TextEditingController(text: initialText);
-    _searchText = initialText;
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
+    // 그리드 뷰 비율 계산
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double screenHeight = MediaQuery.of(context).size.height;
+    final double gridAspectRatio = (screenWidth / 2) / (screenHeight * 0.38);
+
     return Scaffold(
       bottomNavigationBar: Container(
         color: Color(0xFFFCFCFC), // << 여기 색이 하단까지 채워짐
         child: SafeArea(top: false, child: BottomBarNew()),
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment(-0.0, 0.5),
-            end: Alignment(1.0, 0.5),
-            colors: [Color(0xFFE6EB4E), Color(0xFFADF950)],
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _appTopBar(),
-
-            Expanded(
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment(0.50, -0.00),
-                    end: Alignment(0.50, 1.00),
-                    colors: [Colors.white, Color(0xFFF4FFE5)],
-                  ),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(50),
-                    topRight: Radius.circular(50),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    // 흰박스 상단 여백 조절
-                    SizedBox(height: 40),
-
-                    //추천 메세지
-                    _recommendedMessage(),
-
-                    // 흰박스 상단 여백 조절
-                    SizedBox(height: 30),
-
-                    _recommendedMenus(),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _appTopBar() {
-    return Padding(
-      padding: const EdgeInsets.only(top: 40, bottom: 30),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: Stack(
         children: [
-          IconButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            icon: const Icon(Icons.arrow_back, size: 40),
-          ),
-
-          SizedBox(
-            child: Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(
-                    text: 'OOO 님을 위한 ',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w500,
-                      height: 0.91,
-                      letterSpacing: -1.30,
-                    ),
-                  ),
-                  TextSpan(
-                    text: '추천 메뉴',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      height: 0.91,
-                      letterSpacing: -1.30,
-                    ),
-                  ),
-                ],
+          // 배경 그라디언트
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment(-0.0, 0.5),
+                end: Alignment(1.0, 0.5),
+                colors: [Color(0xFFE6EB4E), Color(0xFFADF950)],
               ),
-              textAlign: TextAlign.center,
             ),
           ),
 
-          const SizedBox(width: 48),
+          // 상단 UI
+          Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              SizedBox(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 40, bottom: 30),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        icon: const Icon(Icons.arrow_back, size: 40),
+                      ),
+
+                      SizedBox(
+                        child: Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text: 'OOO 님을 위한 ',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 22,
+                                  fontFamily: 'KoPubDotum Medium',
+                                  fontWeight: FontWeight.w400,
+                                  height: 0.91,
+                                  letterSpacing: -1.30,
+                                ),
+                              ),
+                              TextSpan(
+                                text: '추천 메뉴',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 22,
+                                  fontFamily: 'KoPubDotum Bold',
+                                  fontWeight: FontWeight.bold,
+                                  height: 0.91,
+                                  letterSpacing: -1.30,
+                                ),
+                              ),
+                            ],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+
+                      const SizedBox(width: 48),
+                    ],
+                  ),
+                ),
+              ),
+
+              Expanded(
+                child: Container(
+                  width: MediaQuery.of(context).size.width * 1,
+                  height: MediaQuery.of(context).size.height * 0.75,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(50),
+                      topRight: Radius.circular(50),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      // 흰박스 상단 여백 조절
+                      SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.05,
+                      ),
+                      //추천 메세지
+                      SizedBox(
+                        width:
+                            MediaQuery.of(context).size.width *
+                            0.5, // 원하는 가로 크기
+                        height:
+                            MediaQuery.of(context).size.height *
+                            0.1, // 원하는 세로 크기
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20), // 네 방향 라운드
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFFFFE940), Color(0xFFFFF0A4)],
+                            ),
+                          ),
+                          child: SizedBox(
+                            child: Center(
+                              child: Text(
+                                '저번주보다 혈당이 더 올랐어요.\n이번주엔 혈당에 부담없는\n메뉴들을 추천해드릴게요!',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  height: 1.43,
+                                  letterSpacing: -0.24,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      // 흰박스 상단 여백 조절
+                      SizedBox(height: screenHeight * 0.03),
+
+                      // === 저당 메뉴 6개 ===
+                      Expanded(
+                        child: StreamBuilder<QuerySnapshot>(
+                          // nutrition.sugar_g 기준으로 오름차순 정렬 후 6개 제한
+                          stream: FirebaseFirestore.instance
+                              .collection('menus')
+                              .orderBy('nutrition.sugar_g', descending: false)
+                              .limit(6)
+                              .snapshots(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Center(
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFFADF950),
+                                ),
+                              );
+                            }
+                            if (!snapshot.hasData ||
+                                snapshot.data!.docs.isEmpty) {
+                              return const Center(
+                                child: Text('추천 메뉴 데이터가 없습니다.'),
+                              );
+                            }
+
+                            final docs = snapshot.data!.docs;
+
+                            return GridView.builder(
+                              padding: EdgeInsets.fromLTRB(
+                                screenWidth * 0.04,
+                                0,
+                                screenWidth * 0.04,
+                                20, // 하단 여백
+                              ),
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    childAspectRatio: gridAspectRatio,
+                                    crossAxisSpacing: screenWidth * 0.04,
+                                    mainAxisSpacing: screenWidth * 0.04,
+                                  ),
+                              itemCount: docs.length,
+                              itemBuilder: (context, index) {
+                                final data =
+                                    docs[index].data() as Map<String, dynamic>;
+
+                                // 카드 클릭 시 상세 페이지 이동
+                                return GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            MenuDetailScreen(data: data),
+                                      ),
+                                    );
+                                  },
+                                  child: MenuGridCard(data: data),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
-  }
-
-  Widget _recommendedMessage() {
-    return SizedBox(
-      width: 207, // 원하는 가로 크기
-      height: 87, // 원하는 세로 크기
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20), // 네 방향 라운드
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFFFE940), Color(0xFFFFF0A4)],
-          ),
-        ),
-        child: SizedBox(
-          child: Center(
-            child: Text(
-              '저번주보다 혈당이 더 올랐어요.\n이번주엔 혈당에 부담없는\n메뉴들을 추천해드릴게요!',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                height: 1.43,
-                letterSpacing: -0.24,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _recommendedMenus() {
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final double screenHeight = MediaQuery.of(context).size.height;
-    final double gridAspectRatio = (screenWidth / 2) / (screenHeight * 0.38);
-
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('menus').snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        final allDocs = snapshot.data!.docs;
-
-        final filteredDocs = allDocs.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          final name = data['menu_name'] as String? ?? '';
-          if (_searchText.isEmpty) return true;
-          return name.toLowerCase().contains(_searchText.toLowerCase());
-        }).toList();
-
-        if (filteredDocs.isEmpty) {
-          return Center(child: Text('\'$_searchText\' 검색 결과가 없습니다.'));
-        }
-
-        return GridView.builder(
-          padding: EdgeInsets.fromLTRB(
-            screenWidth * 0.04,
-            0,
-            screenWidth * 0.04,
-            16,
-          ),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            childAspectRatio: gridAspectRatio,
-            crossAxisSpacing: screenWidth * 0.04,
-            mainAxisSpacing: screenWidth * 0.04,
-          ),
-          itemCount: filteredDocs.length,
-          itemBuilder: (context, index) {
-            final data = filteredDocs[index].data() as Map<String, dynamic>;
-            return MenuGridCard(data: data);
-          },
-        );
-      },
-    );
-  }
-
-  Widget _recommendedMenusItem({
-    Color? color,
-    String? imagePath,
-    String? cafeTitle,
-    String? menuTitle,
-    double? sugarLevels,
-  }) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            SizedBox(width: 10),
-
-            // 원형 이미지 또는 색상 박스
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x3F000000),
-                    blurRadius: 3,
-                    offset: Offset(0, 3),
-                    spreadRadius: 0,
-                  ),
-                ],
-                color: imagePath == null ? color : null,
-                image: imagePath != null
-                    ? DecorationImage(
-                        image: AssetImage(imagePath),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-              ),
-            ),
-            SizedBox(height: 5),
-
-            // 카페 이름
-            Text(
-              '[$cafeTitle]',
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                letterSpacing: -0.24,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-
-            //메뉴 이름
-            Text(
-              menuTitle ?? '',
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.24,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-
-            //당 수치
-            Container(
-              width: 51,
-              height: 25,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                color: getSugarColor(sugarLevels),
-                image: imagePath != null
-                    ? DecorationImage(
-                        image: AssetImage(imagePath),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-              ),
-              child: Text(
-                '당 $sugarLevels g',
-                style: TextStyle(
-                  color: Color(0xFF029F00),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  height: 1.54,
-                  letterSpacing: -0.24,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Color getSugarColor(double? sugarLevels) {
-    if (sugarLevels == null) return Colors.red;
-
-    if (sugarLevels < 10) {
-      return const Color(0xFFE9FFD9);
-    } else if (sugarLevels < 15) {
-      return const Color(0xFFFFF8D1);
-    } else {
-      return const Color(0xFFFFDDDD);
-    }
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 import 'package:slowpick/screen/community_screen.dart';
+import 'package:slowpick/screen/community_recipewrite.dart';
 
 class CommunityRecipe extends StatefulWidget {
   const CommunityRecipe({super.key});
@@ -51,7 +52,16 @@ class _CommunityRecipeState extends State<CommunityRecipe> {
             ),
           ],
         ),
-        backgroundColor: Color(0xFFADEA67),
+        backgroundColor: Colors.transparent, // 중요
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment(1.00, 0.50),
+              end: Alignment(0.00, 0.50),
+              colors: [Color(0xFFA2F43D), Color(0xFFD5FF72)],
+            ),
+          ),
+        ),
         elevation: 0,
         toolbarHeight: 76,
 
@@ -62,10 +72,15 @@ class _CommunityRecipeState extends State<CommunityRecipe> {
           ),
         ],
       ),
-      // 글쓰기 버튼
+      // 레시피글쓰기 버튼
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // 글쓰기 화면 이동
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const CommunityRecipewrite(),
+            ),
+          );
         },
         shape: const CircleBorder(),
         backgroundColor: const Color(0xFF187100),
@@ -83,122 +98,128 @@ class _CommunityRecipeState extends State<CommunityRecipe> {
       ),
 
       body: SingleChildScrollView(
-        child: Column(
-          children: [
-            //소통&레시피 창 선택 버튼
-            _communicationRecipeSelector(),
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment(1.00, 0.50),
+              end: Alignment(0.00, 0.50),
+              colors: [Color(0xFFA2F43D), Color(0xFFD5FF72)],
+            ),
+          ),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(30),
+                topRight: Radius.circular(30),
+              ),
+            ),
+            child: Column(
+              children: [
+                //소통&레시피 창 선택 버튼
+                _communicationRecipeSelector(),
 
-            //게시글 검색바
-            _searchBar(),
+                //게시글 검색바
+                _searchBar(),
 
-            //공지바
-            _noticeBar(),
+                //공지바
+                _noticeBar(),
 
-            //인기 레시피
-            _recommendedRecipeNotice(),
+                //인기 레시피
+                _recommendedRecipeNotice(),
 
-            SizedBox(height: 19),
+                SizedBox(height: 19),
 
-            //전체글 & 인기글 & 내등록 & 찜 선택 버튼
-            _postFilterTab(),
+                //전체글 & 인기글 & 내등록 & 찜 선택 버튼
+                _postFilterTab(),
 
-            SizedBox(height: 20),
+                SizedBox(height: 20),
 
-            //게시글 형식
-            _postListItem(),
-            //게시글 형식
-            _postListItem(),
-            //게시글 형식
-            _postListItem(),
-            //게시글 형식
-            _postListItem(),
-            //게시글 형식
-            _postListItem(),
-            //게시글 형식
-            _postListItem(),
-            //게시글 형식
-            _postListItem(),
-          ],
+                //게시글 형식
+                _postListItem(),
+                //게시글 형식
+                _postListItem(),
+                //게시글 형식
+                _postListItem(),
+                //게시글 형식
+                _postListItem(),
+                //게시글 형식
+                _postListItem(),
+                //게시글 형식
+                _postListItem(),
+                //게시글 형식
+                _postListItem(),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget _communicationRecipeSelector() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white, // 배경 색상
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-
-        children: [
-          //소통버튼
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const CommunityScreen(),
-                ),
-              );
-            },
-            child: SizedBox(
-              width: 150,
-              height: 50,
-              child: Center(
-                child: Text(
-                  '소통',
-                  style: TextStyle(
-                    color: const Color(0xFFB5B5B5),
-                    fontSize: 20,
-                    fontFamily: 'KoPubDotum Medium',
-                    fontWeight: FontWeight.w400,
-                    height: 1,
-                    letterSpacing: -1,
-                  ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        //소통버튼
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CommunityScreen()),
+            );
+          },
+          child: SizedBox(
+            width: 150,
+            height: 50,
+            child: Center(
+              child: Text(
+                '소통',
+                style: TextStyle(
+                  color: const Color(0xFFB5B5B5),
+                  fontSize: 20,
+                  fontFamily: 'KoPubDotum Medium',
+                  fontWeight: FontWeight.w400,
+                  height: 1,
+                  letterSpacing: -1,
                 ),
               ),
             ),
           ),
+        ),
 
-          SizedBox(width: 30),
+        SizedBox(width: 30),
 
-          //레시피 버튼
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const CommunityRecipe(),
-                ),
-              );
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: Colors.black, width: 2),
-                ),
-              ),
-              width: 140,
-              height: 50,
-              child: Center(
-                child: Text(
-                  '레시피',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 20,
-                    fontFamily: 'KoPubDotum Medium',
-                    fontWeight: FontWeight.w400,
-                    height: 1,
-                    letterSpacing: -1,
-                  ),
+        //레시피 버튼
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CommunityRecipe()),
+            );
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: Colors.black, width: 2)),
+            ),
+            width: 140,
+            height: 50,
+            child: Center(
+              child: Text(
+                '레시피',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 20,
+                  fontFamily: 'KoPubDotum Medium',
+                  fontWeight: FontWeight.w400,
+                  height: 1,
+                  letterSpacing: -1,
                 ),
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -578,7 +599,7 @@ class _CommunityRecipeState extends State<CommunityRecipe> {
                       IconButton(
                         icon: Icon(
                           isLiked ? Icons.favorite : Icons.favorite_border,
-                          color: isLiked ? Colors.red : Colors.black,
+                          color: isLiked ? Colors.red : Colors.black26,
                           size: 23,
                         ),
                         onPressed: () {

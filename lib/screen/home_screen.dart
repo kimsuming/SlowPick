@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // DB 연동을 위해 추가
 import 'package:slowpick/screen/recommendedMenu_Screen.dart';
