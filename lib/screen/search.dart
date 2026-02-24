@@ -7,11 +7,7 @@ class SearchScreen extends StatefulWidget {
   final String? initialQuery;
   final String? initialBrand;
 
-  const SearchScreen({
-    super.key, 
-    this.initialQuery, 
-    this.initialBrand
-  });
+  const SearchScreen({super.key, this.initialQuery, this.initialBrand});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -21,15 +17,12 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _isGridView = true;
   late TextEditingController _searchController;
   String _searchText = "";
-  
 
   // 정렬 옵션
   final List<String> _sortOptions = ['모든 메뉴', '최신순', '당류 낮은순', '칼로리 낮은순'];
   String _selectedSort = '모든 메뉴';
 
-  // [추가] 브랜드 필터링 옵션
   final List<String> _brandList = [
-    '전체', // '전체' 옵션 추가 (필터 해제용)
     '더벤티',
     '매머드 익스프레스',
     '매머드커피',
@@ -42,9 +35,21 @@ class _SearchScreenState extends State<SearchScreen> {
     '컴포즈커피',
     '탐앤탐스',
     '투썸플레이스',
-    '폴 바셋'
+    '폴 바셋',
   ];
-  String _selectedBrand = '전체'; // 기본값
+  
+  Set<String> _selectedBrands = {};
+
+  // 선택된 브랜드 수에 따라 버튼 텍스트를 다르게 보여주는 함수
+  String _getBrandButtonText() {
+    if (_selectedBrands.isEmpty) return '브랜드';
+    
+    // [추가] 모든 브랜드가 선택된 경우 '전체'로 표시
+    if (_selectedBrands.length == _brandList.length) return '전체'; 
+    
+    if (_selectedBrands.length == 1) return _selectedBrands.first;
+    return '${_selectedBrands.first} 외 ${_selectedBrands.length - 1}';
+  }
 
   @override
   void initState() {
@@ -52,8 +57,10 @@ class _SearchScreenState extends State<SearchScreen> {
     String initialText = widget.initialQuery ?? "";
     _searchController = TextEditingController(text: initialText);
     _searchText = initialText;
-
-    _selectedBrand = widget.initialBrand ?? '전체';
+    
+    if (widget.initialBrand != null && widget.initialBrand != '전체') {
+      _selectedBrands.add(widget.initialBrand!);
+    }
   }
 
   @override
@@ -62,67 +69,153 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
+
+  // [수정] 다중 선택 및 하단 '적용' 버튼이 있는 바텀 시트로 변경
   void _showBrandBottomSheet() {
+    // 바텀 시트 내부에서만 임시로 사용할 선택 상태
+    Set<String> tempSelectedBrands = Set.from(_selectedBrands);
+
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent, // 모서리 둥글게 하기 위해 투명 처리
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true, 
       builder: (BuildContext context) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.5, // 화면 절반 높이
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
-            ),
-          ),
-          child: Column(
-            children: [
-              // 바텀 시트 헤더
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  '브랜드 선택',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'KoPubDotum',
-                  ),
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            // [추가] 모든 브랜드가 선택되었는지 확인하는 변수
+            bool isAllSelected = tempSelectedBrands.length == _brandList.length;
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.6,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
                 ),
               ),
-              const Divider(height: 1, color: Colors.black26),
-              // 브랜드 리스트
-              Expanded(
-                child: ListView.builder(
-                  itemCount: _brandList.length,
-                  itemBuilder: (context, index) {
-                    final brand = _brandList[index];
-                    final isSelected = brand == _selectedBrand;
-                    return ListTile(
-                      title: Text(
-                        brand,
-                        style: TextStyle(
-                          color: isSelected ? Colors.green : Colors.black,
-                          fontWeight:
-                              isSelected ? FontWeight.bold : FontWeight.normal,
-                          fontFamily: 'KoPubDotum',
+              child: Column(
+                children: [
+                  // 바텀 시트 헤더
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const SizedBox(width: 24),
+                        const Text(
+                          '브랜드 선택',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'KoPubDotum',
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.black54),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, color: Colors.black26),
+                  
+                  // '전체 선택' 마스터 체크박스
+                  CheckboxListTile(
+                    title: Text(
+                      '전체 선택',
+                      style: TextStyle(
+                        color: isAllSelected ? Colors.green : Colors.black,
+                        fontWeight: isAllSelected ? FontWeight.bold : FontWeight.normal,
+                        fontFamily: 'KoPubDotum',
+                      ),
+                    ),
+                    value: isAllSelected,
+                    activeColor: Colors.green,
+                    onChanged: (bool? value) {
+                      setModalState(() {
+                        if (value == true) {
+                          // 활성화: 모든 브랜드를 임시 Set에 추가
+                          tempSelectedBrands.addAll(_brandList);
+                        } else {
+                          // 비활성화: 임시 Set 초기화 (모두 해제)
+                          tempSelectedBrands.clear();
+                        }
+                      });
+                    },
+                  ),
+                  const Divider(height: 1, color: Colors.black12), // 구분선 추가
+
+                  // 개별 브랜드 리스트
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: _brandList.length,
+                      itemBuilder: (context, index) {
+                        final brand = _brandList[index];
+                        final isSelected = tempSelectedBrands.contains(brand);
+
+                        return CheckboxListTile(
+                          title: Text(
+                            brand,
+                            style: TextStyle(
+                              color: isSelected ? Colors.green : Colors.black,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              fontFamily: 'KoPubDotum',
+                            ),
+                          ),
+                          value: isSelected,
+                          activeColor: Colors.green,
+                          onChanged: (bool? value) {
+                            setModalState(() {
+                              if (value == true) {
+                                tempSelectedBrands.add(brand);
+                              } else {
+                                tempSelectedBrands.remove(brand);
+                              }
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  
+                  // 하단 적용 버튼
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          // 임시 상태를 실제 상태에 반영하고 화면 리빌드
+                          setState(() {
+                            _selectedBrands = tempSelectedBrands;
+                          });
+                          Navigator.pop(context); // 창 닫기
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          '적용하기',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            fontFamily: 'KoPubDotum',
+                          ),
                         ),
                       ),
-                      trailing: isSelected
-                          ? const Icon(Icons.check, color: Colors.green)
-                          : null,
-                      onTap: () {
-                        setState(() {
-                          _selectedBrand = brand;
-                        });
-                        Navigator.pop(context); // 창 닫기
-                      },
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -172,10 +265,18 @@ class _SearchScreenState extends State<SearchScreen> {
                           padding: const EdgeInsets.fromLTRB(10, 20, 10, 0),
                           child: Row(
                             children: [
-                              IconButton(
-                                icon: const Icon(Icons.arrow_back_ios_new,
-                                    color: Colors.black54),
-                                onPressed: () => Navigator.pop(context),
+                              Visibility(
+                                visible: Navigator.canPop(context),
+                                maintainSize: true,
+                                maintainAnimation: true,
+                                maintainState: true,
+                                child: IconButton(
+                                  icon: const Icon(
+                                    Icons.arrow_back_ios_new,
+                                    color: Colors.black54,
+                                  ),
+                                  onPressed: () => Navigator.pop(context),
+                                ),
                               ),
                               Expanded(
                                 child: Container(
@@ -197,14 +298,22 @@ class _SearchScreenState extends State<SearchScreen> {
                                       isDense: true,
                                       hintText: '메뉴를 검색해보세요!',
                                       hintStyle: const TextStyle(
-                                          color: Colors.black38, fontSize: 16),
+                                        color: Colors.black38,
+                                        fontSize: 16,
+                                      ),
                                       border: InputBorder.none,
-                                      prefixIcon: const Icon(Icons.search,
-                                          color: Colors.grey, size: 20),
+                                      prefixIcon: const Icon(
+                                        Icons.search,
+                                        color: Colors.grey,
+                                        size: 20,
+                                      ),
                                       suffixIcon: _searchText.isNotEmpty
                                           ? IconButton(
-                                              icon: const Icon(Icons.cancel,
-                                                  color: Colors.grey, size: 18),
+                                              icon: const Icon(
+                                                Icons.cancel,
+                                                color: Colors.grey,
+                                                size: 18,
+                                              ),
                                               onPressed: () {
                                                 _searchController.clear();
                                                 setState(() {
@@ -213,19 +322,24 @@ class _SearchScreenState extends State<SearchScreen> {
                                               },
                                             )
                                           : null,
-                                      contentPadding: const EdgeInsets.symmetric(
-                                          horizontal: 8),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                               IconButton(
-                                icon:
-                                    const Icon(Icons.mic, color: Colors.black54),
+                                icon: const Icon(
+                                  Icons.mic,
+                                  color: Colors.black54,
+                                ),
                                 onPressed: () {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                        content: Text('음성 인식 기능 준비 중입니다.')),
+                                      content: Text('음성 인식 기능 준비 중입니다.'),
+                                    ),
                                   );
                                 },
                               ),
@@ -239,26 +353,27 @@ class _SearchScreenState extends State<SearchScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.start,
                             children: [
-                              const Text('검색 옵션', style: TextStyle(fontWeight: FontWeight.w600),),
+                              const Text(
+                                '검색 옵션',
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
                             ],
                           ),
                         ),
-                        
+
                         // === 필터 및 뷰 전환 버튼 영역 ===
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(20,0,12,0),
+                          padding: const EdgeInsets.fromLTRB(20, 0, 12, 0),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              // [수정] 정렬 버튼과 브랜드 버튼을 함께 배치
                               Row(
                                 children: [
                                   _buildSortDropdown(),
-                                  const SizedBox(width: 8), // 버튼 사이 간격
-                                  _buildBrandFilterButton(), // 브랜드 버튼
+                                  const SizedBox(width: 8),
+                                  _buildBrandFilterButton(),
                                 ],
                               ),
-
                               IconButton(
                                 onPressed: () {
                                   setState(() {
@@ -288,12 +403,16 @@ class _SearchScreenState extends State<SearchScreen> {
                               if (snapshot.connectionState ==
                                   ConnectionState.waiting) {
                                 return const Center(
-                                    child: CircularProgressIndicator(
-                                        color: Colors.greenAccent));
+                                  child: CircularProgressIndicator(
+                                    color: Colors.greenAccent,
+                                  ),
+                                );
                               }
                               if (!snapshot.hasData ||
                                   snapshot.data!.docs.isEmpty) {
-                                return const Center(child: Text('저장된 메뉴가 없습니다.'));
+                                return const Center(
+                                  child: Text('저장된 메뉴가 없습니다.'),
+                                );
                               }
 
                               final allDocs = snapshot.data!.docs;
@@ -301,19 +420,21 @@ class _SearchScreenState extends State<SearchScreen> {
                               var filteredDocs = allDocs.where((doc) {
                                 final data = doc.data() as Map<String, dynamic>;
                                 final name = data['menu_name'] as String? ?? '';
-                                final brand = data['brand_name'] as String? ?? '';
+                                final brand =
+                                    data['brand_name'] as String? ?? '';
 
                                 // 1. 검색어 필터
                                 if (_searchText.isNotEmpty &&
-                                    !name
-                                        .toLowerCase()
-                                        .contains(_searchText.toLowerCase())) {
+                                    !name.toLowerCase().contains(
+                                      _searchText.toLowerCase(),
+                                    )) {
                                   return false;
                                 }
 
-                                // [추가] 2. 브랜드 필터
-                                if (_selectedBrand != '전체' &&
-                                    brand != _selectedBrand) {
+                                // [수정] 2. 브랜드 필터 (다중 선택 로직 반영)
+                                // 선택된 브랜드가 1개 이상 존재하고, 현재 메뉴의 브랜드가 선택 목록에 없다면 필터링
+                                if (_selectedBrands.isNotEmpty &&
+                                    !_selectedBrands.contains(brand)) {
                                   return false;
                                 }
 
@@ -323,8 +444,10 @@ class _SearchScreenState extends State<SearchScreen> {
                               // 3. 정렬 로직
                               if (_selectedSort == '당류 낮은순') {
                                 filteredDocs.sort((a, b) {
-                                  final aData = a.data() as Map<String, dynamic>;
-                                  final bData = b.data() as Map<String, dynamic>;
+                                  final aData =
+                                      a.data() as Map<String, dynamic>;
+                                  final bData =
+                                      b.data() as Map<String, dynamic>;
                                   final num aSugar =
                                       aData['nutrition']?['sugar_g'] ?? 0;
                                   final num bSugar =
@@ -333,8 +456,10 @@ class _SearchScreenState extends State<SearchScreen> {
                                 });
                               } else if (_selectedSort == '칼로리 낮은순') {
                                 filteredDocs.sort((a, b) {
-                                  final aData = a.data() as Map<String, dynamic>;
-                                  final bData = b.data() as Map<String, dynamic>;
+                                  final aData =
+                                      a.data() as Map<String, dynamic>;
+                                  final bData =
+                                      b.data() as Map<String, dynamic>;
                                   final num aCal =
                                       aData['nutrition']?['calories_kcal'] ?? 0;
                                   final num bCal =
@@ -344,17 +469,17 @@ class _SearchScreenState extends State<SearchScreen> {
                               }
 
                               if (filteredDocs.isEmpty) {
-                                return Center(
-                                    child: Text('검색 결과가 없습니다.'));
+                                return const Center(child: Text('검색 결과가 없습니다.'));
                               }
 
                               if (_isGridView) {
                                 return GridView.builder(
                                   padding: EdgeInsets.fromLTRB(
-                                      screenWidth * 0.04,
-                                      10,
-                                      screenWidth * 0.04,
-                                      18),
+                                    screenWidth * 0.04,
+                                    10,
+                                    screenWidth * 0.04,
+                                    18,
+                                  ),
                                   gridDelegate:
                                       SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: 2,
@@ -364,24 +489,27 @@ class _SearchScreenState extends State<SearchScreen> {
                                   ),
                                   itemCount: filteredDocs.length,
                                   itemBuilder: (context, index) {
-                                    final data = filteredDocs[index].data()
-                                        as Map<String, dynamic>;
+                                    final data =
+                                        filteredDocs[index].data()
+                                            as Map<String, dynamic>;
                                     return MenuGridCard(data: data);
                                   },
                                 );
                               } else {
                                 return ListView.separated(
                                   padding: EdgeInsets.fromLTRB(
-                                      screenWidth * 0.04,
-                                      10,
-                                      screenWidth * 0.04,
-                                      16),
+                                    screenWidth * 0.04,
+                                    10,
+                                    screenWidth * 0.04,
+                                    16,
+                                  ),
                                   itemCount: filteredDocs.length,
                                   separatorBuilder: (context, index) =>
                                       SizedBox(height: screenHeight * 0.02),
                                   itemBuilder: (context, index) {
-                                    final data = filteredDocs[index].data()
-                                        as Map<String, dynamic>;
+                                    final data =
+                                        filteredDocs[index].data()
+                                            as Map<String, dynamic>;
                                     return MenuListCard(data: data);
                                   },
                                 );
@@ -410,17 +538,22 @@ class _SearchScreenState extends State<SearchScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(50),
         border: Border.all(color: Colors.black12, width: 1),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-              color: Colors.black12,
-              blurRadius: 2,
-              offset: const Offset(0, 1))
+            color: Colors.black12,
+            blurRadius: 2,
+            offset: Offset(0, 1),
+          ),
         ],
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedSort,
-          icon: const Icon(Icons.arrow_drop_down, color: Colors.black, size: 20),
+          icon: const Icon(
+            Icons.arrow_drop_down,
+            color: Colors.black,
+            size: 20,
+          ),
           style: const TextStyle(
             color: Colors.black87,
             fontSize: 13,
@@ -442,38 +575,40 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  // 브랜드 필터 버튼
   Widget _buildBrandFilterButton() {
+    final bool isFiltered = _selectedBrands.isNotEmpty;
+
     return GestureDetector(
       onTap: _showBrandBottomSheet,
       child: Container(
         height: 32,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: _selectedBrand == '전체'
+          color: !isFiltered
               ? Colors.white
-              : const Color(0xFFE8F5E9), // 선택되면 초록빛 배경
+              : const Color(0xFFE8F5E9),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: _selectedBrand == '전체'
+            color: !isFiltered
                 ? Colors.black12
-                : Colors.green, // 선택되면 초록 테두리
+                : Colors.green,
             width: 1,
           ),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
-                color: Colors.black12,
-                blurRadius: 2,
-                offset: const Offset(0, 1))
+              color: Colors.black12,
+              blurRadius: 2,
+              offset: Offset(0, 1),
+            ),
           ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              _selectedBrand == '전체' ? '브랜드' : _selectedBrand,
+              _getBrandButtonText(),
               style: TextStyle(
-                color: _selectedBrand == '전체' ? Colors.black87 : Colors.green,
+                color: !isFiltered ? Colors.black87 : Colors.green,
                 fontSize: 13,
                 fontFamily: 'KoPubDotum',
                 fontWeight: FontWeight.bold,
@@ -482,7 +617,7 @@ class _SearchScreenState extends State<SearchScreen> {
             const SizedBox(width: 4),
             Icon(
               Icons.filter_list,
-              color: _selectedBrand == '전체' ? Colors.black54 : Colors.green,
+              color: !isFiltered ? Colors.black54 : Colors.green,
               size: 16,
             ),
           ],
