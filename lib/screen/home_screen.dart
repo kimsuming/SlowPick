@@ -274,10 +274,25 @@ class _HomeScreenState extends State<HomeScreen> {
               imagePath: 'images/brand_logo/logo_twosome.png',
               brandName: '투썸플레이스',
             ),
-            // 중복된 메가커피 예시는 삭제하거나 다른 브랜드(예: 폴 바셋)로 교체
             _cafeBtn(
-              imagePath: 'images/brand_logo/logo_mega.png',
-              brandName: '메가MGC커피',
+              imagePath: 'images/brand_logo/logo_angel.png',
+              brandName: '엔제리너스',
+            ),
+            _cafeBtn(
+              imagePath: 'images/brand_logo/logo_mammoth.png',
+              brandName: '매머드커피',
+            ),
+            _cafeBtn(
+              imagePath: 'images/brand_logo/logo_paul.png',
+              brandName: '폴 바셋',
+            ),
+            _cafeBtn(
+              imagePath: 'images/brand_logo/logo_theventi.png',
+              brandName: '더벤티',
+            ),
+            _cafeBtn(
+              imagePath: 'images/brand_logo/logo_yoger.png',
+              brandName: '요거프레소',
             ),
             const SizedBox(width: 12),
           ],
