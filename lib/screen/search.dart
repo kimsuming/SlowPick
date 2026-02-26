@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
-
 import 'package:slowpick/widget/menu_cards.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -236,111 +235,393 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
       body: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (value) {
-                setState(() {
-                  _searchText = value;
-                });
-              },
-              decoration: InputDecoration(
-                hintText: '메뉴를 검색해보세요!',
-                hintStyle: TextStyle(color: Colors.black38),
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                suffixIcon: _searchText.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.grey),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {
-                            _searchText = "";
-                          });
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: const Color(0xFFF5F5F5),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,
-                ),
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                stops: [0.2, 0.6],
+                colors: [Color(0xFFA2F43D), Color(0xFFD5FF72)],
               ),
             ),
           ),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('menus')
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: Colors.greenAccent),
-                  );
-                }
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text('저장된 메뉴가 없습니다.'));
-                }
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                SizedBox(height: screenHeight * 0.02),
+                Expanded(
+                  child: Container(
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(50),
+                        topRight: Radius.circular(50),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        // 상단 검색 헤더
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 20, 10, 0),
+                          child: Row(
+                            children: [
+                              Visibility(
+                                visible: Navigator.canPop(context),
+                                maintainSize: true,
+                                maintainAnimation: true,
+                                maintainState: true,
+                                child: IconButton(
+                                  icon: const Icon(
+                                    Icons.arrow_back_ios_new,
+                                    color: Colors.black54,
+                                  ),
+                                  onPressed: () => Navigator.pop(context),
+                                ),
+                              ),
+                              Expanded(
+                                child: Container(
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFEEEEEE),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: TextField(
+                                    controller: _searchController,
+                                    textAlignVertical: TextAlignVertical.center,
+                                    style: const TextStyle(fontSize: 16),
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _searchText = value;
+                                      });
+                                    },
+                                    decoration: InputDecoration(
+                                      isDense: true,
+                                      hintText: '메뉴를 검색해보세요!',
+                                      hintStyle: const TextStyle(
+                                        color: Colors.black38,
+                                        fontSize: 16,
+                                      ),
+                                      border: InputBorder.none,
+                                      prefixIcon: const Icon(
+                                        Icons.search,
+                                        color: Colors.grey,
+                                        size: 20,
+                                      ),
+                                      suffixIcon: _searchText.isNotEmpty
+                                          ? IconButton(
+                                              icon: const Icon(
+                                                Icons.cancel,
+                                                color: Colors.grey,
+                                                size: 18,
+                                              ),
+                                              onPressed: () {
+                                                _searchController.clear();
+                                                setState(() {
+                                                  _searchText = "";
+                                                });
+                                              },
+                                            )
+                                          : null,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.mic,
+                                  color: Colors.black54,
+                                ),
+                                onPressed: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('음성 인식 기능 준비 중입니다.'),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
 
-                final allDocs = snapshot.data!.docs;
-                final filteredDocs = allDocs.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  final name = data['menu_name'] as String? ?? '';
-                  if (_searchText.isEmpty) return true;
-                  return name.toLowerCase().contains(_searchText.toLowerCase());
-                }).toList();
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(30, 0, 0, 0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              const Text(
+                                '검색 옵션',
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                        ),
 
-                if (filteredDocs.isEmpty) {
-                  return Center(child: Text('\'$_searchText\' 검색 결과가 없습니다.'));
-                }
-                // 그리드뷰
-                if (_isGridView) {
-                  return GridView.builder(
-                    padding: EdgeInsets.fromLTRB(
-                      screenWidth * 0.04,
-                      18,
-                      screenWidth * 0.04,
-                      18,
+                        // === 필터 및 뷰 전환 버튼 영역 ===
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 12, 0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  _buildSortDropdown(),
+                                  const SizedBox(width: 8),
+                                  _buildBrandFilterButton(),
+                                ],
+                              ),
+                              IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _isGridView = !_isGridView;
+                                  });
+                                },
+                                icon: Icon(
+                                  _isGridView
+                                      ? Icons.view_list_rounded
+                                      : Icons.grid_view_rounded,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 6),
+
+                        // === 검색 결과 리스트 ===
+                        Expanded(
+                          child: StreamBuilder<QuerySnapshot>(
+                            stream: FirebaseFirestore.instance
+                                .collection('menus')
+                                .snapshots(),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const Center(
+                                  child: CircularProgressIndicator(
+                                    color: Colors.greenAccent,
+                                  ),
+                                );
+                              }
+                              if (!snapshot.hasData ||
+                                  snapshot.data!.docs.isEmpty) {
+                                return const Center(
+                                  child: Text('저장된 메뉴가 없습니다.'),
+                                );
+                              }
+
+                              final allDocs = snapshot.data!.docs;
+
+                              var filteredDocs = allDocs.where((doc) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                final name = data['menu_name'] as String? ?? '';
+                                final brand =
+                                    data['brand_name'] as String? ?? '';
+
+                                // 1. 검색어 필터
+                                if (_searchText.isNotEmpty &&
+                                    !name.toLowerCase().contains(
+                                      _searchText.toLowerCase(),
+                                    )) {
+                                  return false;
+                                }
+
+                                // [수정] 2. 브랜드 필터 (다중 선택 로직 반영)
+                                // 선택된 브랜드가 1개 이상 존재하고, 현재 메뉴의 브랜드가 선택 목록에 없다면 필터링
+                                if (_selectedBrands.isNotEmpty &&
+                                    !_selectedBrands.contains(brand)) {
+                                  return false;
+                                }
+
+                                return true;
+                              }).toList();
+
+                              // 3. 정렬 로직
+                              if (_selectedSort == '당류 낮은순') {
+                                filteredDocs.sort((a, b) {
+                                  final aData =
+                                      a.data() as Map<String, dynamic>;
+                                  final bData =
+                                      b.data() as Map<String, dynamic>;
+                                  final num aSugar =
+                                      aData['nutrition']?['sugar_g'] ?? 0;
+                                  final num bSugar =
+                                      bData['nutrition']?['sugar_g'] ?? 0;
+                                  return aSugar.compareTo(bSugar);
+                                });
+                              } else if (_selectedSort == '칼로리 낮은순') {
+                                filteredDocs.sort((a, b) {
+                                  final aData =
+                                      a.data() as Map<String, dynamic>;
+                                  final bData =
+                                      b.data() as Map<String, dynamic>;
+                                  final num aCal =
+                                      aData['nutrition']?['calories_kcal'] ?? 0;
+                                  final num bCal =
+                                      bData['nutrition']?['calories_kcal'] ?? 0;
+                                  return aCal.compareTo(bCal);
+                                });
+                              }
+
+                              if (filteredDocs.isEmpty) {
+                                return const Center(child: Text('검색 결과가 없습니다.'));
+                              }
+
+                              if (_isGridView) {
+                                return GridView.builder(
+                                  padding: EdgeInsets.fromLTRB(
+                                    screenWidth * 0.04,
+                                    10,
+                                    screenWidth * 0.04,
+                                    18,
+                                  ),
+                                  gridDelegate:
+                                      SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    childAspectRatio: gridAspectRatio,
+                                    crossAxisSpacing: screenWidth * 0.04,
+                                    mainAxisSpacing: screenWidth * 0.04,
+                                  ),
+                                  itemCount: filteredDocs.length,
+                                  itemBuilder: (context, index) {
+                                    final data =
+                                        filteredDocs[index].data()
+                                            as Map<String, dynamic>;
+                                    return MenuGridCard(data: data);
+                                  },
+                                );
+                              } else {
+                                return ListView.separated(
+                                  padding: EdgeInsets.fromLTRB(
+                                    screenWidth * 0.04,
+                                    10,
+                                    screenWidth * 0.04,
+                                    16,
+                                  ),
+                                  itemCount: filteredDocs.length,
+                                  separatorBuilder: (context, index) =>
+                                      SizedBox(height: screenHeight * 0.02),
+                                  itemBuilder: (context, index) {
+                                    final data =
+                                        filteredDocs[index].data()
+                                            as Map<String, dynamic>;
+                                    return MenuListCard(data: data);
+                                  },
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                      ],
                     ),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: gridAspectRatio,
-                      crossAxisSpacing: screenWidth * 0.04,
-                      mainAxisSpacing: screenWidth * 0.04,
-                    ),
-                    itemCount: filteredDocs.length,
-                    itemBuilder: (context, index) {
-                      final data =
-                          filteredDocs[index].data() as Map<String, dynamic>;
-                      return MenuGridCard(data: data);
-                    },
-                  );
-                } else {
-                  // 리스트뷰
-                  return ListView.separated(
-                    padding: EdgeInsets.fromLTRB(
-                      screenWidth * 0.04,
-                      0,
-                      screenWidth * 0.04,
-                      16,
-                    ),
-                    itemCount: filteredDocs.length,
-                    separatorBuilder: (context, index) =>
-                        SizedBox(height: screenHeight * 0.02),
-                    itemBuilder: (context, index) {
-                      final data =
-                          filteredDocs[index].data() as Map<String, dynamic>;
-                      return MenuListCard(data: data);
-                    },
-                  );
-                }
-              },
+                  ),
+                ),
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // 정렬 드롭다운
+  Widget _buildSortDropdown() {
+    return Container(
+      height: 32,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(50),
+        border: Border.all(color: Colors.black12, width: 1),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 2,
+            offset: Offset(0, 1),
+          ),
+        ],
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedSort,
+          icon: const Icon(
+            Icons.arrow_drop_down,
+            color: Colors.black,
+            size: 20,
+          ),
+          style: const TextStyle(
+            color: Colors.black87,
+            fontSize: 13,
+            fontFamily: 'KoPubDotum',
+            fontWeight: FontWeight.bold,
+          ),
+          onChanged: (String? newValue) {
+            if (newValue != null) {
+              setState(() {
+                _selectedSort = newValue;
+              });
+            }
+          },
+          items: _sortOptions.map<DropdownMenuItem<String>>((String value) {
+            return DropdownMenuItem<String>(value: value, child: Text(value));
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBrandFilterButton() {
+    final bool isFiltered = _selectedBrands.isNotEmpty;
+
+    return GestureDetector(
+      onTap: _showBrandBottomSheet,
+      child: Container(
+        height: 32,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: !isFiltered
+              ? Colors.white
+              : const Color(0xFFE8F5E9),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: !isFiltered
+                ? Colors.black12
+                : Colors.green,
+            width: 1,
+          ),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 2,
+              offset: Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _getBrandButtonText(),
+              style: TextStyle(
+                color: !isFiltered ? Colors.black87 : Colors.green,
+                fontSize: 13,
+                fontFamily: 'KoPubDotum',
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.filter_list,
+              color: !isFiltered ? Colors.black54 : Colors.green,
+              size: 16,
+            ),
+          ],
+        ),
       ),
     );
   }
