@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:slowpick/screen/home_screen.dart';
-import 'package:slowpick/screen/search.dart';
 import 'package:slowpick/screen/my_page.dart';
 import 'package:slowpick/screen/community_screen.dart';
 import 'package:slowpick/screen/likedmenu_screen.dart';
