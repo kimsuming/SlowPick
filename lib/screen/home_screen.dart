@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart'; //이미지 캐싱 패키지
 import 'package:cloud_firestore/cloud_firestore.dart'; // DB 연동을 위해 추가
 import 'package:slowpick/screen/recommendedMenu_Screen.dart';
 import 'package:slowpick/screen/search.dart';
@@ -21,12 +22,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<int> _sliderItems = [1, 2, 3, 4, 5];
   // 검색 화면으로 이동하는 헬퍼 함수
-  void _navigateToSearch(String query) {
+  void _navigateToSearch({String? query, String? brand}) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        // initialQuery
-        builder: (context) => SearchScreen(initialQuery: query),
+        builder: (context) => SearchScreen(
+          initialQuery: query,
+          initialBrand: brand, // 브랜드 정보 전달
+        ),
       ),
     );
   }
@@ -70,24 +73,24 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              const SizedBox(height: 10),
+
               // 첫 번째 배너
               _firstBanner(),
+              const SizedBox(height: 17),
 
               // 카페 목록
               _cafeCatalog(),
 
-              //추천 메뉴 선택
+              const SizedBox(height: 17),
               _recomendedMenu(),
-
-              const SizedBox(height: 20),
 
               // 첫번째 슬라이더
               _firstSlider(),
-
               const SizedBox(height: 17),
+
               // 검색창 및 메인 컨텐츠
               _menuSearchBar(),
-
               const SizedBox(height: 30),
 
               // 추천 문구 (두번쨰 슬라이더 위 문구)
@@ -147,19 +150,85 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // 첫 번째 배너 위젯
+// 첫 번째 배너 위젯
   Widget _firstBanner() {
-    return Container(height: 75, color: Colors.red);
+    return SizedBox(
+      height: 80,
+      width: double.infinity, // 가로 꽉 채우기
+      child: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('banners').snapshots(),
+        builder: (context, snapshot) {
+          // 1. 로딩 중일 때 (회색 박스)
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Container(color: Colors.grey[200]);
+          }
+
+          // 2. 데이터가 없을 때
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Container(color: Colors.grey[300]);
+          }
+
+          // 3. "firstBanner"로 시작하는 문서 찾기
+          QueryDocumentSnapshot? targetDoc;
+          try {
+            targetDoc = snapshot.data!.docs.firstWhere((doc) {
+              return doc.id.startsWith("firstBanner");
+            });
+          } catch (e) {
+            // 조건에 맞는 문서가 하나도 없으면 여기로 옴
+            targetDoc = null;
+          }
+
+          // 문서가 없거나 이미지 URL이 없으면 빈 박스 보여주기
+          if (targetDoc == null) {
+            return Container(
+              color: Colors.grey[300],
+              child: const Center(
+                  child: Text("배너 준비 중",
+                      style: TextStyle(color: Colors.grey, fontSize: 12))),
+            );
+          }
+
+          final data = targetDoc.data() as Map<String, dynamic>;
+          final imageUrl = data['imgURL'] as String? ?? '';
+
+          if (imageUrl.isEmpty) {
+            return Container(color: Colors.grey[300]);
+          }
+
+          // 4. 이미지 표시 (캐싱 적용)
+          return CachedNetworkImage(
+            imageUrl: imageUrl,
+            fit: BoxFit.cover, // 박스 크기에 맞춰 꽉 채우기 (비율 유지)
+            placeholder: (context, url) => Container(
+              color: Colors.grey[200],
+              child: const Center(child: CircularProgressIndicator()),
+            ),
+            errorWidget: (context, url, error) => Container(
+              color: Colors.grey[300],
+              child: const Icon(Icons.broken_image, color: Colors.grey),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   // 카페 목록 위젯
-  Widget _cafeBtn({Color? color, String? imagePath}) {
+  Widget _cafeBtn({
+    Color? color,
+    String? imagePath,
+    required String brandName, // [필수] 클릭 시 전달할 브랜드 이름
+  }) {
     return GestureDetector(
-      onTap: () => debugPrint("버튼 클릭"),
+      onTap: () {
+        // 해당 브랜드를 선택한 상태로 검색 화면 이동
+        _navigateToSearch(brand: brandName);
+      },
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 7),
-        width: 45,
-        height: 45,
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        width: 55,
+        height: 55,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: imagePath == null ? color : null,
@@ -174,19 +243,57 @@ class _HomeScreenState extends State<HomeScreen> {
   // 카페 목록 가로 스크롤 위젯
   Widget _cafeCatalog() {
     return SizedBox(
-      height: 69,
+      height: 55,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
             const SizedBox(width: 12),
-            _cafeBtn(color: Colors.green),
-            _cafeBtn(color: Colors.yellow),
-            _cafeBtn(color: Colors.grey),
-            _cafeBtn(color: Colors.amber),
-            _cafeBtn(color: Colors.blueGrey),
-            _cafeBtn(color: Colors.redAccent),
-            _cafeBtn(color: Colors.white),
+            // brandName은 search.dart의 _brandList에 있는 이름과 같아야 함
+            _cafeBtn(
+              imagePath: 'images/brand_logo/logo_starbucks.png',
+              brandName: '스타벅스',
+            ),
+            _cafeBtn(
+              imagePath: 'images/brand_logo/logo_mega.png',
+              brandName: '메가MGC커피',
+            ),
+            _cafeBtn(
+              imagePath: 'images/brand_logo/logo_compose.jpg',
+              brandName: '컴포즈커피',
+            ),
+            _cafeBtn(
+              imagePath: 'images/brand_logo/logo_ediya.jpg',
+              brandName: '이디야커피',
+            ),
+            _cafeBtn(
+              imagePath: 'images/brand_logo/logo_paik.png',
+              brandName: '빽다방',
+            ),
+            _cafeBtn(
+              imagePath: 'images/brand_logo/logo_twosome.png',
+              brandName: '투썸플레이스',
+            ),
+            _cafeBtn(
+              imagePath: 'images/brand_logo/logo_angel.png',
+              brandName: '엔제리너스',
+            ),
+            _cafeBtn(
+              imagePath: 'images/brand_logo/logo_mammoth.png',
+              brandName: '매머드커피',
+            ),
+            _cafeBtn(
+              imagePath: 'images/brand_logo/logo_paul.png',
+              brandName: '폴 바셋',
+            ),
+            _cafeBtn(
+              imagePath: 'images/brand_logo/logo_theventi.png',
+              brandName: '더벤티',
+            ),
+            _cafeBtn(
+              imagePath: 'images/brand_logo/logo_yoger.png',
+              brandName: '요거프레소',
+            ),
             const SizedBox(width: 12),
           ],
         ),
@@ -271,72 +378,127 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // 첫 번째 슬라이더 위젯
   Widget _firstSlider() {
-    return SizedBox(
-      height: MediaQuery.of(context).size.height * 0.28,
-      child: Stack(
-        children: [
-          CarouselSlider(
-            options: CarouselOptions(
-              height: 400.0,
-              viewportFraction: 1, //화면 너비 대비 한 슬라이드가 차지하는 비율
-              initialPage: 0, //시작 시 보여줄 슬라이드 인덱스
-              enableInfiniteScroll: true, //무한 스크롤 여부
-              //페이지 변경 시 호출되는 콜백
-              onPageChanged: (index, reason) {
-                setState(() {
-                  _currentIndex1 = index;
-                });
-              },
-            ),
-            items: _sliderItems.map((i) {
-              return Container(
-                width: MediaQuery.of(context).size.width,
-                decoration: const BoxDecoration(color: Colors.amber),
-                child: Center(
-                  child: Text('text $i', style: const TextStyle(fontSize: 16)),
-                ),
-              );
-            }).toList(),
-          ),
+    final double sliderHeight = MediaQuery.of(context).size.height * 0.28;
 
-          Positioned(
-            right: 15,
-            bottom: 15,
-            child: Container(
-              width: 67,
-              height: 30,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.white, width: 1),
-                color: Colors.black.withValues(alpha: 0.49),
-                borderRadius: BorderRadius.circular(50),
+    return SizedBox(
+      height: sliderHeight, // 부모 높이
+      child: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('banners').snapshots(),
+        builder: (context, snapshot) {
+          // 로딩 중일 때
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          // 데이터 필터링 ("firstSlider_"로 시작하는 것만)
+          final bannerDocs =
+              snapshot.data?.docs.where((doc) {
+                return doc.id.startsWith("firstSlider_");
+              }).toList() ??
+              [];
+
+          // 이미지 URL만 리스트로 뽑기
+          final imageUrls = bannerDocs
+              .map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                return data['imgURL'] as String? ?? '';
+              })
+              .where((url) => url.isNotEmpty)
+              .toList();
+
+          // 데이터가 없을 때 빈 화면 처리
+          if (imageUrls.isEmpty) {
+            return Container(
+              color: Colors.grey[300],
+              child: const Center(child: Text("배너가 없습니다.")),
+            );
+          }
+
+          return Stack(
+            children: [
+              CarouselSlider(
+                options: CarouselOptions(
+                  height: sliderHeight,
+                  viewportFraction: 1,
+                  initialPage: 0,
+                  // 이미지가 1개보다 많을 때만 무한 스크롤 & 자동 재생
+                  enableInfiniteScroll: imageUrls.length > 1,
+                  autoPlay: imageUrls.length > 1,
+                  autoPlayInterval: const Duration(seconds: 5),
+                  onPageChanged: (index, reason) {
+                    setState(() {
+                      _currentIndex1 = index;
+                    });
+                  },
+                ),
+                items: imageUrls.map((url) {
+                  return Builder(
+                    builder: (BuildContext context) {
+                      return Container(
+                        width: MediaQuery.of(context).size.width,
+                        // 이미지 캐싱 적용
+                        child: CachedNetworkImage(
+                          imageUrl: url,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            color: Colors.grey[200],
+                            child: const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          ),
+                          errorWidget: (context, url, error) => Container(
+                            color: Colors.grey[300],
+                            child: const Icon(Icons.error),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                }).toList(),
               ),
-              child: Text(
-                '${_currentIndex1 + 1} / ${_sliderItems.length}',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.24,
+
+              // 페이지 번호 (인디케이터)
+              Positioned(
+                right: 15,
+                bottom: 15,
+                child: Container(
+                  width: 67,
+                  height: 30,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.white, width: 1),
+                    color: Colors.black.withOpacity(0.49),
+                    borderRadius: BorderRadius.circular(50),
+                  ),
+                  child: Text(
+                    '${_currentIndex1 + 1} / ${imageUrls.length}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.24,
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
 
   // 메뉴 검색 바 위젯
   Widget _menuSearchBar() {
-    // 기존 GestureDetector를 StreamBuilder + Autocomplete로 교체
     return SizedBox(
       width: 350,
       child: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('menus').snapshots(),
         builder: (context, snapshot) {
-          // 데이터 로딩 중이거나 에러가 있을 때는 기존 디자인의 껍데기만 보여줌
           if (!snapshot.hasData) {
             return Container(
               height: 35,
@@ -355,7 +517,6 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }
 
-          // DB에서 메뉴 이름 리스트 추출
           final List<String> menuNames = snapshot.data!.docs
               .map(
                 (doc) =>
@@ -366,7 +527,6 @@ class _HomeScreenState extends State<HomeScreen> {
               .where((name) => name.isNotEmpty)
               .toList();
 
-          // 자동 완성 위젯
           return Autocomplete<String>(
             optionsBuilder: (TextEditingValue textEditingValue) {
               if (textEditingValue.text == '') {
@@ -378,8 +538,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               });
             },
+
             onSelected: (String selection) {
-              _navigateToSearch(selection);
+              _navigateToSearch(query: selection);
             },
             fieldViewBuilder:
                 (context, controller, focusNode, onFieldSubmitted) {
@@ -400,9 +561,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: TextField(
                       controller: controller,
                       focusNode: focusNode,
-                      onSubmitted: (value) => _navigateToSearch(value),
-                      textAlignVertical:
-                          TextAlignVertical.center, // 텍스트 수직 중앙 정렬
+                      onSubmitted: (value) => _navigateToSearch(query: value),
+                      textAlignVertical: TextAlignVertical.center,
                       decoration: InputDecoration(
                         hintText: '원하는 카페 음료를 검색해봐요!',
                         hintStyle: const TextStyle(
@@ -419,7 +579,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12,
                         ),
-                        // 테두리 없애고 둥글게 처리
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(20),
                           borderSide: BorderSide.none,
@@ -428,8 +587,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   );
                 },
-
-            // 추천 검색어 목록 디자인
             optionsViewBuilder: (context, onSelected, options) {
               return Align(
                 alignment: Alignment.topLeft,
@@ -463,7 +620,6 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
     );
-    // [여기까지 수정됨]
   }
 
   // 두 번째 슬라이더 위젯

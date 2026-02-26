@@ -120,7 +120,7 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
                 ),
                 child: Center(
                   child: Text(
-                    '카테고리별 보기',
+                    '카페별 보기',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                   ),
@@ -170,7 +170,7 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
     );
   }
 
-  // 카테고리별 보기 화면
+  // 카페별 보기 화면
   Widget _categoryListView() {
     final List<Map<String, dynamic>> cafes = [
       {'color': Colors.green, 'title': '메가커피'},
@@ -206,6 +206,7 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
             top: 0,
           ),
           shrinkWrap: true,
+<<<<<<< HEAD
           physics: const NeverScrollableScrollPhysics(),
           itemCount: cafes.length,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -219,6 +220,22 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
 
             return _gridItem(color: cafe['color'], cafeTitle: cafe['title']);
           },
+=======
+          physics: NeverScrollableScrollPhysics(),
+          children: [
+            _gridItem(imagePath: 'images/brand_logo/logo_starbucks.png', cafeTitle: '스타벅스'),
+            _gridItem(imagePath: 'images/brand_logo/logo_mega.png', cafeTitle: '메가커피'),
+            _gridItem(imagePath: 'images/brand_logo/logo_compose.jpg', cafeTitle: '컴포즈'),
+            _gridItem(imagePath: 'images/brand_logo/logo_ediya.jpg', cafeTitle: '이디야'),
+            _gridItem(imagePath: 'images/brand_logo/logo_paik.png', cafeTitle: '빽다방'),
+            _gridItem(imagePath: 'images/brand_logo/logo_twosome.png', cafeTitle: '투썸플레이스'),
+            _gridItem(imagePath: 'images/brand_logo/logo_angel.png', cafeTitle: '앤제리너스'),
+            _gridItem(imagePath: 'images/brand_logo/logo_mammoth.png', cafeTitle: '매머드커피'),
+            _gridItem(imagePath: 'images/brand_logo/logo_paul.png', cafeTitle: '폴 바셋'),
+            _gridItem(imagePath: 'images/brand_logo/logo_theventi.png', cafeTitle: '더벤티'),
+            _gridItem(imagePath: 'images/brand_logo/logo_yoger.png', cafeTitle: '요거프레소'),
+          ],
+>>>>>>> 17234d5c744973b72a6de7531713de0848957360
         ),
       ],
     );
