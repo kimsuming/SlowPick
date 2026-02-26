@@ -37,27 +37,15 @@ class _SearchScreenState extends State<SearchScreen> {
     '투썸플레이스',
     '폴 바셋',
   ];
-<<<<<<< HEAD
-
-=======
-  
->>>>>>> 3c308148f357cb49ab9294a00ba3e575a552513c
   Set<String> _selectedBrands = {};
 
   // 선택된 브랜드 수에 따라 버튼 텍스트를 다르게 보여주는 함수
   String _getBrandButtonText() {
     if (_selectedBrands.isEmpty) return '브랜드';
-<<<<<<< HEAD
 
     // [추가] 모든 브랜드가 선택된 경우 '전체'로 표시
     if (_selectedBrands.length == _brandList.length) return '전체';
 
-=======
-    
-    // [추가] 모든 브랜드가 선택된 경우 '전체'로 표시
-    if (_selectedBrands.length == _brandList.length) return '전체'; 
-    
->>>>>>> 3c308148f357cb49ab9294a00ba3e575a552513c
     if (_selectedBrands.length == 1) return _selectedBrands.first;
     return '${_selectedBrands.first} 외 ${_selectedBrands.length - 1}';
   }
@@ -68,11 +56,6 @@ class _SearchScreenState extends State<SearchScreen> {
     String initialText = widget.initialQuery ?? "";
     _searchController = TextEditingController(text: initialText);
     _searchText = initialText;
-<<<<<<< HEAD
-
-=======
-    
->>>>>>> 3c308148f357cb49ab9294a00ba3e575a552513c
     if (widget.initialBrand != null && widget.initialBrand != '전체') {
       _selectedBrands.add(widget.initialBrand!);
     }
@@ -84,10 +67,6 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 3c308148f357cb49ab9294a00ba3e575a552513c
   // [수정] 다중 선택 및 하단 '적용' 버튼이 있는 바텀 시트로 변경
   void _showBrandBottomSheet() {
     // 바텀 시트 내부에서만 임시로 사용할 선택 상태
@@ -96,11 +75,7 @@ class _SearchScreenState extends State<SearchScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-<<<<<<< HEAD
       isScrollControlled: true,
-=======
-      isScrollControlled: true, 
->>>>>>> 3c308148f357cb49ab9294a00ba3e575a552513c
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
@@ -120,14 +95,10 @@ class _SearchScreenState extends State<SearchScreen> {
                 children: [
                   // 바텀 시트 헤더
                   Padding(
-<<<<<<< HEAD
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16.0,
                       vertical: 12.0,
                     ),
-=======
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
->>>>>>> 3c308148f357cb49ab9294a00ba3e575a552513c
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -148,24 +119,15 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                   ),
                   const Divider(height: 1, color: Colors.black26),
-<<<<<<< HEAD
-
-=======
-                  
->>>>>>> 3c308148f357cb49ab9294a00ba3e575a552513c
                   // '전체 선택' 마스터 체크박스
                   CheckboxListTile(
                     title: Text(
                       '전체 선택',
                       style: TextStyle(
                         color: isAllSelected ? Colors.green : Colors.black,
-<<<<<<< HEAD
                         fontWeight: isAllSelected
                             ? FontWeight.bold
                             : FontWeight.normal,
-=======
-                        fontWeight: isAllSelected ? FontWeight.bold : FontWeight.normal,
->>>>>>> 3c308148f357cb49ab9294a00ba3e575a552513c
                         fontFamily: 'KoPubDotum',
                       ),
                     ),
@@ -184,10 +146,6 @@ class _SearchScreenState extends State<SearchScreen> {
                     },
                   ),
                   const Divider(height: 1, color: Colors.black12), // 구분선 추가
-<<<<<<< HEAD
-=======
-
->>>>>>> 3c308148f357cb49ab9294a00ba3e575a552513c
                   // 개별 브랜드 리스트
                   Expanded(
                     child: ListView.builder(
@@ -201,13 +159,9 @@ class _SearchScreenState extends State<SearchScreen> {
                             brand,
                             style: TextStyle(
                               color: isSelected ? Colors.green : Colors.black,
-<<<<<<< HEAD
                               fontWeight: isSelected
                                   ? FontWeight.bold
                                   : FontWeight.normal,
-=======
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
->>>>>>> 3c308148f357cb49ab9294a00ba3e575a552513c
                               fontFamily: 'KoPubDotum',
                             ),
                           ),
@@ -226,11 +180,6 @@ class _SearchScreenState extends State<SearchScreen> {
                       },
                     ),
                   ),
-<<<<<<< HEAD
-
-=======
-                  
->>>>>>> 3c308148f357cb49ab9294a00ba3e575a552513c
                   // 하단 적용 버튼
                   Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -376,13 +325,8 @@ class _SearchScreenState extends State<SearchScreen> {
                                           : null,
                                       contentPadding:
                                           const EdgeInsets.symmetric(
-<<<<<<< HEAD
                                             horizontal: 8,
                                           ),
-=======
-                                        horizontal: 8,
-                                      ),
->>>>>>> 3c308148f357cb49ab9294a00ba3e575a552513c
                                     ),
                                   ),
                                 ),
@@ -526,13 +470,9 @@ class _SearchScreenState extends State<SearchScreen> {
                               }
 
                               if (filteredDocs.isEmpty) {
-<<<<<<< HEAD
                                 return const Center(
                                   child: Text('검색 결과가 없습니다.'),
                                 );
-=======
-                                return const Center(child: Text('검색 결과가 없습니다.'));
->>>>>>> 3c308148f357cb49ab9294a00ba3e575a552513c
                               }
 
                               if (_isGridView) {
@@ -545,19 +485,11 @@ class _SearchScreenState extends State<SearchScreen> {
                                   ),
                                   gridDelegate:
                                       SliverGridDelegateWithFixedCrossAxisCount(
-<<<<<<< HEAD
                                         crossAxisCount: 2,
                                         childAspectRatio: gridAspectRatio,
                                         crossAxisSpacing: screenWidth * 0.04,
                                         mainAxisSpacing: screenWidth * 0.04,
                                       ),
-=======
-                                    crossAxisCount: 2,
-                                    childAspectRatio: gridAspectRatio,
-                                    crossAxisSpacing: screenWidth * 0.04,
-                                    mainAxisSpacing: screenWidth * 0.04,
-                                  ),
->>>>>>> 3c308148f357cb49ab9294a00ba3e575a552513c
                                   itemCount: filteredDocs.length,
                                   itemBuilder: (context, index) {
                                     final data =
@@ -610,15 +542,7 @@ class _SearchScreenState extends State<SearchScreen> {
         borderRadius: BorderRadius.circular(50),
         border: Border.all(color: Colors.black12, width: 1),
         boxShadow: const [
-<<<<<<< HEAD
           BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(0, 1)),
-=======
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 2,
-            offset: Offset(0, 1),
-          ),
->>>>>>> 3c308148f357cb49ab9294a00ba3e575a552513c
         ],
       ),
       child: DropdownButtonHideUnderline(
@@ -659,21 +583,10 @@ class _SearchScreenState extends State<SearchScreen> {
         height: 32,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-<<<<<<< HEAD
           color: !isFiltered ? Colors.white : const Color(0xFFE8F5E9),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: !isFiltered ? Colors.black12 : Colors.green,
-=======
-          color: !isFiltered
-              ? Colors.white
-              : const Color(0xFFE8F5E9),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: !isFiltered
-                ? Colors.black12
-                : Colors.green,
->>>>>>> 3c308148f357cb49ab9294a00ba3e575a552513c
             width: 1,
           ),
           boxShadow: const [
@@ -707,8 +620,4 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
     );
   }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 3c308148f357cb49ab9294a00ba3e575a552513c

@@ -30,11 +30,7 @@ class _RecommendedMenuScreenState extends State<RecommendedMenuScreen> {
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-<<<<<<< HEAD
                 stops: [0.2, 0.6],
-=======
-                stops:[0.2, 0.6],
->>>>>>> 3c308148f357cb49ab9294a00ba3e575a552513c
                 colors: [Color(0xFFA2F43D), Color(0xFFD5FF72)],
               ),
             ),
