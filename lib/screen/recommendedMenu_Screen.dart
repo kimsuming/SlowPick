@@ -30,20 +30,18 @@ class _RecommendedMenuScreenState extends State<RecommendedMenuScreen> {
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment(-0.0, 0.5),
-                end: Alignment(1.0, 0.5),
-                colors: [Color(0xFFE6EB4E), Color(0xFFADF950)],
+                stops:[0.2, 0.6],
+                colors: [Color(0xFFA2F43D), Color(0xFFD5FF72)],
               ),
             ),
           ),
-
           // 상단 UI
           Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               SizedBox(
                 child: Padding(
-                  padding: const EdgeInsets.only(top: 40, bottom: 30),
+                  padding: const EdgeInsets.only(top: 70, bottom: 10),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -51,9 +49,8 @@ class _RecommendedMenuScreenState extends State<RecommendedMenuScreen> {
                         onPressed: () {
                           Navigator.pop(context);
                         },
-                        icon: const Icon(Icons.arrow_back, size: 40),
+                        icon: const Icon(Icons.arrow_back, size: 35),
                       ),
-
                       SizedBox(
                         child: Text.rich(
                           TextSpan(
@@ -85,7 +82,6 @@ class _RecommendedMenuScreenState extends State<RecommendedMenuScreen> {
                           textAlign: TextAlign.center,
                         ),
                       ),
-
                       const SizedBox(width: 48),
                     ],
                   ),
@@ -95,7 +91,7 @@ class _RecommendedMenuScreenState extends State<RecommendedMenuScreen> {
               Expanded(
                 child: Container(
                   width: MediaQuery.of(context).size.width * 1,
-                  height: MediaQuery.of(context).size.height * 0.75,
+                  height: MediaQuery.of(context).size.height * 0.8,
                   decoration: const BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.only(
@@ -107,16 +103,16 @@ class _RecommendedMenuScreenState extends State<RecommendedMenuScreen> {
                     children: [
                       // 흰박스 상단 여백 조절
                       SizedBox(
-                        height: MediaQuery.of(context).size.height * 0.05,
+                        height: MediaQuery.of(context).size.height * 0.04,
                       ),
                       //추천 메세지
                       SizedBox(
                         width:
                             MediaQuery.of(context).size.width *
-                            0.5, // 원하는 가로 크기
+                            0.54, // 원하는 가로 크기
                         height:
                             MediaQuery.of(context).size.height *
-                            0.1, // 원하는 세로 크기
+                            0.11, // 원하는 세로 크기
                         child: Container(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(20), // 네 방향 라운드
@@ -129,12 +125,13 @@ class _RecommendedMenuScreenState extends State<RecommendedMenuScreen> {
                           child: SizedBox(
                             child: Center(
                               child: Text(
-                                '저번주보다 혈당이 더 올랐어요.\n이번주엔 혈당에 부담없는\n메뉴들을 추천해드릴게요!',
+                                '저번주보다 혈당이 더 올랐어요.\n이번주엔 혈당에 부담없는\n메뉴들을 추천해 드릴게요!',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: Colors.black,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
+                                  fontFamily: "Clipartkorea",
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w400,
                                   height: 1.43,
                                   letterSpacing: -0.24,
                                 ),

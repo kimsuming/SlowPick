@@ -6,8 +6,9 @@ import 'package:slowpick/widget/menu_cards.dart';
 
 class SearchScreen extends StatefulWidget {
   final String? initialQuery;
+  final String? initialBrand;
 
-  const SearchScreen({super.key, this.initialQuery});
+  const SearchScreen({super.key, this.initialQuery, this.initialBrand});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -18,18 +19,207 @@ class _SearchScreenState extends State<SearchScreen> {
   late TextEditingController _searchController;
   String _searchText = "";
 
+  // 정렬 옵션
+  final List<String> _sortOptions = ['모든 메뉴', '최신순', '당류 낮은순', '칼로리 낮은순'];
+  String _selectedSort = '모든 메뉴';
+
+  final List<String> _brandList = [
+    '더벤티',
+    '매머드 익스프레스',
+    '매머드커피',
+    '메가MGC커피',
+    '빽다방',
+    '스타벅스',
+    '엔제리너스',
+    '요거프레소',
+    '이디야커피',
+    '컴포즈커피',
+    '탐앤탐스',
+    '투썸플레이스',
+    '폴 바셋',
+  ];
+  
+  Set<String> _selectedBrands = {};
+
+  // 선택된 브랜드 수에 따라 버튼 텍스트를 다르게 보여주는 함수
+  String _getBrandButtonText() {
+    if (_selectedBrands.isEmpty) return '브랜드';
+    
+    // [추가] 모든 브랜드가 선택된 경우 '전체'로 표시
+    if (_selectedBrands.length == _brandList.length) return '전체'; 
+    
+    if (_selectedBrands.length == 1) return _selectedBrands.first;
+    return '${_selectedBrands.first} 외 ${_selectedBrands.length - 1}';
+  }
+
   @override
   void initState() {
     super.initState();
     String initialText = widget.initialQuery ?? "";
     _searchController = TextEditingController(text: initialText);
     _searchText = initialText;
+    
+    if (widget.initialBrand != null && widget.initialBrand != '전체') {
+      _selectedBrands.add(widget.initialBrand!);
+    }
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+
+  // [수정] 다중 선택 및 하단 '적용' 버튼이 있는 바텀 시트로 변경
+  void _showBrandBottomSheet() {
+    // 바텀 시트 내부에서만 임시로 사용할 선택 상태
+    Set<String> tempSelectedBrands = Set.from(_selectedBrands);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true, 
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            // [추가] 모든 브랜드가 선택되었는지 확인하는 변수
+            bool isAllSelected = tempSelectedBrands.length == _brandList.length;
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.6,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: Column(
+                children: [
+                  // 바텀 시트 헤더
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const SizedBox(width: 24),
+                        const Text(
+                          '브랜드 선택',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'KoPubDotum',
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.black54),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, color: Colors.black26),
+                  
+                  // '전체 선택' 마스터 체크박스
+                  CheckboxListTile(
+                    title: Text(
+                      '전체 선택',
+                      style: TextStyle(
+                        color: isAllSelected ? Colors.green : Colors.black,
+                        fontWeight: isAllSelected ? FontWeight.bold : FontWeight.normal,
+                        fontFamily: 'KoPubDotum',
+                      ),
+                    ),
+                    value: isAllSelected,
+                    activeColor: Colors.green,
+                    onChanged: (bool? value) {
+                      setModalState(() {
+                        if (value == true) {
+                          // 활성화: 모든 브랜드를 임시 Set에 추가
+                          tempSelectedBrands.addAll(_brandList);
+                        } else {
+                          // 비활성화: 임시 Set 초기화 (모두 해제)
+                          tempSelectedBrands.clear();
+                        }
+                      });
+                    },
+                  ),
+                  const Divider(height: 1, color: Colors.black12), // 구분선 추가
+
+                  // 개별 브랜드 리스트
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: _brandList.length,
+                      itemBuilder: (context, index) {
+                        final brand = _brandList[index];
+                        final isSelected = tempSelectedBrands.contains(brand);
+
+                        return CheckboxListTile(
+                          title: Text(
+                            brand,
+                            style: TextStyle(
+                              color: isSelected ? Colors.green : Colors.black,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              fontFamily: 'KoPubDotum',
+                            ),
+                          ),
+                          value: isSelected,
+                          activeColor: Colors.green,
+                          onChanged: (bool? value) {
+                            setModalState(() {
+                              if (value == true) {
+                                tempSelectedBrands.add(brand);
+                              } else {
+                                tempSelectedBrands.remove(brand);
+                              }
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  
+                  // 하단 적용 버튼
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          // 임시 상태를 실제 상태에 반영하고 화면 리빌드
+                          setState(() {
+                            _selectedBrands = tempSelectedBrands;
+                          });
+                          Navigator.pop(context); // 창 닫기
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          '적용하기',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            fontFamily: 'KoPubDotum',
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -39,39 +229,12 @@ class _SearchScreenState extends State<SearchScreen> {
     final double gridAspectRatio = (screenWidth / 2) / (screenHeight * 0.37);
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('메뉴 검색'),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        titleTextStyle: TextStyle(
-          color: Colors.black,
-          fontSize: screenWidth * 0.05,
-          fontWeight: FontWeight.bold,
-        ),
-        iconTheme: const IconThemeData(color: Colors.black),
-        actions: [
-          IconButton(
-            onPressed: () {
-              setState(() {
-                _isGridView = !_isGridView;
-              });
-            },
-            icon: Icon(
-              _isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
-              color: Colors.black54,
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-
+      resizeToAvoidBottomInset: false,
       bottomNavigationBar: Container(
-        color: Color(0xFFFCFCFC),
+        color: const Color(0xFFFCFCFC),
         child: SafeArea(top: false, child: BottomBarNew()),
       ),
-
-      body: Column(
+      body: Stack(
         children: [
           Padding(
             padding: const EdgeInsets.all(10.0),

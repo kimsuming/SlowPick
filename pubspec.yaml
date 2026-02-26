@@ -28,6 +28,7 @@ dev_dependencies:
 flutter:
   assets:
     - images/
+    - images/brand_logo/
     - images/main_icon/
     - images/home/
     - images/comment_menu/
@@ -44,6 +45,17 @@ flutter:
           weight: 500
         - asset: fonts/KoPubDotumBold.ttf
           weight: 700
+    - family: Clipartkorea
+      fonts:
+        - asset: fonts/클립아트코리아_Light.ttf
+          weight: 300
+        - asset: fonts/클립아트코리아_Regular.ttf
+          weight: 400
+        - asset: fonts/클립아트코리아_Medium.ttf
+          weight: 500
+        - asset: fonts/클립아트코리아_Bold.ttf
+          weight: 700
+    
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

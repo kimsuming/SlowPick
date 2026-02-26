@@ -120,7 +120,7 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
                 ),
                 child: Center(
                   child: Text(
-                    '카테고리별 보기',
+                    '카페별 보기',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                   ),
@@ -170,7 +170,7 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
     );
   }
 
-  // 카테고리별 보기 화면
+  // 카페별 보기 화면
   Widget _categoryListView() {
     final List<Map<String, dynamic>> cafes = [
       {'color': Colors.green, 'title': '메가커피'},
