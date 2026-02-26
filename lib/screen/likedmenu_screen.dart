@@ -172,35 +172,53 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
 
   // 카페별 보기 화면
   Widget _categoryListView() {
+    final List<Map<String, dynamic>> cafes = [
+      {'color': Colors.green, 'title': '메가커피'},
+      {'color': Colors.indigo, 'title': '컴포즈'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+      {'color': Colors.orange, 'title': '이디야'},
+    ];
+
     return Column(
       children: [
         _gridbutton(),
-        GridView.count(
+
+        GridView.builder(
           padding: const EdgeInsets.only(
             left: 10,
             right: 10,
             bottom: 10,
             top: 0,
           ),
-          crossAxisCount: 2,
-          crossAxisSpacing: 5,
-          mainAxisSpacing: 9,
-          childAspectRatio: 3,
           shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
-          children: [
-            _gridItem(imagePath: 'images/brand_logo/logo_starbucks.png', cafeTitle: '스타벅스'),
-            _gridItem(imagePath: 'images/brand_logo/logo_mega.png', cafeTitle: '메가커피'),
-            _gridItem(imagePath: 'images/brand_logo/logo_compose.jpg', cafeTitle: '컴포즈'),
-            _gridItem(imagePath: 'images/brand_logo/logo_ediya.jpg', cafeTitle: '이디야'),
-            _gridItem(imagePath: 'images/brand_logo/logo_paik.png', cafeTitle: '빽다방'),
-            _gridItem(imagePath: 'images/brand_logo/logo_twosome.png', cafeTitle: '투썸플레이스'),
-            _gridItem(imagePath: 'images/brand_logo/logo_angel.png', cafeTitle: '앤제리너스'),
-            _gridItem(imagePath: 'images/brand_logo/logo_mammoth.png', cafeTitle: '매머드커피'),
-            _gridItem(imagePath: 'images/brand_logo/logo_paul.png', cafeTitle: '폴 바셋'),
-            _gridItem(imagePath: 'images/brand_logo/logo_theventi.png', cafeTitle: '더벤티'),
-            _gridItem(imagePath: 'images/brand_logo/logo_yoger.png', cafeTitle: '요거프레소'),
-          ],
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: cafes.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 5,
+            mainAxisSpacing: 9,
+            childAspectRatio: 3,
+          ),
+          itemBuilder: (context, index) {
+            final cafe = cafes[index];
+
+            return _gridItem(color: cafe['color'], cafeTitle: cafe['title']);
+          },
         ),
       ],
     );

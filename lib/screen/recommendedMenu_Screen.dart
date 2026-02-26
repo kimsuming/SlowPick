@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:slowpick/widget/menu_cards.dart'; 
+import 'package:slowpick/widget/menu_cards.dart';
 import 'package:slowpick/screen/menu_detail_screen.dart';
 
 class RecommendedMenuScreen extends StatefulWidget {
@@ -14,7 +14,6 @@ class RecommendedMenuScreen extends StatefulWidget {
 class _RecommendedMenuScreenState extends State<RecommendedMenuScreen> {
   @override
   Widget build(BuildContext context) {
-
     // 그리드 뷰 비율 계산
     final double screenWidth = MediaQuery.of(context).size.width;
     final double screenHeight = MediaQuery.of(context).size.height;
@@ -174,7 +173,7 @@ class _RecommendedMenuScreenState extends State<RecommendedMenuScreen> {
                             return GridView.builder(
                               padding: EdgeInsets.fromLTRB(
                                 screenWidth * 0.04,
-                                10,
+                                0,
                                 screenWidth * 0.04,
                                 20, // 하단 여백
                               ),

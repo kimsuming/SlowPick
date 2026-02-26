@@ -1,0 +1,35 @@
+[33m4d85055[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mHome[m[33m, [m[1;31morigin/Home[m[33m)[m HEAD@{0}: commit: 커뮤니티 레시피 수정
+[33m35a68bc[m HEAD@{1}: checkout: moving from Home to Home
+[33m35a68bc[m HEAD@{2}: reset: moving to HEAD
+[33m35a68bc[m HEAD@{3}: pull origin main: Fast-forward
+[33m9793913[m HEAD@{4}: checkout: moving from main to Home
+[33m6d296ab[m[33m ([m[1;32mmain[m[33m)[m HEAD@{5}: commit: 메인
+[33m0b751c4[m HEAD@{6}: pull origin main: Fast-forward
+[33mb3344cd[m HEAD@{7}: checkout: moving from Home to main
+[33m9793913[m HEAD@{8}: commit: 커뮤니티 작업
+[33mcbdfc22[m HEAD@{9}: checkout: moving from Home to Home
+[33mcbdfc22[m HEAD@{10}: commit: 찜스크린 UI 1/3
+[33m2585910[m HEAD@{11}: checkout: moving from HOme to Home
+[33m2585910[m HEAD@{12}: checkout: moving from Home to HOme
+[33m2585910[m HEAD@{13}: commit: 홈 화면 기본틀 완성
+[33m30a99cf[m HEAD@{14}: checkout: moving from Home to Home
+[33m30a99cf[m HEAD@{15}: commit: 임시 저장 업데이트
+[33md96febb[m HEAD@{16}: checkout: moving from Home to Home
+[33md96febb[m HEAD@{17}: pull origin Home: Fast-forward
+[33m203ebf2[m HEAD@{18}: checkout: moving from main to Home
+[33mb3344cd[m HEAD@{19}: reset: moving to ORIG_HEAD
+[33mb3344cd[m HEAD@{20}: reset: moving to ORIG_HEAD
+[33mb3344cd[m HEAD@{21}: reset: moving to ORIG_HEAD
+[33mb3344cd[m HEAD@{22}: reset: moving to ORIG_HEAD
+[33mb3344cd[m HEAD@{23}: reset: moving to ORIG_HEAD
+[33mb3344cd[m HEAD@{24}: reset: moving to ORIG_HEAD
+[33mb3344cd[m HEAD@{25}: checkout: moving from Home to main
+[33m203ebf2[m HEAD@{26}: commit: app home feat
+[33me9e1133[m[33m ([m[1;31morigin/20251127[m[33m, [m[1;32m20251127[m[33m)[m HEAD@{27}: checkout: moving from 20251127 to Home
+[33me9e1133[m[33m ([m[1;31morigin/20251127[m[33m, [m[1;32m20251127[m[33m)[m HEAD@{28}: checkout: moving from 20251127 to 20251127
+[33me9e1133[m[33m ([m[1;31morigin/20251127[m[33m, [m[1;32m20251127[m[33m)[m HEAD@{29}: checkout: moving from main to 20251127
+[33mb3344cd[m HEAD@{30}: checkout: moving from 20251127 to main
+[33me9e1133[m[33m ([m[1;31morigin/20251127[m[33m, [m[1;32m20251127[m[33m)[m HEAD@{31}: commit: 확인
+[33mb3344cd[m HEAD@{32}: checkout: moving from main to 20251127
+[33mb3344cd[m HEAD@{33}: commit: 버전 오류 반영 및 오타 수정
+[33m3334cb7[m HEAD@{34}: clone: from https://github.com/Kimsuming/SlowPick.git

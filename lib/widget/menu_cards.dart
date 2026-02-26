@@ -13,16 +13,20 @@ Map<String, Color> _getSugarColor(num sugar) {
   }
 }
 
-// === 그리드 뷰 카드 위젯 ===
+// === 그리드 뷰 카드 위젯 === 세로로 긴 카드
 class MenuGridCard extends StatelessWidget {
+  // 메뉴 데이터를 담는 Map 변수 (Firebase에서 받아온 데이터)
   final Map<String, dynamic> data;
 
+  // 생성자: data를 필수로 받음
   const MenuGridCard({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
+    // 화면 너비 가져오기 (반응형 디자인용)
     final double screenHeight = MediaQuery.of(context).size.height;
+    // 화면 높이 가져오기 (반응형 디자인용)
 
     final String name = data['menu_name'] ?? '이름 없음';
     final String brandName = data['brand_name'] ?? '-';
@@ -36,6 +40,7 @@ class MenuGridCard extends StatelessWidget {
         ? '-'
         : allergyList.join(', ');
 
+    // 당류 수치에 따른 배경색/텍스트색 가져오기
     final Map<String, Color> sugarColors = _getSugarColor(sugar);
 
     return GestureDetector(
@@ -107,7 +112,7 @@ class MenuGridCard extends StatelessWidget {
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(10,10,10,0),
+                  padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -115,15 +120,15 @@ class MenuGridCard extends StatelessWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // 브랜드명
+                          // 메뉴명 배경
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 3),
                             decoration: BoxDecoration(
                               color: const Color(0xFFFFE586),
                               borderRadius: BorderRadius.circular(4),
-                            ),   
+                            ),
                             child: Text(
-                              '$brandName',
+                              brandName,
                               style: TextStyle(
                                 fontSize: screenWidth * 0.04,
                                 fontWeight: FontWeight.w700,
@@ -184,7 +189,7 @@ class MenuGridCard extends StatelessWidget {
   }
 }
 
-// === 리스트 뷰 카드 위젯 ===
+// === 리스트 뷰 카드 위젯 === 가로로 긴 카드
 class MenuListCard extends StatelessWidget {
   final Map<String, dynamic> data;
 

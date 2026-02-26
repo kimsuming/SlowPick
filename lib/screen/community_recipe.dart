@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 import 'package:slowpick/screen/community_screen.dart';
+import 'package:slowpick/screen/community_recipewrite.dart';
 
 class CommunityRecipe extends StatefulWidget {
   const CommunityRecipe({super.key});
@@ -10,6 +11,7 @@ class CommunityRecipe extends StatefulWidget {
 }
 
 class _CommunityRecipeState extends State<CommunityRecipe> {
+  bool isLiked = false;
   bool allPosts = true;
   bool popularPosts = false;
   bool myRegisteredPosts = false;
@@ -50,7 +52,16 @@ class _CommunityRecipeState extends State<CommunityRecipe> {
             ),
           ],
         ),
-        backgroundColor: Color(0xFFADEA67),
+        backgroundColor: Colors.transparent, // 중요
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment(1.00, 0.50),
+              end: Alignment(0.00, 0.50),
+              colors: [Color(0xFFA2F43D), Color(0xFFD5FF72)],
+            ),
+          ),
+        ),
         elevation: 0,
         toolbarHeight: 76,
 
@@ -61,14 +72,23 @@ class _CommunityRecipeState extends State<CommunityRecipe> {
           ),
         ],
       ),
-      // 글쓰기 버튼
+      // 레시피글쓰기 버튼
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // 글쓰기 화면 이동
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const CommunityRecipewrite(),
+            ),
+          );
         },
         shape: const CircleBorder(),
         backgroundColor: const Color(0xFF187100),
-        child: const Icon(Icons.edit, color: Colors.white, size: 30),
+        child: const Icon(
+          Icons.add_box_outlined,
+          color: Colors.white,
+          size: 30,
+        ),
       ),
 
       bottomNavigationBar: Container(
@@ -78,115 +98,128 @@ class _CommunityRecipeState extends State<CommunityRecipe> {
       ),
 
       body: SingleChildScrollView(
-        child: Column(
-          children: [
-            //소통&레시피 창 선택 버튼
-            _communicationRecipeSelector(),
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment(1.00, 0.50),
+              end: Alignment(0.00, 0.50),
+              colors: [Color(0xFFA2F43D), Color(0xFFD5FF72)],
+            ),
+          ),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(30),
+                topRight: Radius.circular(30),
+              ),
+            ),
+            child: Column(
+              children: [
+                //소통&레시피 창 선택 버튼
+                _communicationRecipeSelector(),
 
-            //게시글 검색바
-            _searchBar(),
+                //게시글 검색바
+                _searchBar(),
 
-            //공지바
-            _noticeBar(),
+                //공지바
+                _noticeBar(),
 
-            //인기 레시피
-            _recommendedRecipeNotice(),
+                //인기 레시피
+                _recommendedRecipeNotice(),
 
-            SizedBox(height: 19),
+                SizedBox(height: 19),
 
-            //전체글 & 인기글 & 내등록 & 찜 선택 버튼
-            _postFilterTab(),
+                //전체글 & 인기글 & 내등록 & 찜 선택 버튼
+                _postFilterTab(),
 
-            SizedBox(height: 20),
+                SizedBox(height: 20),
 
-            Container(height: 1.3, color: const Color(0xFFD7D7D7)), // 구분선
-            //게시글 형식
-            _postListItem(),
-            //게시글 형식
-            _postListItem(),
-            //게시글 형식
-            _postListItem(),
-          ],
+                //게시글 형식
+                _postListItem(),
+                //게시글 형식
+                _postListItem(),
+                //게시글 형식
+                _postListItem(),
+                //게시글 형식
+                _postListItem(),
+                //게시글 형식
+                _postListItem(),
+                //게시글 형식
+                _postListItem(),
+                //게시글 형식
+                _postListItem(),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget _communicationRecipeSelector() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white, // 배경 색상
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-
-        children: [
-          //소통버튼
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const CommunityScreen(),
-                ),
-              );
-            },
-            child: SizedBox(
-              width: 150,
-              height: 50,
-              child: Center(
-                child: Text(
-                  '소통',
-                  style: TextStyle(
-                    color: const Color(0xFFB5B5B5),
-                    fontSize: 20,
-                    fontFamily: 'KoPubDotum Medium',
-                    fontWeight: FontWeight.w400,
-                    height: 1,
-                    letterSpacing: -1,
-                  ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        //소통버튼
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CommunityScreen()),
+            );
+          },
+          child: SizedBox(
+            width: 150,
+            height: 50,
+            child: Center(
+              child: Text(
+                '소통',
+                style: TextStyle(
+                  color: const Color(0xFFB5B5B5),
+                  fontSize: 20,
+                  fontFamily: 'KoPubDotum Medium',
+                  fontWeight: FontWeight.w400,
+                  height: 1,
+                  letterSpacing: -1,
                 ),
               ),
             ),
           ),
+        ),
 
-          SizedBox(width: 30),
+        SizedBox(width: 30),
 
-          //레시피 버튼
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const CommunityRecipe(),
-                ),
-              );
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: Colors.black, width: 2),
-                ),
-              ),
-              width: 140,
-              height: 50,
-              child: Center(
-                child: Text(
-                  '레시피',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 20,
-                    fontFamily: 'KoPubDotum Medium',
-                    fontWeight: FontWeight.w400,
-                    height: 1,
-                    letterSpacing: -1,
-                  ),
+        //레시피 버튼
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CommunityRecipe()),
+            );
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: Colors.black, width: 2)),
+            ),
+            width: 140,
+            height: 50,
+            child: Center(
+              child: Text(
+                '레시피',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 20,
+                  fontFamily: 'KoPubDotum Medium',
+                  fontWeight: FontWeight.w400,
+                  height: 1,
+                  letterSpacing: -1,
                 ),
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -481,61 +514,107 @@ class _CommunityRecipeState extends State<CommunityRecipe> {
   }
 
   Widget _postListItem() {
-    return Container(
-      width: double.infinity,
-      height: 54,
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: Color(0xFFD7D7D7), width: 1.3),
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              SizedBox(width: 10),
-              //게시글 제목
-              Text(
-                '메가 귤젤리 스무디 당류 80g 넘는거 알고계셨어요?? ',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: -1,
-                ),
-              ),
-
-              //댓글 수
-              Text(
-                '[10]',
-                style: TextStyle(
-                  color: const Color(0xFF73AD31),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -1,
-                ),
-              ),
-            ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.9,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border(
+            bottom: BorderSide(color: Color(0xFFD7D7D7), width: 1.3),
           ),
-
-          // 작성자이름 / 조회수 / 추천수 /시간
-          Padding(
-            padding: const EdgeInsets.only(left: 10),
-            child: Text(
-              '가나다  l  조회 120  l  추천 5  l  30분 전',
-              style: TextStyle(
-                color: const Color(0xFFA7A7A7),
-                fontSize: 13,
-                fontFamily: 'KoPubDotum Medium',
-                fontWeight: FontWeight.w400,
-                height: 1.54,
-                letterSpacing: -1,
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x3F000000),
+              blurRadius: 2,
+              offset: Offset(0, 2),
+              spreadRadius: 0,
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Container(
+                height: 80,
+                width: 80,
+                decoration: BoxDecoration(
+                  color: Colors.blueAccent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
-          ),
-        ],
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 8),
+                      //게시글 제목
+                      Text(
+                        '5년차 헬스 트레이너의 말차 다이어트',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          height: 1.25,
+                          letterSpacing: -1.70,
+                        ),
+                      ),
+
+                      //태그 목록
+                      Text(
+                        '#스타벅스 #다이어트 #말차',
+                        style: TextStyle(
+                          color: const Color(0xFF73AD31),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w300,
+                          letterSpacing: -1.70,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // 작성자이름 / 조회수 / 추천수
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '헬스짱 l 조회 224 l 추천 368',
+                        style: TextStyle(
+                          color: const Color(0xFFA7A7A7),
+                          fontSize: 13,
+                          fontFamily: 'KoPubDotum Medium',
+                          fontWeight: FontWeight.w400,
+                          height: 1.54,
+                          letterSpacing: -1,
+                        ),
+                      ),
+
+                      IconButton(
+                        icon: Icon(
+                          isLiked ? Icons.favorite : Icons.favorite_border,
+                          color: isLiked ? Colors.red : Colors.black26,
+                          size: 23,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            isLiked = !isLiked;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
