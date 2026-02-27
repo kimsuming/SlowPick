@@ -1,0 +1,159 @@
+[33mcommit 6d296ab51a5b3293c47a625150c37e46b84b0503[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
+Author: CHJ <nanadiana222@naver.com>
+Date:   Tue Jan 27 15:54:04 2026 +0900
+
+    메인
+
+[33mcommit 0b751c478652848710e0a20d24eb03e051442157[m
+Merge: 893ebfa a5153fb
+Author: kimsuming <127907585+kimsuming@users.noreply.github.com>
+Date:   Tue Jan 27 15:31:41 2026 +0900
+
+    Merge pull request #4 from kimsuming/Home
+    
+    커뮤니티 작업
+
+[33mcommit a5153fb81ee807a796177f5a56b622d972c78f2f[m
+Merge: 9793913 893ebfa
+Author: CHO-HEAJIN <101789895+CHO-HEAJIN@users.noreply.github.com>
+Date:   Tue Jan 27 15:31:27 2026 +0900
+
+    Merge branch 'main' into Home
+
+[33mcommit 893ebfa9f3fb58b4bea497ac75467b19510d8097[m
+Merge: 490f4db 23d50f0
+Author: kimsuming <marianne.gg53@gmail.com>
+Date:   Tue Jan 27 15:26:21 2026 +0900
+
+    Merge branch 'crawl'
+
+[33mcommit 490f4db499cdc4ed58342b602679b6b34cc2421e[m
+Merge: 0b68ecf 9fe95b7
+Author: kimsuming <127907585+kimsuming@users.noreply.github.com>
+Date:   Tue Jan 27 15:02:36 2026 +0900
+
+    Merge pull request #3 from kimsuming/searchscreen
+    
+    메뉴 카드 위젯 분리
+
+[33mcommit 9fe95b79110f683bc2e70532cfb2696d0ba482f0[m
+Merge: 4491485 0b68ecf
+Author: kimsuming <127907585+kimsuming@users.noreply.github.com>
+Date:   Tue Jan 27 15:02:27 2026 +0900
+
+    Merge branch 'main' into searchscreen
+
+[33mcommit 0b68ecfbda848524c26da3ae96ea05747384fefd[m
+Merge: c514a07 b0bc253
+Author: kimsuming <127907585+kimsuming@users.noreply.github.com>
+Date:   Tue Jan 27 14:59:30 2026 +0900
+
+    Merge pull request #2 from kimsuming/crawl
+    
+    Crawl
+
+[33mcommit 9793913fa264fb1e444280ed43cb0630e7c1245d[m
+Author: CHJ <nanadiana222@naver.com>
+Date:   Tue Jan 27 14:56:49 2026 +0900
+
+    커뮤니티 작업
+
+[33mcommit 23d50f072e568453bbb0d3797a02aa357e7e0b60[m
+Author: kimsuming <marianne.gg53@gmail.com>
+Date:   Tue Jan 27 14:54:11 2026 +0900
+
+    메뉴 카드 위젯 분리
+
+[33mcommit b0bc25325593f2d5db75264948349b7ef3ad2d91[m
+Author: kimsuming <marianne.gg53@gmail.com>
+Date:   Tue Jan 27 14:52:32 2026 +0900
+
+    투썸플레이스 파서 추가
+
+[33mcommit 97dad0198da7328a211331f45bf73d9d1bca8c8f[m
+Merge: 2fa0e52 cbdfc22
+Author: kimsuming <marianne.gg53@gmail.com>
+Date:   Fri Jan 23 13:30:41 2026 +0900
+
+    Merge branch 'Home' of https://github.com/kimsuming/SlowPick into crawl
+
+[33mcommit 2fa0e522b43fea22414e637f73412239549ad3ab[m
+Author: kimsuming <marianne.gg53@gmail.com>
+Date:   Thu Jan 22 04:23:05 2026 +0900
+
+    맘모스, 빽다방, 더벤티 크롤러 추가
+
+[33mcommit afeb03212cfaac7b8db6e28bb6f8bab1bb24b254[m
+Author: kimsuming <127907585+kimsuming@users.noreply.github.com>
+Date:   Tue Jan 20 18:03:59 2026 +0900
+
+    폴 바셋 크롤러 추가
+
+[33mcommit cbdfc220446bd5724669c78b18cd3149d21d3f42[m
+Author: CHJ <nanadiana222@naver.com>
+Date:   Tue Jan 20 16:20:45 2026 +0900
+
+    찜스크린 UI 1/3
+
+[33mcommit 5f852379106bc8e388d73974898f2e2ce3c9179e[m
+Author: kimsuming <marianne.gg53@gmail.com>
+Date:   Mon Jan 19 21:53:05 2026 +0900
+
+    이디야 커피 크롤러 추가
+
+[33mcommit 25859102548909b9facf7217574ae3bd900174eb[m
+Author: CHJ <nanadiana222@naver.com>
+Date:   Mon Jan 19 19:58:56 2026 +0900
+
+    홈 화면 기본틀 완성
+
+[33mcommit 30a99cf54f6bbb37e1dde9233c293a833be8e09d[m
+Author: CHJ <nanadiana222@naver.com>
+Date:   Tue Dec 2 16:49:14 2025 +0900
+
+    임시 저장 업데이트
+
+[33mcommit c514a070b41fc08b25add662a4a7ef558596c1f8[m
+Merge: b3344cd d96febb
+Author: CHO-HEAJIN <101789895+CHO-HEAJIN@users.noreply.github.com>
+Date:   Tue Dec 2 16:35:47 2025 +0900
+
+    Merge pull request #1 from kimsuming/Home
+    
+    Home
+
+[33mcommit d96febbb2add06b76687463e001eb55d8548828a[m
+Author: kimsuming <marianne.gg53@gmail.com>
+Date:   Tue Dec 2 04:08:29 2025 +0900
+
+    푸터의 각 페이지 구현 및 UI 테스트 페이지, 메가커피 메뉴 업로드 완료
+
+[33mcommit 203ebf2d43e1ae0c9d5072c8e65d3943b34be1c9[m
+Author: CHJ <nanadiana222@naver.com>
+Date:   Mon Dec 1 16:02:35 2025 +0900
+
+    app home feat
+
+[33mcommit 4491485abeffe2f08817b89ffe0f63ecbff8d1cc[m[33m ([m[1;31morigin/searchscreen[m[33m)[m
+Author: kimsuming <marianne.gg53@gmail.com>
+Date:   Sun Nov 30 03:23:01 2025 +0900
+
+    리스트형 카드 위젯 모드 전환 및 검색, 자동완성 구현
+
+[33mcommit e9e11335457ee345d1ee27f60a74e69015284fc2[m[33m ([m[1;31morigin/20251127[m[33m, [m[1;32m20251127[m[33m)[m
+Author: CHJ <nanadiana222@naver.com>
+Date:   Thu Nov 27 21:21:45 2025 +0900
+
+    확인
+
+[33mcommit b3344cd3f4a1778ca5120c61eb303ddc1e0968bf[m
+Author: kimsuming <127907585+kimsuming@users.noreply.github.com>
+Date:   Wed Nov 26 10:31:54 2025 +0900
+
+    버전 오류 반영 및 오타 수정
+
+[33mcommit 3334cb7d970e8d34bb625046acd83de676611c22[m
+Author: kimsuming <marianne.gg53@gmail.com>
+Date:   Tue Nov 25 02:06:49 2025 +0900
+
+    Initial commit: SlowPick 프로젝트 시작

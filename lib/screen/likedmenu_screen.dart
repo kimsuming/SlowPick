@@ -176,17 +176,50 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
           shrinkWrap: true,
           physics: NeverScrollableScrollPhysics(),
           children: [
-            _gridItem(imagePath: 'images/brand_logo/logo_starbucks.png', cafeTitle: '스타벅스'),
-            _gridItem(imagePath: 'images/brand_logo/logo_mega.png', cafeTitle: '메가커피'),
-            _gridItem(imagePath: 'images/brand_logo/logo_compose.jpg', cafeTitle: '컴포즈'),
-            _gridItem(imagePath: 'images/brand_logo/logo_ediya.jpg', cafeTitle: '이디야'),
-            _gridItem(imagePath: 'images/brand_logo/logo_paik.png', cafeTitle: '빽다방'),
-            _gridItem(imagePath: 'images/brand_logo/logo_twosome.png', cafeTitle: '투썸플레이스'),
-            _gridItem(imagePath: 'images/brand_logo/logo_angel.png', cafeTitle: '앤제리너스'),
-            _gridItem(imagePath: 'images/brand_logo/logo_mammoth.png', cafeTitle: '매머드커피'),
-            _gridItem(imagePath: 'images/brand_logo/logo_paul.png', cafeTitle: '폴 바셋'),
-            _gridItem(imagePath: 'images/brand_logo/logo_theventi.png', cafeTitle: '더벤티'),
-            _gridItem(imagePath: 'images/brand_logo/logo_yoger.png', cafeTitle: '요거프레소'),
+            _gridItem(
+              imagePath: 'images/brand_logo/logo_starbucks.png',
+              cafeTitle: '스타벅스',
+            ),
+            _gridItem(
+              imagePath: 'images/brand_logo/logo_mega.png',
+              cafeTitle: '메가커피',
+            ),
+            _gridItem(
+              imagePath: 'images/brand_logo/logo_compose.jpg',
+              cafeTitle: '컴포즈',
+            ),
+            _gridItem(
+              imagePath: 'images/brand_logo/logo_ediya.jpg',
+              cafeTitle: '이디야',
+            ),
+            _gridItem(
+              imagePath: 'images/brand_logo/logo_paik.png',
+              cafeTitle: '빽다방',
+            ),
+            _gridItem(
+              imagePath: 'images/brand_logo/logo_twosome.png',
+              cafeTitle: '투썸플레이스',
+            ),
+            _gridItem(
+              imagePath: 'images/brand_logo/logo_angel.png',
+              cafeTitle: '앤제리너스',
+            ),
+            _gridItem(
+              imagePath: 'images/brand_logo/logo_mammoth.png',
+              cafeTitle: '매머드커피',
+            ),
+            _gridItem(
+              imagePath: 'images/brand_logo/logo_paul.png',
+              cafeTitle: '폴 바셋',
+            ),
+            _gridItem(
+              imagePath: 'images/brand_logo/logo_theventi.png',
+              cafeTitle: '더벤티',
+            ),
+            _gridItem(
+              imagePath: 'images/brand_logo/logo_yoger.png',
+              cafeTitle: '요거프레소',
+            ),
           ],
         ),
       ],
