@@ -5,6 +5,7 @@ import 'package:slowpick/screen/recommendedMenu_Screen.dart';
 import 'package:slowpick/screen/search.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,8 +18,46 @@ class _HomeScreenState extends State<HomeScreen> {
   final CarouselSliderController _carouselController =
       CarouselSliderController();
 
+  List<String> _firstSliderUrls = [];
+  late StreamSubscription _firstSliderSub;
   int _currentIndex1 = 0;
   int _currentIndex2 = 0;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _firstSliderSub = FirebaseFirestore.instance
+        .collection('banners')
+        .snapshots()
+        .listen((snapshot) {
+          final docs =
+              snapshot.docs
+                  .where((doc) => doc.id.startsWith("firstSlider_"))
+                  .toList()
+                ..sort((a, b) => a.id.compareTo(b.id)); // 정렬 추가 (중요)
+
+          final newUrls = docs
+              .map((doc) {
+                final data = doc.data();
+                return data['imgURL'] as String? ?? '';
+              })
+              .where((url) => url.isNotEmpty)
+              .toList();
+
+          if (_firstSliderUrls.toString() != newUrls.toString()) {
+            setState(() {
+              _firstSliderUrls = newUrls;
+            });
+          }
+        });
+  }
+
+  @override
+  void dispose() {
+    _firstSliderSub.cancel();
+    super.dispose();
+  }
 
   final List<int> _sliderItems = [1, 2, 3, 4, 5];
   // 검색 화면으로 이동하는 헬퍼 함수
@@ -150,7 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-// 첫 번째 배너 위젯
+  // 첫 번째 배너 위젯
   Widget _firstBanner() {
     return SizedBox(
       height: 80,
@@ -184,8 +223,11 @@ class _HomeScreenState extends State<HomeScreen> {
             return Container(
               color: Colors.grey[300],
               child: const Center(
-                  child: Text("배너 준비 중",
-                      style: TextStyle(color: Colors.grey, fontSize: 12))),
+                child: Text(
+                  "배너 준비 중",
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+              ),
             );
           }
 
@@ -380,114 +422,75 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _firstSlider() {
     final double sliderHeight = MediaQuery.of(context).size.height * 0.28;
 
+    if (_firstSliderUrls.isEmpty) {
+      return SizedBox(
+        height: sliderHeight,
+        child: Container(
+          color: Colors.grey[300],
+          child: const Center(child: Text("배너가 없습니다.")),
+        ),
+      );
+    }
+
     return SizedBox(
-      height: sliderHeight, // 부모 높이
-      child: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('banners').snapshots(),
-        builder: (context, snapshot) {
-          // 로딩 중일 때
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          // 데이터 필터링 ("firstSlider_"로 시작하는 것만)
-          final bannerDocs =
-              snapshot.data?.docs.where((doc) {
-                return doc.id.startsWith("firstSlider_");
-              }).toList() ??
-              [];
-
-          // 이미지 URL만 리스트로 뽑기
-          final imageUrls = bannerDocs
-              .map((doc) {
-                final data = doc.data() as Map<String, dynamic>;
-                return data['imgURL'] as String? ?? '';
-              })
-              .where((url) => url.isNotEmpty)
-              .toList();
-
-          // 데이터가 없을 때 빈 화면 처리
-          if (imageUrls.isEmpty) {
-            return Container(
-              color: Colors.grey[300],
-              child: const Center(child: Text("배너가 없습니다.")),
-            );
-          }
-
-          return Stack(
-            children: [
-              CarouselSlider(
-                options: CarouselOptions(
-                  height: sliderHeight,
-                  viewportFraction: 1,
-                  initialPage: 0,
-                  // 이미지가 1개보다 많을 때만 무한 스크롤 & 자동 재생
-                  enableInfiniteScroll: imageUrls.length > 1,
-                  autoPlay: imageUrls.length > 1,
-                  autoPlayInterval: const Duration(seconds: 5),
-                  onPageChanged: (index, reason) {
-                    setState(() {
-                      _currentIndex1 = index;
-                    });
-                  },
-                ),
-                items: imageUrls.map((url) {
-                  return Builder(
-                    builder: (BuildContext context) {
-                      return Container(
-                        width: MediaQuery.of(context).size.width,
-                        // 이미지 캐싱 적용
-                        child: CachedNetworkImage(
-                          imageUrl: url,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
-                            color: Colors.grey[200],
-                            child: const Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                          ),
-                          errorWidget: (context, url, error) => Container(
-                            color: Colors.grey[300],
-                            child: const Icon(Icons.error),
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                }).toList(),
-              ),
-
-              // 페이지 번호 (인디케이터)
-              Positioned(
-                right: 15,
-                bottom: 15,
-                child: Container(
-                  width: 67,
-                  height: 30,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
+      height: sliderHeight,
+      child: Stack(
+        children: [
+          CarouselSlider(
+            options: CarouselOptions(
+              height: sliderHeight,
+              viewportFraction: 1,
+              enableInfiniteScroll: _firstSliderUrls.length > 1,
+              autoPlay: _firstSliderUrls.length > 1,
+              autoPlayInterval: const Duration(seconds: 5),
+              onPageChanged: (index, reason) {
+                setState(() {
+                  _currentIndex1 = index;
+                });
+              },
+            ),
+            items: _firstSliderUrls.map((url) {
+              return SizedBox(
+                width: double.infinity,
+                child: CachedNetworkImage(
+                  imageUrl: url,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(
+                    color: Colors.grey[200],
+                    child: const Center(child: CircularProgressIndicator()),
                   ),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.white, width: 1),
-                    color: Colors.black.withOpacity(0.49),
-                    borderRadius: BorderRadius.circular(50),
-                  ),
-                  child: Text(
-                    '${_currentIndex1 + 1} / ${imageUrls.length}',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.24,
-                    ),
+                  errorWidget: (context, url, error) => Container(
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.error),
                   ),
                 ),
+              );
+            }).toList(),
+          ),
+
+          Positioned(
+            right: 15,
+            bottom: 15,
+            child: Container(
+              width: 67,
+              height: 30,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.white, width: 1),
+                color: Colors.black.withOpacity(0.49),
+                borderRadius: BorderRadius.circular(50),
               ),
-            ],
-          );
-        },
+              child: Text(
+                '${_currentIndex1 + 1} / ${_firstSliderUrls.length}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
