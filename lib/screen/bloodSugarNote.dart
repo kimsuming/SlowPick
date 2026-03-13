@@ -136,9 +136,9 @@ class _BloodsugarnoteState extends State<Bloodsugarnote> {
                   ],
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(8.0),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       //오늘의 혈당 & 평균 혈당
                       Column(
@@ -211,7 +211,7 @@ class _BloodsugarnoteState extends State<Bloodsugarnote> {
                                     color: const Color(0xFF187100),
                                     fontSize: 32,
                                     fontFamily: 'Clipartkorea TTF',
-                                    fontWeight: FontWeight.w400,
+                                    fontWeight: FontWeight.w500,
                                     letterSpacing: -0.96,
                                   ),
                                 ),
@@ -389,59 +389,62 @@ class _BloodsugarnoteState extends State<Bloodsugarnote> {
                   ],
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(8.0),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       //오늘의 몸무게 & BMI
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          //오늘의 몸무게 제목
-                          Text(
-                            '오늘의 몸무게',
-                            style: TextStyle(
-                              color: const Color(0xFF9A9A9A),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: -0.36,
+                      Padding(
+                        padding: const EdgeInsets.only(left: 13.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            //오늘의 몸무게 제목
+                            Text(
+                              '오늘의 몸무게',
+                              style: TextStyle(
+                                color: const Color(0xFF9A9A9A),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: -0.36,
+                              ),
                             ),
-                          ),
 
-                          //오늘 몸무게 정보
-                          Text(
-                            '72kg',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 32,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: -0.96,
+                            //오늘 몸무게 정보
+                            Text(
+                              '72 kg',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 32,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.96,
+                              ),
                             ),
-                          ),
 
-                          //BMU 제목
-                          Text(
-                            '오늘의 BMI 수치',
-                            style: TextStyle(
-                              color: const Color(0xFF9A9A9A),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: -0.36,
+                            //BMU 제목
+                            Text(
+                              '오늘의 BMI 수치',
+                              style: TextStyle(
+                                color: const Color(0xFF9A9A9A),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: -0.36,
+                              ),
                             ),
-                          ),
 
-                          //BMI 내용
-                          Text(
-                            '27.34',
-                            style: TextStyle(
-                              color: const Color(0xFF99000F),
-                              fontSize: 32,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: -0.96,
+                            //BMI 내용
+                            Text(
+                              '27.34',
+                              style: TextStyle(
+                                color: const Color(0xFF99000F),
+                                fontSize: 32,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.96,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
 
                       //혈당 점수
