@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
+import 'package:slowpick/screen/myPage_input.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 
 class MyPageScreen extends StatelessWidget {
@@ -31,7 +32,7 @@ class MyPageScreen extends StatelessWidget {
         child: Column(
           children: [
             // 프로필
-            _buildProfileSection(),
+            _buildProfileSection(context),
 
             // 도전과제 섹션 위젯
             _challengeSection(),
@@ -72,7 +73,7 @@ class MyPageScreen extends StatelessWidget {
   }
 
   // 프로필 섹션 위젯
-  Widget _buildProfileSection() {
+  Widget _buildProfileSection(BuildContext context) {
     return Container(
       color: Color(0xFFF5F5F5),
       child: Padding(
@@ -159,21 +160,34 @@ class MyPageScreen extends StatelessWidget {
                     // 수정 버튼
                     Column(
                       children: [
-                        Row(
-                          children: [
-                            Text(
-                              '건강 정보 입력하기',
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: Color(0xFF999999),
-                                fontFamily: 'KoPubDotum',
-                                letterSpacing: -1.70,
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MypageInput(),
                               ),
-                            ),
+                            );
+                          },
+                          child: Row(
+                            children: [
+                              Text(
+                                '건강 정보 입력하기',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: Color(0xFF999999),
+                                  fontFamily: 'KoPubDotum',
+                                  letterSpacing: -1.70,
+                                ),
+                              ),
 
-                            // 수정 버튼 (화살표)
-                            const Icon(Icons.chevron_right, color: Colors.grey),
-                          ],
+                              // 수정 버튼 (화살표)
+                              const Icon(
+                                Icons.chevron_right,
+                                color: Colors.grey,
+                              ),
+                            ],
+                          ),
                         ),
                         SizedBox(height: 30),
                       ],
