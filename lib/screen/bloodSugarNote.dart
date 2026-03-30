@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
-import 'package:percent_indicator/percent_indicator.dart';
+import 'package:slowpick/screen/bloodSugarRecord.dart';
+import 'package:slowpick/screen/mainNote.dart';
 
-class Bloodsugarnote extends StatefulWidget {
-  const Bloodsugarnote({super.key});
+class BloodSugarNote extends StatefulWidget {
+  const BloodSugarNote({super.key});
 
   @override
-  State<Bloodsugarnote> createState() => _BloodsugarnoteState();
+  State<BloodSugarNote> createState() => _BloodSugarNoteState();
 }
 
-class _BloodsugarnoteState extends State<Bloodsugarnote> {
+class _BloodSugarNoteState extends State<BloodSugarNote> {
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
       backgroundColor: Colors.white,
 
@@ -21,45 +24,20 @@ class _BloodsugarnoteState extends State<Bloodsugarnote> {
         child: SafeArea(top: false, child: BottomBarNew()),
       ),
 
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const Bloodsugarnote()),
-          );
-        },
-        shape: const CircleBorder(),
-        backgroundColor: const Color(0xFFFFFFFF),
-        child: Image.asset(
-          'images/bloodSugarNote/filepen.png', // 펜 사진
-          fit: BoxFit.contain,
-        ),
-      ),
-
       body: SafeArea(
         child: SingleChildScrollView(
           child: Container(
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment(0.50, 1.00),
-                end: Alignment(0.50, 0.00),
-                colors: [const Color(0xFFF7FFE5), Colors.white],
-              ),
-            ),
+            color: Colors.white,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                //혈당노트
-                _bloodSugarNote(),
+                _noteTitle(),
 
-                //다이어트 노트
-                _dietNote(),
+                Container(height: 1, color: const Color(0xFFEDEDED)),
 
-                //나의 노트
-                _myNote(),
+                SizedBox(height: 13),
 
-                SizedBox(height: 40),
+                _bloodSugarGraph(),
+                _todayBloodSugarContent(size),
               ],
             ),
           ),
@@ -68,553 +46,344 @@ class _BloodsugarnoteState extends State<Bloodsugarnote> {
     );
   }
 
-  Widget _bloodSugarNote() {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-
-    return Padding(
-      padding: const EdgeInsets.all(18.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 20),
-            child: Text(
-              '거부기의 혈당노트',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.30,
-              ),
-            ),
-          ),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              //혈당노트 모양 구현
-              Container(
-                width: screenWidth * 0.43,
-                height: screenHeight * 0.23,
-                decoration: BoxDecoration(
-                  color: Color(0xFFB6ED74),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    bottomLeft: Radius.circular(20),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0x3F000000),
-                      blurRadius: 4,
-                      offset: Offset(0, 4),
-                      spreadRadius: 0,
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(11.0),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(20),
-                        bottomLeft: Radius.circular(20),
-                      ),
-                    ),
-                    child: Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Image.asset(
-                        'images/bloodSugarNote/sugarNoteTurtle.png', // 거북이 사진
-                        width: screenWidth * 0.3,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              SizedBox(width: 6),
-
-              //혈당 정보 칸
-              Container(
-                width: screenWidth * 0.43,
-                height: screenHeight * 0.23,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topRight: Radius.circular(20),
-                    bottomRight: Radius.circular(20),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0x3F000000),
-                      blurRadius: 4,
-                      offset: Offset(0, 4),
-                      spreadRadius: 0,
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      //오늘의 혈당 & 평균 혈당
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          //오늘의 혈당 제목
-                          Text(
-                            '오늘의 혈당',
-                            style: TextStyle(
-                              color: const Color(0xFF9A9A9A),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: -0.36,
-                            ),
-                          ),
-
-                          //오늘 혈당 정보
-                          Text.rich(
-                            TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: '175',
-                                  style: TextStyle(
-                                    color: const Color(0xFF99000F),
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: -0.96,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: ' ',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: -0.96,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: 'mg/dL',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: -0.84,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          //평균 혈당 제목
-                          Text(
-                            '평균 혈당',
-                            style: TextStyle(
-                              color: const Color(0xFF9A9A9A),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: -0.36,
-                            ),
-                          ),
-
-                          //평균 혈당 내용
-                          Text.rich(
-                            TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: '168',
-                                  style: TextStyle(
-                                    color: const Color(0xFF187100),
-                                    fontSize: 32,
-                                    fontFamily: 'Clipartkorea TTF',
-                                    fontWeight: FontWeight.w400,
-                                    letterSpacing: -0.96,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: ' ',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: -0.96,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: 'mg/dL',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: -0.84,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      //혈당 점수
-                      Column(
-                        children: [
-                          LinearPercentIndicator(
-                            lineHeight: 19.0,
-                            percent: 0.52,
-                            backgroundColor: Color(0xFFDFFF94),
-                            progressColor: Color(0xFF62F431),
-                            barRadius: Radius.circular(10),
-                            animation: true,
-                            animationDuration: 800,
-                            animateFromLastPercent: true,
-                          ),
-
-                          Text.rich(
-                            TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: '나의 혈당 점수: ',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    letterSpacing: -0.36,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: '52',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: -0.60,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: ' 점',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    letterSpacing: -0.36,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _dietNote() {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-
-    return Padding(
-      padding: const EdgeInsets.all(18.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 20),
-            child: Text(
-              '느린거북 다이어트',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.30,
-              ),
-            ),
-          ),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              //혈당노트 모양 구현
-              Container(
-                width: screenWidth * 0.43,
-                height: screenHeight * 0.23,
-                decoration: BoxDecoration(
-                  color: Color(0xFFF8E76C),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    bottomLeft: Radius.circular(20),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0x3F000000),
-                      blurRadius: 4,
-                      offset: Offset(0, 4),
-                      spreadRadius: 0,
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(11.0),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(20),
-                        bottomLeft: Radius.circular(20),
-                      ),
-                    ),
-                    child: Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Image.asset(
-                        'images/bloodSugarNote/sugarNoteTurtle.png', // 거북이 사진
-                        width: screenWidth * 0.3,
-                        fit: BoxFit.contain,
-                        color: Color(0xFFF6F6C5),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              SizedBox(width: 6),
-
-              //혈당 정보 칸
-              Container(
-                width: screenWidth * 0.43,
-                height: screenHeight * 0.23,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topRight: Radius.circular(20),
-                    bottomRight: Radius.circular(20),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0x3F000000),
-                      blurRadius: 4,
-                      offset: Offset(0, 4),
-                      spreadRadius: 0,
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      //오늘의 몸무게 & BMI
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          //오늘의 몸무게 제목
-                          Text(
-                            '오늘의 몸무게',
-                            style: TextStyle(
-                              color: const Color(0xFF9A9A9A),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: -0.36,
-                            ),
-                          ),
-
-                          //오늘 몸무게 정보
-                          Text(
-                            '72kg',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 32,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: -0.96,
-                            ),
-                          ),
-
-                          //BMU 제목
-                          Text(
-                            '오늘의 BMI 수치',
-                            style: TextStyle(
-                              color: const Color(0xFF9A9A9A),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: -0.36,
-                            ),
-                          ),
-
-                          //BMI 내용
-                          Text(
-                            '27.34',
-                            style: TextStyle(
-                              color: const Color(0xFF99000F),
-                              fontSize: 32,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: -0.96,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      //혈당 점수
-                      Column(
-                        children: [
-                          LinearPercentIndicator(
-                            lineHeight: 19.0,
-                            percent: 0.5,
-                            backgroundColor: Color(0xFFFFE494),
-                            progressColor: Color(0xFFF4AF31),
-                            barRadius: Radius.circular(10),
-                            animation: true,
-                            animationDuration: 800,
-                            animateFromLastPercent: true,
-                          ),
-
-                          Text.rich(
-                            TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: '나의 다이어트 점수: ',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    letterSpacing: -0.36,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: '50',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: -0.60,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: ' 점',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    letterSpacing: -0.36,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _myNote() {
-    return Padding(
-      padding: const EdgeInsets.all(20.0),
-      child: Container(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  // 노트 제목 위젯
+  Widget _noteTitle() {
+    return Container(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 22, left: 15.0, bottom: 15.0),
+        child: Row(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 13.0),
-                  child: Text(
-                    '나의 노트',
-                    style: TextStyle(
-                      color: const Color(0xFF242526),
-                      fontSize: 20,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: -1,
-                    ),
-                  ),
-                ),
-
-                Row(
-                  children: [
-                    Image.asset(
-                      'images/bloodSugarNote/icon-park-outline_sort-one.png', // 오름차순 정렬 아이콘
-                      fit: BoxFit.cover,
-                    ),
-
-                    Text(
-                      '최신 순',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: const Color(0xFFA9B38D),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: -0.20,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const mainNote()),
+              ),
+              child: Icon(Icons.arrow_back),
             ),
 
-            SizedBox(height: 13),
+            SizedBox(width: 8),
 
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              childAspectRatio: 0.87,
-              children: [
-                GestureDetector(
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const Bloodsugarnote(),
-                    ),
-                  ),
-                  child: _managementNotes('혈당관리 노트'),
-                ),
-                _managementNotes('내 저당 레시피'),
-                _managementNotes('운동 기록'),
-                _managementNotes('식단 기록'),
-              ],
+            Text(
+              '거부기의 혈당 노트',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: const Color(0xFF242526),
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.24,
+              ),
             ),
+
+            SizedBox(width: 3),
+
+            Icon(Icons.edit, color: Color(0xFF197100)),
           ],
         ),
       ),
     );
   }
 
-  Widget _managementNotes(String title) {
+  // 혈당 그래프 위젯
+  Widget _bloodSugarGraph() {
+    return Padding(
+      padding: const EdgeInsets.all(12.0),
+      child: Container(
+        height: 200,
+        decoration: BoxDecoration(
+          border: Border.all(width: 1, color: const Color(0xFFDDDDDD)),
+          borderRadius: BorderRadius.circular(20),
+        ),
+      ),
+    );
+  }
+
+  Widget _todayBloodSugarContent(Size size) {
     return Container(
       child: Column(
         children: [
-          Image.asset('images/bloodSugarNote/note.png', fit: BoxFit.cover),
+          // 날짜 선택 위젯
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.arrow_left),
+              Text(
+                '2026년 01월 10일',
+                style: TextStyle(
+                  color: const Color(0xFF242526),
+                  fontFamily: 'KoPubDotum Medium',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Icon(Icons.arrow_right),
+            ],
+          ),
 
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: const Color(0xFF242526),
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              letterSpacing: -0.20,
+          SizedBox(height: 16),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [_highestBloodSugar(size), _lowestBloodSugar(size)],
+          ),
+
+          SizedBox(height: 27),
+
+          //기록 추가하기 버튼
+          Container(
+            width: size.width * 0.6,
+            height: 52,
+            decoration: BoxDecoration(
+              color: Color(0xFFB7EE74),
+              borderRadius: BorderRadius.circular(10),
+            ),
+
+            child: GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const BloodSugarRecord(),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add, color: Colors.white, size: 30),
+                  Text(
+                    '기록 추가하기',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 19,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.57,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
+
+          SizedBox(height: 21),
+
+          _timeData(size, '저녁 식전 19:38', 175),
+          _timeData(size, '점심 식후 13:20', 171),
+          _timeData(size, '아침 식후 10:10', 163),
+          _timeData(size, '아침 식전 09:12', 169),
         ],
+      ),
+    );
+  }
+
+  //최고 혈당 윗젯
+  Widget _highestBloodSugar(size) {
+    return Container(
+      width: size.width * 0.4,
+      height: 88,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x3F000000),
+            blurRadius: 7,
+            offset: Offset(0, 2),
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          //최고 혈당 제목
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'images/bloodSugarNote/bloodDrop.png',
+                fit: BoxFit.cover,
+              ),
+
+              SizedBox(width: 3),
+
+              Text(
+                '최고 혈당',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: const Color(0xFF242526),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: -0.45,
+                ),
+              ),
+            ],
+          ),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '175 ',
+                style: TextStyle(
+                  color: const Color(0xFF99000F),
+                  fontSize: 32,
+                  fontFamily: 'Clipartkorea TTF',
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: -0.96,
+                ),
+              ),
+
+              Text(
+                'mg/dL',
+                style: TextStyle(
+                  color: const Color(0xFF242526),
+                  fontSize: 28,
+                  fontFamily: 'Clipartkorea TTF',
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: -0.84,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 최저 혈당 윗젯
+  Widget _lowestBloodSugar(size) {
+    return Container(
+      width: size.width * 0.4,
+      height: 88,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x3F000000),
+            blurRadius: 7,
+            offset: Offset(0, 2),
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          //최저 혈당 제목
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'images/bloodSugarNote/bloodDrop.png',
+                fit: BoxFit.cover,
+                color: Color(0xFF00009A),
+              ),
+
+              SizedBox(width: 3),
+
+              Text(
+                '최저 혈당',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: const Color(0xFF242526),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: -0.45,
+                ),
+              ),
+            ],
+          ),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '161 ',
+                style: TextStyle(
+                  color: const Color(0xFF00009A),
+                  fontSize: 32,
+                  fontFamily: 'Clipartkorea TTF',
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: -0.96,
+                ),
+              ),
+
+              Text(
+                'mg/dL',
+                style: TextStyle(
+                  color: const Color(0xFF242526),
+                  fontSize: 28,
+                  fontFamily: 'Clipartkorea TTF',
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: -0.84,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 혈당 기록 시간과 수치 위젯
+  Widget _timeData(size, String time, int bloodSugar) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18.0),
+      child: Container(
+        width: size.width * 0.85,
+        height: 60,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(width: 1.50, color: const Color(0xFFCCCCCC)),
+          borderRadius: BorderRadius.circular(7),
+        ),
+
+        child: Stack(
+          children: [
+            Positioned(
+              top: 4,
+              right: 4,
+              child: Image.asset(
+                'images/bloodSugarNote/cancel.png',
+                fit: BoxFit.contain,
+              ),
+            ),
+
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Row(
+                children: [
+                  SizedBox(width: 12),
+
+                  // 시간 텍스트
+                  Text(
+                    time,
+                    style: TextStyle(
+                      color: const Color(0xFFA9A9A9),
+                      fontSize: 17,
+                      fontFamily: 'KoPubDotum Medium',
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: -0.51,
+                    ),
+                  ),
+
+                  SizedBox(width: 88),
+
+                  // 혈당 수치 텍스트
+                  Text(
+                    '$bloodSugar mg/dL',
+                    style: TextStyle(
+                      color: const Color(0xFF242526),
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.78,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

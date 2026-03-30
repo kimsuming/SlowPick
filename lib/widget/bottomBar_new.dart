@@ -3,7 +3,7 @@ import 'package:slowpick/screen/home_screen.dart';
 import 'package:slowpick/screen/my_page.dart';
 import 'package:slowpick/screen/community_screen.dart';
 import 'package:slowpick/screen/likedmenu_screen.dart';
-import 'package:slowpick/screen/bloodSugarNote.dart';
+import 'package:slowpick/screen/mainNote.dart';
 
 class BottomBarNew extends StatelessWidget {
   const BottomBarNew({super.key});
@@ -78,7 +78,7 @@ class BottomBarNew extends StatelessWidget {
             onTap: () {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => Bloodsugarnote()),
+                MaterialPageRoute(builder: (context) => mainNote()),
               );
             },
             child: Image.asset(
