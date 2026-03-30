@@ -21,6 +21,21 @@ class _BloodsugarnoteState extends State<Bloodsugarnote> {
         child: SafeArea(top: false, child: BottomBarNew()),
       ),
 
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const Bloodsugarnote()),
+          );
+        },
+        shape: const CircleBorder(),
+        backgroundColor: const Color(0xFFFFFFFF),
+        child: Image.asset(
+          'images/bloodSugarNote/filepen.png', // 펜 사진
+          fit: BoxFit.contain,
+        ),
+      ),
+
       body: SafeArea(
         child: SingleChildScrollView(
           child: Container(
@@ -33,12 +48,18 @@ class _BloodsugarnoteState extends State<Bloodsugarnote> {
               ),
             ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 //혈당노트
                 _bloodSugarNote(),
 
                 //다이어트 노트
                 _dietNote(),
+
+                //나의 노트
+                _myNote(),
+
+                SizedBox(height: 40),
               ],
             ),
           ),
@@ -498,6 +519,100 @@ class _BloodsugarnoteState extends State<Bloodsugarnote> {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _myNote() {
+    return Padding(
+      padding: const EdgeInsets.all(20.0),
+      child: Container(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 13.0),
+                  child: Text(
+                    '나의 노트',
+                    style: TextStyle(
+                      color: const Color(0xFF242526),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                ),
+
+                Row(
+                  children: [
+                    Image.asset(
+                      'images/bloodSugarNote/icon-park-outline_sort-one.png', // 오름차순 정렬 아이콘
+                      fit: BoxFit.cover,
+                    ),
+
+                    Text(
+                      '최신 순',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: const Color(0xFFA9B38D),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: -0.20,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            SizedBox(height: 13),
+
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              childAspectRatio: 0.87,
+              children: [
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const Bloodsugarnote(),
+                    ),
+                  ),
+                  child: _managementNotes('혈당관리 노트'),
+                ),
+                _managementNotes('내 저당 레시피'),
+                _managementNotes('운동 기록'),
+                _managementNotes('식단 기록'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _managementNotes(String title) {
+    return Container(
+      child: Column(
+        children: [
+          Image.asset('images/bloodSugarNote/note.png', fit: BoxFit.cover),
+
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: const Color(0xFF242526),
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              letterSpacing: -0.20,
+            ),
           ),
         ],
       ),
