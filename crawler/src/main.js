@@ -14,7 +14,8 @@ const { parseTwosomeList, parseTwosomeDetail } = require('../parsers/twosomePars
 const { getMenuUrls: getYogerMenuUrls, parseDetail: parseYogerDetail } = require('../parsers/yogerParser');
 const { parseTomNTomsDetail } = require('../parsers/tmntmsParser');
 
-const ValidatorService = require('./services/validatorService');
+const menuRepository = require('./services/repositories');
+const firestoreMenuRepository = require('./firestoreMenuRepository');
 const FirebaseService = require('./services/firebaseService');
 
 /**
