@@ -15,8 +15,8 @@ const { getMenuUrls: getYogerMenuUrls, parseDetail: parseYogerDetail } = require
 const { parseTomNTomsDetail } = require('../parsers/tmntmsParser');
 
 const menuRepository = require('./services/repositories');
-const firestoreMenuRepository = require('./firestoreMenuRepository');
-const FirebaseService = require('./services/firebaseService');
+//const firestoreMenuRepository = require('./firestoreMenuRepository');
+//const FirebaseService = require('./services/firebaseService');
 
 /**
  * [공통 로직] 데이터 검증, 업로드 및 발견된 ID 수집
@@ -25,7 +25,8 @@ async function processMenus(brandName, rawMenus, foundSet) {
   for (const menu of rawMenus) {
     const { isValid, data } = ValidatorService.validate(menu);
     if (isValid) {
-      const result = await FirebaseService.uploadMenu(data);
+      //const result = await FirebaseService.uploadMenu(data);
+      const result = await MenuRepository.uploadMenu(menuData);
       if (result.success && result.docId) {
         foundSet.add(result.docId); // 생존 확인된 ID 기록
       }
@@ -40,7 +41,8 @@ async function finalizeDeactivation(brandName, oldIds, foundIds) {
   const missingIds = [...oldIds].filter(id => !foundIds.has(id));
   if (missingIds.length > 0) {
     console.log(`📉 [${brandName}] 사라진 메뉴 ${missingIds.length}개 비활성화 중...`);
-    await FirebaseService.deactivateMenus(missingIds);
+    //await FirebaseService.deactivateMenus(missingIds);
+    await MenuRepository.deactivateMenus(ids);
   } else {
     console.log(`✨ [${brandName}] 모든 메뉴가 최신 상태입니다.`);
   }
@@ -122,7 +124,8 @@ async function runMega(page) {
   const BRAND = "메가MGC커피";
   console.log(`🚀 ${BRAND} 크롤링 시작...`);
   
-  const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  //const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  const oldIds = await MenuRepository.getAllMenuIdsByBrand(brandName);
   const foundIds = new Set();
 
   const URL = "https://www.mega-mgccoffee.com/menu/?menu_category1=1&menu_category2=1";
@@ -152,7 +155,8 @@ async function runStarbucks(page) {
   const BRAND = "스타벅스";
   console.log(`🚀 ${BRAND} 크롤링 시작...`);
 
-  const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  //const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  const oldIds = await MenuRepository.getAllMenuIdsByBrand(brandName);
   const foundIds = new Set();
 
   await page.goto("https://www.starbucks.co.kr/menu/drink_list.do", { waitUntil: 'networkidle2' });
@@ -169,7 +173,8 @@ async function runCompose(page) {
   const BRAND = "컴포즈커피";
   console.log(`🚀 ${BRAND} 크롤링 시작...`);
 
-  const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  //const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  const oldIds = await MenuRepository.getAllMenuIdsByBrand(brandName);
   const foundIds = new Set();
 
   for (let i = 1; i <= 20; i++) { // 최대 20페이지까지 순회
@@ -196,7 +201,8 @@ async function runEdiya(page) {
   const BRAND = "이디야커피";
   console.log(`🚀 ${BRAND} 크롤링 시작...`);
 
-  const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  //const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  const oldIds = await MenuRepository.getAllMenuIdsByBrand(brandName);
   const foundIds = new Set();
 
   const URL = "https://www.ediya.com/contents/drink.html";
@@ -280,7 +286,8 @@ async function runPaulBassett(page) {
   const BRAND = "폴 바셋";
   console.log(`🚀 ${BRAND} 크롤링 시작...`);
 
-  const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  //const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  const oldIds = await MenuRepository.getAllMenuIdsByBrand(brandName);
   const foundIds = new Set();
 
   // 순회할 카테고리 목록
@@ -314,7 +321,8 @@ async function runPaulBassett(page) {
         
         // 카테고리 필터링 (제외대상 아니면 업로드)
         if (isValid && data.category !== "제외대상") {
-          const result = await FirebaseService.uploadMenu(data);
+          //const result = await FirebaseService.uploadMenu(data);
+          const result = await MenuRepository.uploadMenu(menuData);
           
           if (result.success && result.docId) {
             foundIds.add(result.docId);
@@ -355,7 +363,8 @@ async function runMammoth() {
     console.log(`🚀 [${target.brandName}] 크롤링 시작...`);
     
     // 해당 브랜드의 기존 ID 목록 가져오기 (비활성화 로직용)
-    const oldIds = await FirebaseService.getAllMenuIdsByBrand(target.brandName);
+    //const oldIds = await FirebaseService.getAllMenuIdsByBrand(target.brandName);
+    const oldIds = await MenuRepository.getAllMenuIdsByBrand(brandName);
     const foundIds = new Set();
 
     try {
@@ -388,7 +397,8 @@ async function runMammoth() {
             const { isValid, data, error } = ValidatorService.validate(mergedData);
             
             if (isValid) {
-              const result = await FirebaseService.uploadMenu(data);
+              //const result = await FirebaseService.uploadMenu(data);
+              const result = await MenuRepository.uploadMenu(menuData);
               if (result.success && result.docId) {
                 foundIds.add(result.docId);
               }
@@ -424,7 +434,8 @@ async function runPaik(page) {
   const BRAND = "빽다방";
   console.log(`🚀 ${BRAND} 크롤링 시작...`);
 
-  const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  //const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  const oldIds = await MenuRepository.getAllMenuIdsByBrand(brandName);
   const foundIds = new Set();
 
   // 빽다방은 카테고리별로 URL이 다름
@@ -473,7 +484,8 @@ async function runTheVenti(page) {
   const BRAND = "더벤티";
   console.log(`🚀 ${BRAND} 크롤링 시작...`);
 
-  const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  //const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  const oldIds = await MenuRepository.getAllMenuIdsByBrand(brandName);
   const foundIds = new Set();
 
   // 모드 1(신메뉴) ~ 7(베버리지) 순회
@@ -502,7 +514,9 @@ async function runTheVenti(page) {
             const { isValid, data, error } = ValidatorService.validate(variant);
 
             if (isValid) {
-              const result = await FirebaseService.uploadMenu(data);
+              //const result = await FirebaseService.uploadMenu(data);
+              const result = await MenuRepository.uploadMenu(menuData);
+              
               if (result.success && result.docId) {
                 foundIds.add(result.docId);
               }
@@ -536,7 +550,8 @@ async function runAngel() {
   const BRAND = "엔제리너스";
   console.log(`🚀 ${BRAND} 크롤링 시작...`);
 
-  const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  //const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  const oldIds = await MenuRepository.getAllMenuIdsByBrand(brandName);
   const foundIds = new Set();
 
   try {
@@ -586,7 +601,8 @@ async function runAngel() {
       const { isValid, data, error } = ValidatorService.validate(menu);
 
       if (isValid) {
-        const result = await FirebaseService.uploadMenu(data);
+        //const result = await FirebaseService.uploadMenu(data);
+        const result = await MenuRepository.uploadMenu(menuData);
         if (result.success && result.docId) {
           foundIds.add(result.docId);
         }
@@ -614,7 +630,8 @@ async function runTwosome(page) {
   const BRAND = "투썸플레이스";
   console.log(`🚀 ${BRAND} 크롤링 시작...`);
 
-  const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  //const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  const oldIds = await MenuRepository.getAllMenuIdsByBrand(brandName);
   const foundIds = new Set();
 
   const TABS = ['01', '02', '03']; 
@@ -693,7 +710,8 @@ async function runTwosome(page) {
   async function uploadAndLog(menuData, index, total, suffixLog) {
     const { isValid, data, error } = ValidatorService.validate(menuData);
     if (isValid) {
-      const result = await FirebaseService.uploadMenu(data);
+      //const result = await FirebaseService.uploadMenu(data);
+      const result = await MenuRepository.uploadMenu(menuData);
       if (result.success && result.docId) foundIds.add(result.docId);
       console.log(`      ✅ [${index + 1}/${total}]${suffixLog} 업로드: ${data.menu_name}`);
     } else {
@@ -709,7 +727,8 @@ async function runYogerpresso() {
   const BRAND = "요거프레소";
   console.log(`🚀 ${BRAND} 크롤링 시작...`);
 
-  const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  //const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  const oldIds = await MenuRepository.getAllMenuIdsByBrand(brandName);
   const foundIds = new Set();
 
   // 수집할 카테고리 목록 (cateno)
@@ -749,7 +768,8 @@ async function runYogerpresso() {
           // 검증 및 업로드
           const { isValid, data } = ValidatorService.validate(menuData);
           if (isValid) {
-            const result = await FirebaseService.uploadMenu(data);
+            //const result = await FirebaseService.uploadMenu(data);
+            const result = await MenuRepository.uploadMenu(menuData);
             if (result.success && result.docId) foundIds.add(result.docId);
             console.log(`      ✅ [${cat.name}-${index + 1}] 업로드: ${data.menu_name}`);
           }
@@ -779,7 +799,8 @@ async function runTomNToms(page) {
   const BRAND = "탐앤탐스";
   console.log(`🚀 ${BRAND} 크롤링 시작...`);
 
-  const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  //const oldIds = await FirebaseService.getAllMenuIdsByBrand(BRAND);
+  const oldIds = await MenuRepository.getAllMenuIdsByBrand(brandName);
   const foundIds = new Set();
 
   try {
@@ -879,7 +900,8 @@ async function runTomNToms(page) {
 
         const { isValid, data } = ValidatorService.validate(menuData);
         if (isValid) {
-          const result = await FirebaseService.uploadMenu(data);
+          //const result = await FirebaseService.uploadMenu(data);
+          const result = await MenuRepository.uploadMenu(menuData);
           if (result.success && result.docId) foundIds.add(result.docId);
           console.log(`      ✅ [${i + 1}/${menuButtons.length}] 업로드: ${data.menu_name}`);
         }
