@@ -1,4 +1,3 @@
-// src/parsers/starbucksParser.js
 const cheerio = require('cheerio');
 
 function parseStarbucks(htmlContent) {
@@ -6,7 +5,7 @@ function parseStarbucks(htmlContent) {
   const menus = [];
   const nutritionMap = new Map();
 
-  // 1. 영양 성분 데이터 수집 (Map 생성)
+  // 1. 영양 성분 데이터 수집
   $('.m_coffee_info').each((i, div) => {
     const category = $(div).prevAll('h3').first().text().trim();
 
@@ -16,52 +15,66 @@ function parseStarbucks(htmlContent) {
 
       const getNum = (dtText) => {
         const val = $ul.find(`dt:contains("${dtText}")`).next('dd').text().trim();
-        const num = parseFloat(val.replace(/[^0-9.]/g, '')); // 숫자와 소수점만 추출
-        return isNaN(num) ? 0 : num;
+        const num = parseFloat(val.replace(/[^0-9.]/g, ''));
+        return Number.isNaN(num) ? null : num;
+      };
+
+      const nutrition = {
+        calories: getNum('칼로리'),
+        sugar: getNum('당류'),
+        protein: getNum('단백질'),
+        sodium: getNum('나트륨'),
+        saturated_fat: getNum('포화지방'),
+        caffeine: getNum('카페인'),
+        size_standard: 'Tall (355ml)',
       };
 
       nutritionMap.set(name, {
-        category: category,
-        nutrition: {
-          calories_kcal: getNum('칼로리'),
-          sugar_g: getNum('당류'),
-          protein_g: getNum('단백질'),
-          sodium_mg: getNum('나트륨'),
-          saturated_fat_g: getNum('포화지방'),
-          caffeine_mg: getNum('카페인'),
-          size_standard: "Tall (355ml)" // ⭐️ nutrition 내부로 이동
-        }
+        category: category || '음료',
+        nutrition,
       });
     });
   });
 
-  // 2. 최종 데이터 조립
+  // 2. 최종 메뉴 데이터 조립
   $('.menuDataSet').each((i, el) => {
     const name = $(el).find('dd').text().trim();
     const nutritionData = nutritionMap.get(name);
 
-    if (nutritionData) {
-      let imgUrl = $(el).find('img').attr('src');
-      if (imgUrl && imgUrl.startsWith('//')) {
-        imgUrl = 'https:' + imgUrl;
-      }
+    if (!nutritionData) return;
 
-      let menuType = 'regular';
-      if ($(el).attr('new') === 'Y') menuType = 'new';
-      else if ($(el).attr('sell') === '1') menuType = 'seasonal';
-
-      menus.push({
-        brand_name: "스타벅스",
-        category: nutritionData.category || "음료",
-        menu_name: name,
-        menu_image_url: imgUrl || "",
-        is_active: true,
-        menu_type: menuType,
-        nutrition: nutritionData.nutrition,
-        allergy_info: [], // ⭐️ 스키마 필수 필드 추가
-        description: ""   // ⭐️ 스키마 필수 필드 추가
-      });
+    let imgUrl = $(el).find('img').attr('src');
+    if (imgUrl && imgUrl.startsWith('//')) {
+      imgUrl = 'https:' + imgUrl;
     }
+
+    let menuType = 'regular';
+    if ($(el).attr('new') === 'Y') menuType = 'new';
+    else if ($(el).attr('sell') === '1') menuType = 'seasonal';
+
+    menus.push({
+      brand_name: '스타벅스',
+      category: nutritionData.category,
+      menu_name: name,
+      image_url: imgUrl || '',
+      is_active: true,
+      menu_type: menuType,
+
+      // DB 컬럼용 평탄화 필드
+      calories: nutritionData.nutrition.calories,
+      sugar: nutritionData.nutrition.sugar,
+      protein: nutritionData.nutrition.protein,
+      sodium: nutritionData.nutrition.sodium,
+      saturated_fat: nutritionData.nutrition.saturated_fat,
+      caffeine: nutritionData.nutrition.caffeine,
+      size_standard: nutritionData.nutrition.size_standard,
+
+      // 원본 영양 정보 보존용
+      nutrition_json: nutritionData.nutrition,
+
+      allergy_info: [],
+      description: '',
+    });
   });
 
   return menus;

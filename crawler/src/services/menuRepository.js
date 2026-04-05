@@ -1,4 +1,4 @@
-const pool = require('../db/mysql');
+const pool = require('./db/mysql');
 
 class RdsMenuRepository {
   static makeDocId(menuData) {
