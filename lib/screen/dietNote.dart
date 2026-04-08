@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:slowpick/widget/bottomBar_new.dart';
-import 'package:slowpick/screen/bloodSugarRecord.dart';
+import 'package:slowpick/screen/dietRecord.dart';
 import 'package:slowpick/screen/mainNote.dart';
+import 'package:slowpick/widget/bottomBar_new.dart';
 
-class BloodSugarNote extends StatefulWidget {
-  const BloodSugarNote({super.key});
+class DietNote extends StatefulWidget {
+  const DietNote({super.key});
 
   @override
-  State<BloodSugarNote> createState() => _BloodSugarNoteState();
+  State<DietNote> createState() => _DietNoteState();
 }
 
-class _BloodSugarNoteState extends State<BloodSugarNote> {
+class _DietNoteState extends State<DietNote> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -38,8 +38,7 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
 
                     SizedBox(height: 13),
 
-                    _bloodSugarGraph(),
-                    _todayBloodSugarContent(size),
+                    _todayDietContent(size),
 
                     SizedBox(height: 70),
                   ],
@@ -79,7 +78,7 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const BloodSugarRecord(),
+                          builder: (context) => const DietRecord(),
                         ),
                       ),
                       child: Align(
@@ -129,7 +128,7 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
             SizedBox(width: 8),
 
             Text(
-              '거부기의 혈당 노트',
+              '느린거북 다이어트',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: const Color(0xFF242526),
@@ -148,24 +147,31 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
     );
   }
 
-  // 혈당 그래프 위젯
-  Widget _bloodSugarGraph() {
-    return Padding(
-      padding: const EdgeInsets.all(12.0),
-      child: Container(
-        height: 200,
-        decoration: BoxDecoration(
-          border: Border.all(width: 1, color: const Color(0xFFDDDDDD)),
-          borderRadius: BorderRadius.circular(20),
-        ),
-      ),
-    );
-  }
-
-  Widget _todayBloodSugarContent(Size size) {
+  // 오늘 다이어트 기록 위젯
+  Widget _todayDietContent(Size size) {
     return Container(
       child: Column(
         children: [
+          SizedBox(height: 16),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [_highestWeight(size), _lowestWeight(size)],
+          ),
+
+          SizedBox(height: 14),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [_targetWeight(size), SizedBox(width: 15), _bmi(size)],
+          ),
+
+          SizedBox(height: 24),
+
+          _weightGraph(),
+
+          SizedBox(height: 27),
+
           // 날짜 선택 위젯
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -184,28 +190,19 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
             ],
           ),
 
-          SizedBox(height: 16),
+          SizedBox(height: 21),
 
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [_highestBloodSugar(size), _lowestBloodSugar(size)],
-          ),
-
-          SizedBox(height: 23),
-
-          _timeData(size, '저녁 식전 19:38', 175),
-          _timeData(size, '점심 식후 13:20', 171),
-          _timeData(size, '아침 식후 10:10', 163),
-          _timeData(size, '아침 식전 09:12', 169),
-          _timeData(size, '아침 식전 09:12', 169),
-          _timeData(size, '아침 식전 09:12', 169),
+          _timeData(size, '저녁 공복 후 19:38', 69.7),
+          _timeData(size, '아침 공북 13:20', 70.7),
+          _timeData(size, '아침 식후 10:10', 80.3),
+          _timeData(size, '아침 식전 09:12', 69.8),
         ],
       ),
     );
   }
 
-  //최고 혈당 윗젯
-  Widget _highestBloodSugar(size) {
+  //최고 체중 위젯
+  Widget _highestWeight(size) {
     return Container(
       width: size.width * 0.4,
       height: 88,
@@ -229,14 +226,14 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Image.asset(
-                'images/bloodSugarNote/bloodDrop.png',
+                'images/bloodSugarNote/uil_weight.png',
                 fit: BoxFit.cover,
               ),
 
               SizedBox(width: 3),
 
               Text(
-                '최고 혈당',
+                '최고 몸무게',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: const Color(0xFF242526),
@@ -252,7 +249,7 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                '175 ',
+                '74.6 ',
                 style: TextStyle(
                   color: const Color(0xFF99000F),
                   fontSize: 32,
@@ -263,7 +260,7 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
               ),
 
               Text(
-                'mg/dL',
+                'kg',
                 style: TextStyle(
                   color: const Color(0xFF242526),
                   fontSize: 28,
@@ -279,8 +276,8 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
     );
   }
 
-  // 최저 혈당 윗젯
-  Widget _lowestBloodSugar(size) {
+  // 최저 체중 위젯
+  Widget _lowestWeight(size) {
     return Container(
       width: size.width * 0.4,
       height: 88,
@@ -304,7 +301,7 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Image.asset(
-                'images/bloodSugarNote/bloodDrop.png',
+                'images/bloodSugarNote/uil_weight.png',
                 fit: BoxFit.cover,
                 color: Color(0xFF00009A),
               ),
@@ -312,7 +309,7 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
               SizedBox(width: 3),
 
               Text(
-                '최저 혈당',
+                '최저 몸무게',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: const Color(0xFF242526),
@@ -328,7 +325,7 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                '161 ',
+                '69.1 ',
                 style: TextStyle(
                   color: const Color(0xFF00009A),
                   fontSize: 32,
@@ -339,7 +336,7 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
               ),
 
               Text(
-                'mg/dL',
+                'kg',
                 style: TextStyle(
                   color: const Color(0xFF242526),
                   fontSize: 28,
@@ -355,8 +352,145 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
     );
   }
 
-  // 혈당 기록 시간과 수치 위젯
-  Widget _timeData(size, String time, int bloodSugar) {
+  //목표 체중 위젯
+  Widget _targetWeight(size) {
+    return Container(
+      width: size.width * 0.35,
+      height: 40,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x3F000000),
+            blurRadius: 7,
+            offset: Offset(0, 2),
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 7.0),
+            child: Text(
+              '목표체중',
+              style: TextStyle(
+                color: const Color(0xFF999999),
+                fontSize: 13,
+                fontWeight: FontWeight.w300,
+                letterSpacing: -0.39,
+              ),
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.only(right: 12.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '58 ',
+                  style: TextStyle(
+                    color: const Color(0xFF242526),
+                    fontSize: 20,
+                    fontFamily: 'Clipartkorea TTF',
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: -0.60,
+                  ),
+                ),
+
+                Text(
+                  'kg',
+                  style: TextStyle(
+                    color: const Color(0xFF242526),
+                    fontSize: 17,
+                    fontFamily: 'Clipartkorea TTF',
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: -0.51,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  //BMI 위젯
+  Widget _bmi(size) {
+    return Container(
+      width: size.width * 0.35,
+      height: 40,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x3F000000),
+            blurRadius: 7,
+            offset: Offset(0, 2),
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 7.0),
+            child: Text(
+              'BMI',
+              style: TextStyle(
+                color: const Color(0xFF999999),
+                fontSize: 13,
+                fontWeight: FontWeight.w300,
+                letterSpacing: -0.39,
+              ),
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.only(right: 10.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '25.46',
+                  style: TextStyle(
+                    color: const Color(0xFF242526),
+                    fontSize: 20,
+                    fontFamily: 'Clipartkorea TTF',
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: -0.60,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 체중 그래프 위젯
+  Widget _weightGraph() {
+    return Padding(
+      padding: const EdgeInsets.all(12.0),
+      child: Container(
+        height: 200,
+        decoration: BoxDecoration(
+          border: Border.all(width: 1, color: const Color(0xFFDDDDDD)),
+          borderRadius: BorderRadius.circular(20),
+        ),
+      ),
+    );
+  }
+
+  // 체중 기록 시간과 수치 위젯
+  Widget _timeData(size, String time, double weight) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 18.0),
       child: Container(
@@ -379,34 +513,36 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
               ),
             ),
 
-            Align(
-              alignment: Alignment.centerLeft,
+            Center(
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  SizedBox(width: 12),
-
                   // 시간 텍스트
-                  Text(
-                    time,
-                    style: TextStyle(
-                      color: const Color(0xFFA9A9A9),
-                      fontSize: 17,
-                      fontFamily: 'KoPubDotum Medium',
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: -0.51,
+                  Padding(
+                    padding: const EdgeInsets.only(left: 12.0),
+                    child: Text(
+                      time,
+                      style: TextStyle(
+                        color: const Color(0xFFA9A9A9),
+                        fontSize: 17,
+                        fontFamily: 'KoPubDotum Medium',
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: -0.51,
+                      ),
                     ),
                   ),
 
-                  SizedBox(width: 88),
-
-                  // 혈당 수치 텍스트
-                  Text(
-                    '$bloodSugar mg/dL',
-                    style: TextStyle(
-                      color: const Color(0xFF242526),
-                      fontSize: 26,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.78,
+                  // 체중 수치 텍스트
+                  Padding(
+                    padding: const EdgeInsets.only(right: 28.0),
+                    child: Text(
+                      '$weight kg',
+                      style: TextStyle(
+                        color: const Color(0xFF242526),
+                        fontSize: 26,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.78,
+                      ),
                     ),
                   ),
                 ],

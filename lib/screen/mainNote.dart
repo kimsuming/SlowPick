@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:slowpick/screen/bloodSugarNote.dart';
+import 'package:slowpick/screen/dietNote.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 
@@ -51,10 +52,10 @@ class _mainNoteState extends State<mainNote> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                //혈당노트
+                //혈당표시
                 _bloodSugarNote(),
 
-                //다이어트 노트
+                //다이어트 표시
                 _dietNote(),
 
                 //나의 노트
@@ -587,7 +588,13 @@ class _mainNoteState extends State<mainNote> {
                   ),
                   child: _managementNotes('혈당관리 노트'),
                 ),
-                _managementNotes('내 저당 레시피'),
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const DietNote()),
+                  ),
+                  child: _managementNotes('느린거북 다이어트'),
+                ),
                 _managementNotes('운동 기록'),
                 _managementNotes('식단 기록'),
               ],
