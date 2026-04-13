@@ -15,7 +15,7 @@ async function cleanupInactiveMenus({ dryRun = false } = {}) {
       `
       SELECT id, doc_id, brand_name, menu_name, is_active
       FROM menus
-      WHERE brandname is "매머드커피"
+      WHERE nutrition_json IS NULL
       ORDER BY id ASC
       `
     );
@@ -71,7 +71,7 @@ async function cleanupInactiveMenus({ dryRun = false } = {}) {
     const [deleteMenusResult] = await conn.query(
       `
       DELETE FROM menus
-      WHERE is_active = 0
+      WHERE nutrition_json IS NULL
       `
     );
 

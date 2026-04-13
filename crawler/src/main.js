@@ -3,8 +3,8 @@ const cheerio = require('cheerio');
 const axios = require('axios');
 
 const { parseMega } = require('../parsers/megaParser');
-const { parseStarbucks } = require('../parsers/starbucksParser');
-const { parseCompose } = require('../parsers/composeParser');
+const { parseStarbucks, parseStarbucksAjaxDetail } = require('../parsers/starbucksParser');
+const { parseComposeCategoryPage, parseComposeDetail } = require('../parsers/composeParser');
 const { parseEdiya } = require('../parsers/ediyaParser');
 const { parsePaulBassettList, parsePaulBassettDetail } = require('../parsers/paulParser');
 const { getMenuIds, parseDetail } = require('../parsers/mammothParser');
@@ -172,15 +172,67 @@ async function runMega(page) {
  */
 async function runStarbucks(page) {
   const BRAND = "스타벅스";
+  const LIST_URL = "https://www.starbucks.co.kr/menu/drink_list.do";
+  const AJAX_URL = "https://www.starbucks.co.kr/menu/productViewAjax.do";
+
   console.log(`🚀 ${BRAND} 크롤링 시작...`);
 
   const oldIds = await MenuRepository.getAllMenuIdsByBrand(BRAND);
   const foundIds = new Set();
 
-  await page.goto("https://www.starbucks.co.kr/menu/drink_list.do", { waitUntil: 'networkidle2' });
+  await page.goto(LIST_URL, { waitUntil: 'networkidle2' });
   const html = await page.content();
+  const rawMenus = parseStarbucks(html);
 
-  await processMenus(BRAND, parseStarbucks(html), foundIds);
+  console.log(`   🔗 총 ${rawMenus.length}개의 메뉴 발견.`);
+
+  for (const [index, menu] of rawMenus.entries()) {
+    try {
+      if (menu.product_id) {
+        const body = new URLSearchParams({
+          product_cd: menu.product_id,
+        }).toString();
+
+        const { data } = await axios.post(AJAX_URL, body, {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Referer': LIST_URL,
+            'User-Agent': 'Mozilla/5.0',
+          },
+        });
+
+        const detail = parseStarbucksAjaxDetail(data);
+
+        if (detail.description) {
+          menu.description = detail.description;
+        }
+
+        menu.allergy_info = detail.allergy_info;
+      }
+
+      delete menu.product_id;
+
+      const uploaded = await uploadValidatedMenu(
+        menu,
+        foundIds,
+        `[${BRAND} ${index + 1}/${rawMenus.length}] `
+      );
+
+      if (uploaded) {
+        console.log(
+          `      ✅ [${index + 1}/${rawMenus.length}] 업로드: ${uploaded.data.menu_name}`
+        );
+      }
+    } catch (err) {
+      console.error(`      ❌ [${menu.menu_name}] 상세 설명/알레르기 조회 실패:`, err.message);
+    }
+
+    if ((index + 1) % 10 === 0) {
+      await new Promise(r => setTimeout(r, 200));
+    }
+  }
+
   await finalizeDeactivation(BRAND, oldIds, foundIds);
 }
 
@@ -193,21 +245,90 @@ async function runCompose(page) {
 
   const oldIds = await MenuRepository.getAllMenuIdsByBrand(BRAND);
   const foundIds = new Set();
+  const seenMenuIds = new Set();
 
-  for (let i = 1; i <= 20; i++) {
-    const URL = i === 1
-      ? "https://composecoffee.com/menu"
-      : `https://composecoffee.com/menu?page=${i}`;
+  const CATEGORIES = [
+    { name: '컴포즈 콤보', url: 'https://composecoffee.com/menu/category/207002' },
+    { name: '시즌한정', url: 'https://composecoffee.com/menu/category/192677' },
+    { name: '커피 · 더치', url: 'https://composecoffee.com/menu/category/185' },
+    { name: '논커피 라떼', url: 'https://composecoffee.com/menu/category/187' },
+    { name: '프라페 · 스무디', url: 'https://composecoffee.com/menu/category/192' },
+    { name: '밀크쉐이크', url: 'https://composecoffee.com/menu/category/193' },
+    { name: '에이드 · 주스', url: 'https://composecoffee.com/menu/category/188' },
+    { name: '티', url: 'https://composecoffee.com/menu/category/191' },
+  ];
 
-    await page.goto(URL, { waitUntil: 'networkidle2' });
+  for (const category of CATEGORIES) {
+    console.log(`   📂 카테고리 이동 중: ${category.name}`);
 
-    const html = await page.content();
-    const rawMenus = parseCompose(html);
+    let pageNo = 1;
 
-    if (rawMenus.length === 0) break;
+    while (true) {
+      const pageUrl = pageNo === 1
+        ? category.url
+        : `${category.url}?page=${pageNo}`;
 
-    await processMenus(BRAND, rawMenus, foundIds);
-    await new Promise(r => setTimeout(r, 1000));
+      try {
+        const { data: listHtml } = await axios.get(pageUrl, {
+          headers: { 'User-Agent': 'Mozilla/5.0' },
+        });
+
+        const menuItems = parseComposeCategoryPage(listHtml, category.name);
+
+        if (menuItems.length === 0) {
+          if (pageNo === 1) {
+            console.log(`      ⚠️ ${category.name}: 메뉴를 찾지 못했습니다.`);
+          }
+          break;
+        }
+
+        console.log(`      🔗 ${category.name} page=${pageNo}: ${menuItems.length}개의 메뉴 발견.`);
+
+        for (const [index, item] of menuItems.entries()) {
+          if (seenMenuIds.has(item.menuId)) {
+            continue;
+          }
+          seenMenuIds.add(item.menuId);
+
+          try {
+            const { data: detailHtml } = await axios.get(item.detailUrl, {
+              headers: { 'User-Agent': 'Mozilla/5.0' },
+            });
+
+            const menuData = parseComposeDetail(detailHtml, item, category.name);
+
+            const uploaded = await uploadValidatedMenu(
+              menuData,
+              foundIds,
+              `[${BRAND} ${category.name} p${pageNo} ${index + 1}/${menuItems.length}] `
+            );
+
+            if (uploaded) {
+              console.log(
+                `      ✅ [${category.name} p${pageNo} ${index + 1}/${menuItems.length}] 업로드: ${uploaded.data.menu_name}`
+              );
+            }
+
+            await new Promise(r => setTimeout(r, 100));
+          } catch (err) {
+            console.error(`      ❌ [${item.name}] 상세 조회 실패:`, err.message);
+          }
+        }
+
+        const $ = cheerio.load(listHtml);
+        const hasNextPage =
+          $('li.page-item:not(.disabled) > a.page-link[aria-label="Next"]').length > 0;
+
+        if (!hasNextPage) {
+          break;
+        }
+
+        pageNo += 1;
+      } catch (err) {
+        console.error(`   ❌ [${category.name} page=${pageNo}] 페이지 로드 실패:`, err.message);
+        break;
+      }
+    }
   }
 
   await finalizeDeactivation(BRAND, oldIds, foundIds);
@@ -297,7 +418,7 @@ async function runPaulBassett(page) {
     await page.goto(LIST_URL, { waitUntil: 'networkidle2' });
 
     const listHtml = await page.content();
-    const menuItems = parsePaulBassettList(listHtml);
+    const menuItems = parsePaulBassettList(listHtml, catId);
 
     console.log(`   🔗 [Category ${catId}] ${menuItems.length}개의 메뉴 발견.`);
 
@@ -362,7 +483,10 @@ async function runMammoth() {
 
         try {
           const { data: detailHtml } = await axios.get(detailUrl);
-          const variants = parseDetail(detailHtml, menu);
+          const variants = parseDetail(detailHtml, {
+            ...menu,
+            brandName: target.brandName,
+          });
 
           for (const variant of variants) {
             const mergedData = {
@@ -440,7 +564,7 @@ async function runPaik(page) {
 /**
  * 8. 더벤티 실행 로직
  */
-async function runTheVenti() {
+async function runTheVenti(page) {
   const BRAND = "더벤티";
   console.log(`🚀 ${BRAND} 크롤링 시작...`);
 
@@ -452,21 +576,61 @@ async function runTheVenti() {
     console.log(`   📂 페이지 이동 중: mode=${mode}`);
 
     try {
-      const { data: listHtml } = await axios.get(listUrl);
+      await page.goto(listUrl, { waitUntil: 'networkidle2' });
+      await page.waitForSelector('.menu_list > ul > li', { timeout: 10000 });
+
+      const listHtml = await page.content();
       const menuList = getVentiMenuUrls(listHtml);
 
       console.log(`      🔗 ${menuList.length}개의 메뉴 발견.`);
 
-      for (const [index, menu] of menuList.entries()) {
+      for (let index = 0; index < menuList.length; index++) {
+        const menu = menuList[index];
+
         try {
-          const { data: detailHtml } = await axios.get(menu.detailUrl);
-          const variants = parseVentiDetail(detailHtml, menu);
+          // 팝업이 열려 있으면 먼저 닫기
+          const openedCloseBtn = await page.$('.mfp-content .mfp-close');
+          if (openedCloseBtn) {
+            await openedCloseBtn.click().catch(() => { });
+            await new Promise(r => setTimeout(r, 300));
+          }
+
+          // 현재 DOM 기준으로 링크 핸들 다시 가져오기
+          const links = await page.$$('.menu_list > ul > li a.popup-link');
+          const linkHandle = links[index];
+
+          if (!linkHandle) {
+            throw new Error(`popup-link handle not found at index ${index}`);
+          }
+
+          await linkHandle.evaluate(el => {
+            el.scrollIntoView({ block: 'center', inline: 'center' });
+          });
+
+          await new Promise(r => setTimeout(r, 200));
+
+          await linkHandle.click();
+
+          // 팝업 내부 실데이터가 뜰 때까지 대기
+          await page.waitForFunction(() => {
+            const popup = document.querySelector('.mfp-content');
+            const desc = document.querySelector('.mfp-content .menu_desc_wrap');
+            const row = document.querySelector('.mfp-content .menu-ingredient table tbody tr');
+            return !!popup && !!desc && !!row;
+          }, { timeout: 7000 });
+
+          const popupHtml = await page.$eval(
+            '.mfp-content',
+            el => el.innerHTML
+          );
+
+          const variants = parseVentiDetail(popupHtml, menu);
 
           for (const variant of variants) {
             const uploaded = await uploadValidatedMenu(
               variant,
               foundIds,
-              `[${BRAND} mode=${mode} ${index + 1}] `
+              `[${BRAND} mode=${mode} ${index + 1}/${menuList.length}] `
             );
 
             if (uploaded) {
@@ -474,9 +638,26 @@ async function runTheVenti() {
             }
           }
 
-          await new Promise(r => setTimeout(r, 100));
+          // 팝업 닫기
+          const closeBtn = await page.$('.mfp-content .mfp-close');
+          if (closeBtn) {
+            await closeBtn.click();
+          } else {
+            await page.keyboard.press('Escape').catch(() => { });
+          }
+
+          await new Promise(r => setTimeout(r, 300));
         } catch (err) {
           console.error(`      ❌ [${menu.name}] 상세 조회 실패:`, err.message);
+
+          const closeBtn = await page.$('.mfp-content .mfp-close');
+          if (closeBtn) {
+            await closeBtn.click().catch(() => { });
+          } else {
+            await page.keyboard.press('Escape').catch(() => { });
+          }
+
+          await new Promise(r => setTimeout(r, 300));
         }
       }
     } catch (err) {
@@ -496,6 +677,7 @@ async function runAngel() {
 
   const oldIds = await MenuRepository.getAllMenuIdsByBrand(BRAND);
   const foundIds = new Set();
+  let rawMenus = [];
 
   try {
     const nutritionUrl = "https://www.lotteeatz.com/upload/etc/angel/items.html";
@@ -511,8 +693,12 @@ async function runAngel() {
     const infoMap = parseAngelImages(orderingRes.data);
     console.log(`      🖼️ 매핑 정보 ${infoMap.size}개 확보.`);
 
-    const rawMenus = parseAngel(nutritionRes.data, infoMap);
+    rawMenus = parseAngel(nutritionRes.data, infoMap);
     console.log(`      🔗 총 ${rawMenus.length}개의 메뉴 1차 파싱 완료.`);
+
+    if (rawMenus.length === 0) {
+      console.log('      ⚠️ parseAngel 결과가 0건입니다. angelinusParser.js를 확인하세요.');
+    }
 
     for (const [index, menu] of rawMenus.entries()) {
       if (menu.productId) {
@@ -525,7 +711,7 @@ async function runAngel() {
             menu.description = desc;
           }
         } catch (detailErr) {
-          // 설명 수집 실패 시 계속 진행
+          console.log(`      ⚠️ [${menu.menu_name}] 상세 설명 수집 실패`);
         }
       }
 
@@ -541,12 +727,12 @@ async function runAngel() {
         console.log(`      ✅ [${index + 1}/${rawMenus.length}] 업로드: ${uploaded.data.menu_name}`);
       }
 
-      if (index % 10 === 0) {
+      if ((index + 1) % 10 === 0) {
         await new Promise(r => setTimeout(r, 200));
       }
     }
   } catch (err) {
-    console.error(`   ❌ ${BRAND} 로직 실패:`, err.message);
+    console.error(`   ❌ ${BRAND} 로직 실패:`, err.stack || err);
   }
 
   await finalizeDeactivation(BRAND, oldIds, foundIds);
@@ -581,7 +767,7 @@ async function runTwosome(page) {
 
           try {
             await page.waitForSelector('.text_list_ts24_type02', { timeout: 3000 });
-          } catch (e) {}
+          } catch (e) { }
 
           const container = await page.$('.ts24_select_drink_size');
 
@@ -819,19 +1005,19 @@ async function main() {
     /*
     await runMega(page);
     console.log("-----------------------------------------");
+    await runStarbucks(page);
+    console.log("-----------------------------------------");
+    await runAngel(page);
+    console.log("-----------------------------------------");
+    await runPaulBassett(page);
+    console.log("-----------------------------------------");
+    await runTheVenti(page);
+    console.log("-----------------------------------------");
     await runCompose(page);
     console.log("-----------------------------------------");
     await runEdiya(page);
     console.log("-----------------------------------------");
-    await runPaulBassett(page);
-    console.log("-----------------------------------------");
-    await runPaik(page);
-    console.log("-----------------------------------------");
     await runMammoth();
-    console.log("-----------------------------------------");
-    await runTheVenti();
-    console.log("-----------------------------------------");
-    await runAngel();
     console.log("-----------------------------------------");
     await runTwosome(page);
     console.log("-----------------------------------------");
@@ -841,7 +1027,7 @@ async function main() {
     console.log("-----------------------------------------");
     await runTomNToms(page);
     */
-    await runStarbucks(page);
+    await runPaik(page);
     console.log("-----------------------------------------");
   } catch (error) {
     console.error("❌ 전체 프로세스 중 오류 발생:", error);

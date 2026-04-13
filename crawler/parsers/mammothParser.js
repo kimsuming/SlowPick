@@ -1,43 +1,143 @@
 const cheerio = require('cheerio');
 const { normalizeCategory } = require('../utils/categoryMapper');
 
-/**
- * 숫자 파싱 헬퍼
- */
-const parseNum = (val) => {
-  if (!val) return 0;
-  const str = val.toString().trim().replace(/,/g, '');
-  if (str === '-' || str === '' || str === '–') return 0;
-  const num = parseFloat(str);
-  return isNaN(num) ? 0 : num;
-};
+function normalizeText(value) {
+  if (value === undefined || value === null) return null;
+
+  const text = String(value)
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!text || text === '-' || text === '–') return null;
+  return text;
+}
+
+function parseNullableNumber(value) {
+  if (value === undefined || value === null) return null;
+
+  const str = String(value)
+    .trim()
+    .replace(/,/g, '');
+
+  if (!str || str === '-' || str === '–') return null;
+
+  const match = str.match(/-?\d+(?:\.\d+)?/);
+  return match ? Number(match[0]) : null;
+}
+
+function absoluteUrl(url) {
+  if (!url) return null;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (url.startsWith('//')) return `https:${url}`;
+  if (url.startsWith('/')) return `https://mmthcoffee.com${url}`;
+  return `https://mmthcoffee.com/${url}`;
+}
+
+function parseAllergyText(text) {
+  const clean = normalizeText(text);
+  if (!clean) return [];
+
+  const raw = clean.includes(':')
+    ? clean.split(':').slice(1).join(':').trim()
+    : clean;
+
+  return raw
+    .split(/[,/]|·|ㆍ/)
+    .map(v => v.trim())
+    .filter(Boolean)
+    .filter(v => v !== '-' && v !== '없음');
+}
+
+function inferOriginalCategory($li) {
+  const classText = ($li.closest('[class*="cate"]').attr('class') || '').toLowerCase();
+  const nearbyHeading = normalizeText(
+    $li.closest('[class*="cate"]').find('h3, h4, strong, .title').first().text()
+  ) || '';
+
+  if (
+    classText.includes('cate04') ||
+    /디저트|베이커리|푸드|브레드|쿠키|케이크|샌드|와플/i.test(nearbyHeading)
+  ) {
+    return '디저트';
+  }
+
+  return '음료';
+}
+
+function cleanDescriptionText(value) {
+  const text = normalizeText(value);
+  if (!text) return null;
+
+  return text
+    .replace(/\s{2,}/g, ' ')
+    .replace(/([가-힣])\s+([를을이가은는와과도만에의로으로])/g, '$1$2')
+    .trim();
+}
+
+function normalizeMammothCategory(menuName, currentCategory) {
+  if (currentCategory && currentCategory !== '기타') {
+    return currentCategory;
+  }
+
+  const name = (menuName || '').replace(/\s*\[(HOT|ICE)\]\s*$/i, '').trim();
+
+  if (/아메리카노|매머드\s*커피|꿀\s*커피|헤이즐넛\s*커피|스노우\s*매머드\s*커피|디카페인.*커피/i.test(name)) {
+    return '커피';
+  }
+
+  if (/라떼|카페\s*라떼|헤이즐넛\s*라떼/i.test(name)) {
+    return '라떼/밀크티';
+  }
+
+  if (/아이스티|티\b/i.test(name)) {
+    return '티';
+  }
+
+  if (/에이드|주스/i.test(name)) {
+    return '에이드/주스';
+  }
+
+  if (/스무디|프라페|쉐이크/i.test(name)) {
+    return '스무디/프라페';
+  }
+
+  return currentCategory || '기타';
+}
 
 /**
- * 1. 목록 페이지 파싱 (기존과 동일)
+ * 1. 목록 페이지 파싱
+ * - 매머드커피 / 매머드 익스프레스 공용
+ * - 기존 인터페이스 유지
  */
 const getMenuIds = (html) => {
   const $ = cheerio.load(html);
   const menuList = [];
-  const targetCategories = ['.cate.cate01', '.cate.cate02', '.cate.cate03'];
+  const seenIds = new Set();
 
-  targetCategories.forEach((selector) => {
-    $(selector).find('li').each((i, el) => {
-      const nameElement = $(el).find('.txt_wrap strong');
-      const linkElement = $(el).find('a');
+  $('.cate li').each((i, el) => {
+    const $li = $(el);
 
-      if (nameElement.length === 0 || linkElement.length === 0) return;
+    const name =
+      normalizeText($li.find('.txt_wrap strong').first().text()) ||
+      normalizeText($li.find('strong').first().text());
 
-      const name = nameElement.text().trim();
-      const href = linkElement.attr('href');
-      const idMatch = href ? href.match(/goViewB\((\d+)\)/) : null;
-      
-      if (idMatch && idMatch[1]) {
-        menuList.push({
-          name: name,
-          id: idMatch[1],
-          originalCategory: selector.includes('cate04') ? '디저트' : '음료'
-        });
-      }
+    const href =
+      $li.find('a').attr('href') ||
+      $li.find('a').attr('onclick') ||
+      '';
+
+    const idMatch = href.match(/goViewB\((\d+)\)/);
+    if (!name || !idMatch || !idMatch[1]) return;
+
+    const id = idMatch[1];
+    if (seenIds.has(id)) return;
+    seenIds.add(id);
+
+    menuList.push({
+      name,
+      id,
+      originalCategory: inferOriginalCategory($li),
     });
   });
 
@@ -46,150 +146,200 @@ const getMenuIds = (html) => {
 
 /**
  * 2. 상세(Modal HTML) 파싱
- * - 동적 컬럼 매핑 적용 (HOT/ICE 유동적 대응)
+ * - 동적 컬럼 매핑
+ * - RDS 평탄 구조 반환
+ * - 기존 인터페이스 유지
  */
-const parseDetail = (detailHtml, baseInfo) => {
+const parseDetail = (detailHtml, baseInfo = {}) => {
   const $ = cheerio.load(detailHtml);
-  const { name: baseName, originalCategory } = baseInfo;
+  const {
+    name: baseName,
+    originalCategory = '음료',
+    brandName = '매머드커피',
+  } = baseInfo;
 
-  // --- [1] 설명 및 알레르기 정보 추출 ---
-  let fullText = $('.txt_area').text().trim();
-  let description = fullText;
+  // [1] 설명 / 알레르기
+  const textLines = [];
+
+  $('.txt_area p, .txt_area li, .txt_area div').each((i, el) => {
+    const txt = normalizeText($(el).text());
+    if (txt) textLines.push(txt);
+  });
+
+  if (textLines.length === 0) {
+    const fallbackText = normalizeText($('.txt_area').text());
+    if (fallbackText) textLines.push(fallbackText);
+  }
+
   let allergyList = [];
+  const descriptionParts = [];
 
-  const allergyRegex = /[■\s]*알레르기.*[:](.*)/i;
-  const match = fullText.match(allergyRegex);
-
-  if (match) {
-    const rawAllergyStr = match[1];
-    allergyList = rawAllergyStr.split(',').map(s => s.trim()).filter(s => s !== '' && s !== '-');
-    description = fullText.replace(match[0], '').replace(/\s+/g, ' ').trim();
-  } else {
-    description = description.replace(/\s+/g, ' ').trim();
-  }
-
-  // --- [2] 이미지 URL 처리 ---
-  let imageUrl = $('.img_wrap img').attr('src');
-  if (imageUrl && !imageUrl.startsWith('http')) {
-    imageUrl = `https://mmthcoffee.com${imageUrl}`;
-  }
-
-  // --- [3] 카테고리 정규화 ---
-  const normalizedCategory = normalizeCategory("매머드커피", originalCategory, baseName);
-  const menuType = (normalizedCategory === '디저트' || originalCategory === '디저트') ? 'food' : 'beverage';
-
-
-  // --- [4] 테이블 구조 동적 분석 (핵심 수정) ---
-  // 헤더를 먼저 읽어서 유효한 컬럼의 인덱스와 옵션명을 파악합니다.
-  const validColumns = []; // { index: 1, label: 'HOT', size: '16oz' } 형태
-
-  $('.i_table table thead tr th').each((idx, th) => {
-    if (idx === 0) return; // 첫 번째 '구분' 컬럼 제외
-
-    const headerText = $(th).text().trim(); // 예: "HOT(16oz)" 또는 ""
-    
-    // 헤더 텍스트가 비어있으면 데이터가 없는 컬럼이므로 무시
-    if (headerText) {
-      let optName = 'Standard';
-      let sizeStr = headerText; // 기본적으로 전체 텍스트를 사이즈로 사용
-
-      if (headerText.toUpperCase().includes('HOT')) {
-        optName = 'HOT';
-      } else if (headerText.toUpperCase().includes('ICE') || headerText.includes('아이스')) {
-        optName = 'ICE';
-      }
-
-      // 괄호 안에 사이즈가 있는 경우 추출 (예: "HOT(16oz)" -> "16oz")
-      const sizeMatch = headerText.match(/\((.*?)\)/);
-      if (sizeMatch) {
-        sizeStr = sizeMatch[1];
-      }
-
-      validColumns.push({
-        colIndex: idx, // 실제 td 인덱스
-        optName: optName,
-        size: sizeStr
-      });
+  textLines.forEach(line => {
+    if (/알레르기/i.test(line) && line.includes(':')) {
+      allergyList = parseAllergyText(line);
+    } else {
+      descriptionParts.push(line);
     }
   });
 
-  // 유효한 컬럼이 하나도 없으면 리턴
+  const description =
+    descriptionParts.length > 0
+      ? cleanDescriptionText(descriptionParts.join(' '))
+      : null;
+
+  // [2] 이미지
+  const imageUrl = absoluteUrl($('.img_wrap img').attr('src'));
+
+  // [3] 카테고리 / 타입
+  let normalizedCategory = normalizeCategory(
+    brandName,
+    originalCategory,
+    baseName || ''
+  );
+
+  normalizedCategory = normalizeMammothCategory(baseName, normalizedCategory);
+
+  const menuType =
+    normalizedCategory === '디저트' || originalCategory === '디저트'
+      ? 'food'
+      : 'beverage';
+
+  // [4] 헤더 분석
+  const validColumns = [];
+
+  $('.i_table table thead tr th').each((idx, th) => {
+    if (idx === 0) return;
+
+    const headerText = normalizeText($(th).text());
+    if (!headerText) return;
+
+    let optionName = 'STANDARD';
+    let sizeStr = headerText;
+
+    if (/HOT/i.test(headerText)) {
+      optionName = 'HOT';
+    } else if (/ICE|ICED|아이스/i.test(headerText)) {
+      optionName = 'ICE';
+    }
+
+    const sizeMatch = headerText.match(/\((.*?)\)/);
+    if (sizeMatch && sizeMatch[1]) {
+      sizeStr = normalizeText(sizeMatch[1]) || headerText;
+    }
+
+    validColumns.push({
+      colIndex: idx,
+      optionName,
+      size: sizeStr || null,
+      headerText,
+    });
+  });
+
   if (validColumns.length === 0) return [];
 
-
-  // --- [5] 데이터 파싱 ---
-  // validColumns 정보를 기반으로 결과 객체 초기화
+  // [5] variant 초기화
   const variants = validColumns.map(col => ({
-    ...col,
-    nutrition: {
-      calories_kcal: 0, sugar_g: 0, protein_g: 0, saturated_fat_g: 0,
-      sodium_mg: 0, caffeine_mg: 0, size_standard: col.size
-    }
+    colIndex: col.colIndex,
+    optionName: col.optionName,
+    headerText: col.headerText,
+    size_standard: col.size || null,
+    calories: null,
+    sugar: null,
+    protein: null,
+    caffeine: null,
+    saturated_fat: null,
+    sodium: null,
+    extra_nutrients: {},
   }));
 
   const nutrientMap = {
-    '칼로리': 'calories_kcal',
-    '당류': 'sugar_g',
-    '단백질': 'protein_g',
-    '나트륨': 'sodium_mg',
-    '카페인': 'caffeine_mg',
-    '포화지방': 'saturated_fat_g'
+    calories: ['칼로리', '열량'],
+    sugar: ['당류'],
+    protein: ['단백질'],
+    sodium: ['나트륨'],
+    caffeine: ['카페인'],
+    saturated_fat: ['포화지방'],
   };
 
-  // tbody 순회
+  const extraNutrientKeyMap = {
+    탄수화물: 'carbohydrate',
+    지방: 'fat',
+    트랜스지방: 'trans_fat',
+    콜레스테롤: 'cholesterol',
+    식이섬유: 'dietary_fiber',
+  };
+
   $('.i_table table tbody tr').each((i, tr) => {
     const $tds = $(tr).find('td');
-    const labelText = $tds.eq(0).text().trim(); // 영양소 이름
+    const labelText = normalizeText($tds.eq(0).text()) || '';
 
     let targetKey = null;
-    for (const [kor, schemaKey] of Object.entries(nutrientMap)) {
-      if (labelText.includes(kor)) {
+    for (const [schemaKey, korLabels] of Object.entries(nutrientMap)) {
+      if (korLabels.some(kor => labelText.includes(kor))) {
         targetKey = schemaKey;
         break;
       }
     }
 
-    if (targetKey) {
-      // 미리 파악해둔 유효 컬럼 인덱스에서만 데이터를 가져옴
-      variants.forEach(variant => {
-        const valText = $tds.eq(variant.colIndex).text().trim();
-        variant.nutrition[targetKey] = parseNum(valText);
-      });
-    }
-  });
+    variants.forEach(variant => {
+      const valText = normalizeText($tds.eq(variant.colIndex).text());
+      const value = parseNullableNumber(valText);
 
-
-  // --- [6] 최종 결과 생성 ---
-  const results = [];
-
-  variants.forEach((variant) => {
-    // 이미 headerText가 빈칸인 경우는 validColumns 생성 시 걸러졌으므로,
-    // 여기서는 별도의 hasValidData 체크를 안 해도 됨 (헤더가 있으면 데이터가 있다고 가정)
-    
-    // 이름 중복 방지
-    let suffix = '';
-    // 옵션명이 Standard가 아니고, 원래 이름에 해당 옵션이 없을 경우만 붙임
-    if (variant.optName !== 'Standard') {
-      const upperBase = baseName.toUpperCase();
-      if (!upperBase.includes(variant.optName)) {
-        suffix = ` [${variant.optName}]`;
+      if (targetKey) {
+        variant[targetKey] = value;
+        return;
       }
-    }
 
-    results.push({
-      brand_name: "매머드커피",
-      category: normalizedCategory,
-      menu_name: `${baseName}${suffix}`,
-      description: description,
-      is_active: true,
-      menu_image_url: imageUrl || "",
-      menu_type: menuType,
-      allergy_info: allergyList,
-      nutrition: variant.nutrition
+      for (const [korLabel, jsonKey] of Object.entries(extraNutrientKeyMap)) {
+        if (labelText.includes(korLabel)) {
+          variant.extra_nutrients[jsonKey] = value;
+          return;
+        }
+      }
     });
   });
 
-  return results;
+  // [6] 최종 결과 생성
+  return variants.map(variant => {
+    let suffix = '';
+    if (variant.optionName !== 'STANDARD') {
+      const upperBase = (baseName || '').toUpperCase();
+      if (!upperBase.includes(variant.optionName)) {
+        suffix = ` [${variant.optionName}]`;
+      }
+    }
+
+    const nutritionJson = {};
+    if (Object.keys(variant.extra_nutrients).length > 0) {
+      nutritionJson.extra_nutrition = variant.extra_nutrients;
+    }
+    if (
+      variant.headerText &&
+      variant.headerText !== variant.size_standard &&
+      /\(|HOT|ICE|ICED|아이스/i.test(variant.headerText)
+    ) {
+      nutritionJson.header_raw = variant.headerText;
+    }
+
+    return {
+      brand_name: brandName,
+      category: normalizedCategory,
+      menu_name: `${baseName || ''}${suffix}`.trim(),
+      description,
+      size_standard: variant.size_standard,
+      image_url: imageUrl,
+      is_active: true,
+      menu_type: menuType,
+      calories: variant.calories,
+      sugar: variant.sugar,
+      protein: variant.protein,
+      caffeine: variant.caffeine,
+      saturated_fat: variant.saturated_fat,
+      sodium: variant.sodium,
+      nutrition_json: Object.keys(nutritionJson).length > 0 ? nutritionJson : null,
+      allergy_info: allergyList,
+    };
+  });
 };
 
 module.exports = { getMenuIds, parseDetail };

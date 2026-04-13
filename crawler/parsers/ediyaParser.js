@@ -1,104 +1,165 @@
 const cheerio = require('cheerio');
 const { normalizeCategory } = require('../utils/categoryMapper');
 
+function normalizeText(value) {
+  if (value === undefined || value === null) return null;
+
+  const text = String(value)
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!text || text === '-') return null;
+  return text;
+}
+
+function parseNullableNumber(value) {
+  if (value === undefined || value === null) return null;
+
+  const match = String(value)
+    .replace(/,/g, '')
+    .match(/-?\d+(?:\.\d+)?/);
+
+  return match ? Number(match[0]) : null;
+}
+
+function absoluteUrl(url) {
+  if (!url) return null;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (url.startsWith('//')) return `https:${url}`;
+  if (url.startsWith('/')) return `https://www.ediya.com${url}`;
+  return `https://www.ediya.com/${url}`;
+}
+
+function parseAllergyText(text) {
+  const clean = normalizeText(text);
+  if (!clean) return [];
+
+  const raw = clean.includes(':')
+    ? clean.split(':').slice(1).join(':').trim()
+    : clean;
+
+  return raw
+    .split(/[,/]|·|ㆍ/)
+    .map(v => v.trim())
+    .filter(Boolean)
+    .filter(v => v !== '없음' && v !== '-');
+}
+
+function extractSizeStandard(text) {
+  const clean = normalizeText(text);
+  if (!clean) return null;
+
+  if (clean.includes(':')) {
+    return normalizeText(clean.split(':').slice(1).join(':'));
+  }
+
+  return clean;
+}
+
 function parseEdiya(htmlContent) {
   const $ = cheerio.load(htmlContent);
   const menus = [];
+  const seenNames = new Set();
 
-  // 1. "영양성분 보기" 클릭 이벤트가 있는 링크를 순회
   $('a[onclick^="show_nutri"]').each((i, link) => {
-    
-    const name = $(link).find('span').text().trim();
-    if (!name) return;
+    const name =
+      normalizeText($(link).find('span').text()) ||
+      normalizeText($(link).text());
 
-    // 부모 li 요소를 먼저 찾습니다.
+    if (!name || seenNames.has(name)) return;
+    seenNames.add(name);
+
     const $li = $(link).closest('li');
 
-    // 2. 이미지 URL 추출 로직 수정 ⭐️
-    // li 내부의 이미지 중 pro_detail(팝업) 안에 있는 gif 등을 제외하고 
-    // 실제 메뉴 이미지(보통 png)를 찾습니다.
-    let imgUrl = $li.find('img').not('.pro_detail img').attr('src');
-    
-    // 만약 위 방법으로도 안 잡힌다면, .png 확장자를 가진 이미지를 우선적으로 찾습니다.
-    if (!imgUrl || imgUrl.endsWith('.gif')) {
-        imgUrl = $li.find('img[src$=".png"]').attr('src') || $li.find('img').first().attr('src');
-    }
+    let imgUrl =
+      $li.find('img').not('.pro_detail img').attr('src') ||
+      $li.find('img[src$=".png"]').attr('src') ||
+      $li.find('img').first().attr('src') ||
+      null;
 
-    if (imgUrl && !imgUrl.startsWith('http')) {
-      imgUrl = `https://www.ediya.com${imgUrl}`;
-    }
+    imgUrl = absoluteUrl(imgUrl);
 
-    // 3. 연결된 영양 정보 ID 추출 및 상세 div 선택
-    const onClickAttr = $(link).attr('onclick');
+    const onClickAttr = $(link).attr('onclick') || '';
     const idMatch = onClickAttr.match(/'(\d+)'/);
     if (!idMatch) return;
 
     const targetId = `nutri_${idMatch[1]}`;
     const $detail = $(`#${targetId}`);
-
     if ($detail.length === 0) return;
 
-    // 4. 영양 성분 추출 (이전과 동일)
-    const nutrition = {
-      calories_kcal: 0,
-      sugar_g: 0,
-      protein_g: 0,
-      sodium_mg: 0,
-      saturated_fat_g: 0,
-      caffeine_mg: 0,
-      size_standard: "정보 없음"
-    };
+    let sizeStandard = extractSizeStandard($detail.find('.pro_size').text());
 
-    const sizeText = $detail.find('.pro_size').text();
-    if (sizeText.includes(':')) {
-      nutrition.size_standard = sizeText.split(':')[1].trim();
-    }
+    let calories = null;
+    let sugar = null;
+    let protein = null;
+    let sodium = null;
+    let saturatedFat = null;
+    let caffeine = null;
+
+    const extraNutrition = {};
 
     $detail.find('.pro_nutri dl').each((j, dl) => {
-      const label = $(dl).find('dt').text().trim();
-      const valueStr = $(dl).find('dd').text().trim();
-      const numMatch = valueStr.match(/[\d\.]+/);
-      const val = numMatch ? parseFloat(numMatch[0]) : 0;
+      const label = normalizeText($(dl).find('dt').text());
+      const valueText = normalizeText($(dl).find('dd').text());
 
-      if (label.includes('칼로리')) nutrition.calories_kcal = val;
-      else if (label.includes('당류')) nutrition.sugar_g = val;
-      else if (label.includes('단백질')) nutrition.protein_g = val;
-      else if (label.includes('나트륨')) nutrition.sodium_mg = val;
-      else if (label.includes('포화지방')) nutrition.saturated_fat_g = val;
-      else if (label.includes('카페인')) nutrition.caffeine_mg = val;
+      if (!label || !valueText) return;
+
+      const value = parseNullableNumber(valueText);
+
+      if (label.includes('칼로리') || label.includes('열량')) {
+        calories = value;
+      } else if (label.includes('당류')) {
+        sugar = value;
+      } else if (label.includes('단백질')) {
+        protein = value;
+      } else if (label.includes('나트륨')) {
+        sodium = value;
+      } else if (label.includes('포화지방')) {
+        saturatedFat = value;
+      } else if (label.includes('카페인')) {
+        caffeine = value;
+      } else {
+        extraNutrition[label] = value !== null ? value : valueText;
+      }
     });
 
-    // 5. 알레르기 및 설명 추출
-    let allergyInfo = [];
-    const allergyText = $detail.find('.pro_allergy').text();
-    if (allergyText.includes(':')) {
-      const rawAllergy = allergyText.split(':')[1];
-      if (rawAllergy) {
-        allergyInfo = rawAllergy.split(',')
-          .map(s => s.trim())
-          .filter(s => s !== "");
-      }
+    const allergyInfo = parseAllergyText($detail.find('.pro_allergy').text());
+
+    const descriptionParts = [];
+    $detail.find('.detail_txt p').each((k, p) => {
+      const txt = normalizeText($(p).text());
+      if (txt) descriptionParts.push(txt);
+    });
+
+    const description =
+      descriptionParts.length > 0 ? descriptionParts.join(' ') : null;
+
+    const category = normalizeCategory('이디야커피', '음료', name);
+    const menuType = category === '디저트' ? 'food' : 'beverage';
+
+    const nutritionJson = {};
+    if (Object.keys(extraNutrition).length > 0) {
+      nutritionJson.extra_nutrition = extraNutrition;
     }
 
-    let description = "";
-    $detail.find('.detail_txt p').each((k, p) => {
-      const txt = $(p).text().trim();
-      if (txt) description += txt + " ";
-    });
-
-    // 6. 카테고리 매핑
-    const standardCategory = normalizeCategory("이디야", "음료", name);
-
     menus.push({
-      brand_name: "이디야커피",
+      brand_name: '이디야커피',
       menu_name: name,
-      menu_image_url: imgUrl || "",
-      category: standardCategory,
+      category,
+      description,
+      size_standard: sizeStandard,
+      image_url: imgUrl,
       is_active: true,
-      menu_type: "regular",
-      nutrition: nutrition,
+      menu_type: menuType,
+      calories,
+      sugar,
+      protein,
+      caffeine,
+      saturated_fat: saturatedFat,
+      sodium,
+      nutrition_json: Object.keys(nutritionJson).length > 0 ? nutritionJson : null,
       allergy_info: allergyInfo,
-      description: description.trim()
     });
   });
 
