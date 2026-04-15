@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 import 'package:slowpick/screen/bloodSugarRecord.dart';
 import 'package:slowpick/screen/mainNote.dart';
@@ -157,6 +158,55 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
         decoration: BoxDecoration(
           border: Border.all(width: 1, color: const Color(0xFFDDDDDD)),
           borderRadius: BorderRadius.circular(20),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: LineChart(
+            LineChartData(
+              minX: 0, // x축 최소
+              maxX: 8, // x축 최대
+              minY: 0, // y축 최소
+              maxY: 8, // y축 최대
+              titlesData: FlTitlesData(show: false),
+              borderData: FlBorderData(show: false),
+              gridData: FlGridData(show: false),
+              lineBarsData: [
+                // 차트 선
+                LineChartBarData(
+                  spots: const [
+                    // 차트 점 찍을 좌표
+                    FlSpot(0, 3),
+                    FlSpot(1, 5),
+                    FlSpot(2, 2),
+                    FlSpot(4.9, 5),
+                    FlSpot(6.8, 3.1),
+                    FlSpot(8, 4),
+                  ],
+                  curveSmoothness: 0.2,
+                  isCurved: true, // 차트 선이 꺾은선(false), 부드러운 선(true)
+                  color: Color(0xFF10B981),
+                  barWidth: 2, // 차트 선 굵기
+                  isStrokeCapRound: true, // 차트 선의 처음과 끝을 둥글게 처리
+                  dotData: FlDotData(
+                    // spot마다 표시 여부
+                    show: true,
+                  ),
+                  belowBarData: BarAreaData(
+                    // 차트 선 하단 공간 명암
+                    show: true,
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0xFF10B981).withOpacity(0.35),
+                        Color(0xFF10B981).withOpacity(0.0),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
