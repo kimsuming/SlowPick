@@ -88,99 +88,443 @@ class _ExampleState extends State<Example> {
   // -----------------------------
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
     return Scaffold(
-      appBar: AppBar(title: const Text("혈당 예측")),
-
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              // -----------------------------
-              // 당 섭취 입력
-              // -----------------------------
-              TextField(
-                controller: sugarController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: "당 섭취 (g)",
-                  border: OutlineInputBorder(),
-                ),
-              ),
-
-              const SizedBox(height: 15),
-
-              // -----------------------------
-              // 현재 혈당 입력
-              // -----------------------------
-              TextField(
-                controller: glucoseController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: "현재 혈당 (mg/dL)",
-                  border: OutlineInputBorder(),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // -----------------------------
-              // 스위치들
-              // -----------------------------
-              SwitchListTile(
-                title: const Text("운동 했나요?"),
-                value: isExercise,
-                onChanged: (val) {
-                  setState(() {
-                    isExercise = val;
-                  });
-                },
-              ),
-
-              SwitchListTile(
-                title: const Text("인슐린 투여"),
-                value: isInsulin,
-                onChanged: (val) {
-                  setState(() {
-                    isInsulin = val;
-                  });
-                },
-              ),
-
-              SwitchListTile(
-                title: const Text("약 복용"),
-                value: isMedication,
-                onChanged: (val) {
-                  setState(() {
-                    isMedication = val;
-                  });
-                },
-              ),
-
-              const SizedBox(height: 20),
-
-              // -----------------------------
-              // 예측 버튼
-              // -----------------------------
-              ElevatedButton(
-                onPressed: isLoading ? null : predictGlucose,
-                child: const Text("예측하기"),
-              ),
-
-              const SizedBox(height: 20),
-
-              // 로딩
-              if (isLoading) const CircularProgressIndicator(),
-
-              // 결과
-              if (prediction != null)
-                Text(
-                  "예측 결과: $prediction mg/dL",
-                  style: const TextStyle(fontSize: 20),
-                ),
-            ],
-          ),
+      appBar: AppBar(
+        title: const Text('간단 혈당 예측'),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        titleTextStyle: const TextStyle(
+          color: Color(0xFF242526),
+          fontSize: 20,
+          fontWeight: FontWeight.w500,
+          letterSpacing: -1.30,
         ),
+      ),
+
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                // 메뉴 입력
+                _inputMenu(),
+
+                const SizedBox(height: 36),
+
+                // 현재 혈당 입력
+                _currentBloodSugar(),
+
+                const SizedBox(height: 20),
+
+                // 로딩
+                if (isLoading) const CircularProgressIndicator(),
+
+                // 결과
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 47.0),
+                  child: Row(
+                    children: [
+                      Text(
+                        textAlign: TextAlign.left,
+                        '예상 혈당',
+                        style: TextStyle(
+                          color: const Color(0xFF242526),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w300,
+                          letterSpacing: -0.48,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: 8),
+
+                if (prediction != null)
+                  if (prediction! >= 140)
+                    _highPredictionScreen(prediction, size)
+                  else
+                    _normalPredictionScreen(prediction, size)
+                else
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 40.0),
+                    child: Container(
+                      width: size.width,
+                      height: 117,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(15),
+                        color: Colors.white,
+                        border: Border.all(
+                          color: const Color(0xFFCCCCCC), // 테두리 색
+                          width: 1.5, // 테두리 두께
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+
+            //예측 버튼
+            Positioned(
+              bottom: 20, // 바텀바 위로 띄움
+              left: 0,
+              right: 0,
+              child: GestureDetector(
+                onTap: isLoading ? null : predictGlucose,
+                child: Center(
+                  child: Container(
+                    width: size.width * 0.43,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment(0.00, 0.50),
+                        end: Alignment(1.00, 0.50),
+                        colors: [
+                          const Color(0xFFB5F369),
+                          const Color(0xFF7BF15B),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(0x3F000000),
+                          blurRadius: 5,
+                          offset: Offset(0, 2),
+                          spreadRadius: 0,
+                        ),
+                      ],
+                    ),
+
+                    child: Align(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Image.asset(
+                            'images/bloodSugarNote/prediction.png',
+                            fit: BoxFit.cover,
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            '예측하기',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 19,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.57,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _inputMenu() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 40.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 7.0),
+            child: Text(
+              '먹을 메뉴의 당 수치 (g)',
+              style: TextStyle(
+                color: const Color(0xFF242526),
+                fontSize: 16,
+                fontWeight: FontWeight.w300,
+                letterSpacing: -0.48,
+              ),
+            ),
+          ),
+
+          SizedBox(height: 8),
+
+          TextField(
+            controller: sugarController,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              hintText: '예: 메가커피 블루베리 스무디',
+              hintStyle: const TextStyle(
+                color: Color(0xFFBBBBBB),
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                letterSpacing: -0.39,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+                borderSide: const BorderSide(
+                  color: Color(0xFFCCCCCC), // 테두리 색
+                  width: 1.5, // 테두리 두께
+                ),
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+                borderSide: const BorderSide(
+                  color: Color(0xFFCCCCCC), // 테두리 색
+                  width: 1.5, // 테두리 두께
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _currentBloodSugar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 40.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 7.0),
+            child: Text(
+              '현재 혈당 (mg/dL)',
+              style: TextStyle(
+                color: const Color(0xFF242526),
+                fontSize: 16,
+                fontWeight: FontWeight.w300,
+                letterSpacing: -0.48,
+              ),
+            ),
+          ),
+
+          SizedBox(height: 8),
+
+          TextField(
+            controller: glucoseController,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              hintText: '예: 120',
+              hintStyle: const TextStyle(
+                color: Color(0xFFBBBBBB),
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                letterSpacing: -0.39,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+                borderSide: const BorderSide(
+                  color: Color(0xFFCCCCCC), // 테두리 색
+                  width: 1.5, // 테두리 두께
+                ),
+              ),
+
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+                borderSide: const BorderSide(
+                  color: Color(0xFFCCCCCC), // 테두리 색
+                  width: 1.5, // 테두리 두께
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 고혈당 예측 화면
+  Widget _highPredictionScreen(prediction, Size size) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 40.0),
+      child: Column(
+        children: [
+          Container(
+            width: size.width,
+            height: 117,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(15),
+              color: const Color(0xFFFFF2F2),
+              border: Border.all(
+                color: const Color(0xFFFF7D7F), // 테두리 색
+                width: 1.5, // 테두리 두께
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                //예상 당 수치
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '$prediction',
+                      style: TextStyle(
+                        color: const Color(0xFFD40707),
+                        fontSize: 35,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -1.05,
+                      ),
+                    ),
+
+                    Text(
+                      ' ',
+                      style: TextStyle(
+                        color: const Color(0xFFD40707),
+                        fontSize: 20,
+                        fontWeight: FontWeight.w300,
+                        letterSpacing: -0.60,
+                      ),
+                    ),
+
+                    Text(
+                      'mg/dL',
+                      style: TextStyle(
+                        color: const Color(0xFFD40707),
+                        fontSize: 20,
+                        fontWeight: FontWeight.w300,
+                        letterSpacing: -0.60,
+                      ),
+                    ),
+                  ],
+                ),
+
+                // 가로선
+                Container(
+                  width: size.width * 0.45,
+                  height: 1,
+                  color: const Color(0xFFD40707),
+                ),
+
+                SizedBox(height: 8),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '고혈당 주의!',
+                      style: TextStyle(
+                        color: const Color(0xFFD40707),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.48,
+                      ),
+                    ),
+
+                    Text(
+                      ' ',
+                      style: TextStyle(
+                        color: const Color(0xFFD40707),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: -0.48,
+                      ),
+                    ),
+
+                    Text(
+                      '식단을 확인하세요.',
+                      style: TextStyle(
+                        color: const Color(0xFF242526),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w300,
+                        letterSpacing: -0.48,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 정상 혈당 예측 화면
+  Widget _normalPredictionScreen(prediction, Size size) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 40.0),
+      child: Column(
+        children: [
+          Container(
+            width: size.width,
+            height: 117,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(15),
+              color: const Color(0xFFF6FFE4),
+              border: Border.all(
+                color: const Color(0xFF73AD31), // 테두리 색
+                width: 1.5, // 테두리 두께
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                //예상 당 수치
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '$prediction',
+                      style: TextStyle(
+                        color: const Color(0xFF187100),
+                        fontSize: 35,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -1.05,
+                      ),
+                    ),
+
+                    Text(
+                      ' ',
+                      style: TextStyle(
+                        color: const Color(0xFF187100),
+                        fontSize: 20,
+                        fontWeight: FontWeight.w300,
+                        letterSpacing: -0.60,
+                      ),
+                    ),
+
+                    Text(
+                      'mg/dL',
+                      style: TextStyle(
+                        color: const Color(0xFF187100),
+                        fontSize: 20,
+                        fontWeight: FontWeight.w300,
+                        letterSpacing: -0.60,
+                      ),
+                    ),
+                  ],
+                ),
+
+                // 가로선
+                Container(
+                  width: size.width * 0.45,
+                  height: 1,
+                  color: const Color(0xFF74AE31),
+                ),
+
+                SizedBox(height: 8),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '정삼 범주에요.',
+                      style: TextStyle(
+                        color: const Color(0xFF242526),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: -0.48,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

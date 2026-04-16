@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:slowpick/screen/bloodSugarNote.dart';
 import 'package:slowpick/screen/dietNote.dart';
+import 'package:slowpick/screen/example.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 
@@ -14,6 +15,8 @@ class mainNote extends StatefulWidget {
 class _mainNoteState extends State<mainNote> {
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
       backgroundColor: Colors.white,
 
@@ -50,8 +53,12 @@ class _mainNoteState extends State<mainNote> {
               ),
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                SizedBox(height: 26),
+
+                //혈당 예측
+                _bloodSugarPrediction(size),
+
                 //혈당표시
                 _bloodSugarNote(),
 
@@ -67,6 +74,95 @@ class _mainNoteState extends State<mainNote> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _bloodSugarPrediction(Size size) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 12.0),
+          child: Text(
+            '내 혈당을 바로 확인하고 싶다면?',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 16,
+              fontWeight: FontWeight.w300,
+              height: 1.25,
+              letterSpacing: -1,
+            ),
+          ),
+        ),
+
+        SizedBox(height: 7),
+
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const Example()),
+            );
+          },
+          child: Container(
+            width: size.width * 0.9,
+            height: 57,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(15),
+              gradient: LinearGradient(
+                begin: Alignment(1.00, 0.50),
+                end: Alignment(0.00, 0.50),
+                colors: [const Color(0xFF7BF15B), const Color(0xFFB5F369)],
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.only(left: 16, right: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '지금 예측하러 가기',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -1.30,
+                    ),
+                  ),
+
+                  // 화살표 버튼
+                  Container(
+                    width: 37,
+                    height: 37,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const Example(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(
+                        Icons.arrow_forward,
+                        color: Color(0xFF7BF15B),
+                        size: 30,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: BoxConstraints(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
