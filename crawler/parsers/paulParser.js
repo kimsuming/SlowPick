@@ -1,125 +1,311 @@
 const cheerio = require('cheerio');
 const { normalizeCategory } = require('../utils/categoryMapper');
 
-// 1. 리스트 페이지 파싱 (사용자 피드백 반영: list_style01 -> listStyleB 등 유연하게 처리)
-function parsePaulBassettList(htmlContent) {
+function normalizeText(value) {
+  if (value === undefined || value === null) return null;
+
+  const text = String(value)
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!text || text === '-') return null;
+  return text;
+}
+
+function parseNullableNumber(value) {
+  if (value === undefined || value === null) return null;
+
+  const match = String(value)
+    .replace(/,/g, '')
+    .match(/-?\d+(?:\.\d+)?/);
+
+  return match ? Number(match[0]) : null;
+}
+
+function absoluteUrl(url) {
+  if (!url) return null;
+  if (url.startsWith('http')) return url;
+  return `https://www.baristapaulbassett.co.kr${url}`;
+}
+
+function parseAllergyText(text) {
+  const clean = normalizeText(text);
+  if (!clean) return [];
+
+  return clean
+    .replace(/^알레르기\s*[:：]?\s*/i, '')
+    .split(/[,/]|·|ㆍ/)
+    .map(v => v.trim())
+    .filter(Boolean)
+    .filter(v => v !== '없음' && v !== '-');
+}
+
+function normalizePaulMenuName(rawName) {
+  let name = normalizeText(rawName);
+  if (!name) {
+    return {
+      menuName: null,
+      temperature: null,
+      sizeCode: null,
+      rawName: rawName || null,
+    };
+  }
+
+  const rawNormalized = name;
+
+  let temperature = null;
+  let sizeCode = null;
+
+  // 앞의 H / I 제거
+  // 예: H고창 땅콩 카페라떼S / I체리블라썸 카페라떼S
+  const prefixMatch = name.match(/^([HI])\s*(.+)$/);
+  if (prefixMatch) {
+    const code = prefixMatch[1];
+    const rest = prefixMatch[2]?.trim();
+
+    if (rest) {
+      temperature = code === 'H' ? 'HOT' : 'ICE';
+      name = rest;
+    }
+  }
+
+  // 뒤의 S / G 제거
+  // 예: 체리블라썸 카페라떼S -> 체리블라썸 카페라떼
+  const suffixMatch = name.match(/^(.*?)([SG])$/);
+  if (suffixMatch) {
+    const body = suffixMatch[1]?.trim();
+    const code = suffixMatch[2];
+
+    // 끝 문자가 단순 사이즈 코드일 때만 제거
+    // "LATTE G" 같은 정상 이름 오탐 방지용 최소 조건
+    if (body && /[가-힣A-Za-z0-9)]$/.test(body)) {
+      sizeCode = code;
+      name = body;
+    }
+  }
+
+  if (temperature) {
+    name = `${name} [${temperature}]`;
+  }
+
+  return {
+    menuName: name,
+    temperature,
+    sizeCode,
+    rawName: rawNormalized,
+  };
+}
+
+/**
+ * 1. 리스트 페이지 파싱
+ * main.js에서 parsePaulBassettList(listHtml, catId) 형태로 호출해야 함
+ */
+function parsePaulBassettList(htmlContent, cid1 = 'A') {
   const $ = cheerio.load(htmlContent);
   const items = [];
+  const seen = new Set();
 
-  // 'list_style01'이 없다고 하셔서, 더 범용적인 선택자를 사용합니다.
-  // onclick 이벤트에 'goView'가 있는 모든 a 태그를 찾습니다.
   $('a[onclick*="goView"]').each((i, el) => {
     const onClickAttr = $(el).attr('onclick');
     if (!onClickAttr) return;
 
-    // ID 추출 (PBXXXXXX)
     const idMatch = onClickAttr.match(/goView\('([^']+)'\)/);
     if (!idMatch) return;
-    
-    const menuId = idMatch[1];
-    const detailUrl = `https://www.baristapaulbassett.co.kr/menu/View.pb?cid1=A&cid2=&dpid=${menuId}`;
 
-    // 리스트 상의 이름과 이미지 (보조 정보)
-    // 구조가 변경되었을 수 있으므로 안전하게 탐색
-    let name = $(el).find('.txtArea').text().trim() || "이름 파싱 실패";
-    // 영문명(span) 제거 시도
-    const $clone = $(el).find('.txtArea').clone();
+    const menuId = idMatch[1];
+    if (seen.has(menuId)) return;
+    seen.add(menuId);
+
+    const detailUrl = `https://www.baristapaulbassett.co.kr/menu/View.pb?cid1=${cid1}&cid2=&dpid=${menuId}`;
+
+    const $clone = $(el).find('.txtArea').first().clone();
     $clone.find('span').remove();
-    if ($clone.text().trim()) name = $clone.text().trim();
+
+    let name = $clone.text().trim();
+    if (!name) {
+      name = $(el).find('.txtArea').text().trim() || '이름 파싱 실패';
+    }
 
     let imgUrl = $(el).find('img').attr('src');
     if (imgUrl && !imgUrl.startsWith('http')) {
       imgUrl = `https://www.baristapaulbassett.co.kr${imgUrl}`;
     }
 
-    items.push({ name, imgUrl, detailUrl });
+    items.push({
+      menuId,
+      name,
+      imgUrl: imgUrl || null,
+      detailUrl,
+    });
   });
 
   return items;
 }
 
-// 2. 상세 페이지 파싱 (수정됨: pSize_S 우선 타겟팅)
-function parsePaulBassettDetail(htmlContent, baseInfo) {
-  const $ = cheerio.load(htmlContent);
+function parseNutritionBlock($, $context) {
+  if (!$context || $context.length === 0) return null;
 
-  // (1) 메뉴 이름 추출
-  const $dt = $('.menuTit dl dt');
-  $dt.find('span').remove(); 
-  const name = $dt.text().trim(); 
+  const sizeLabelText = normalizeText($context.find('.sizeMl').first().text());
+  const sizeNumberText = normalizeText($context.find('.sizeMl span').first().text());
 
-  // (2) 설명 추출
-  const description = $('.menuTit dl dd').text().trim();
-
-  // (3) 이미지 추출
-  let imgUrl = $('.menuSlide img').attr('src');
-  if (imgUrl && !imgUrl.startsWith('http')) {
-    imgUrl = `https://www.baristapaulbassett.co.kr${imgUrl}`;
+  let sizeStandard = null;
+  if (sizeNumberText) {
+    if (/oz/i.test(sizeLabelText || '')) {
+      sizeStandard = `${sizeNumberText}oz`;
+    } else {
+      sizeStandard = `${sizeNumberText}ml`;
+    }
+  } else if (sizeLabelText) {
+    sizeStandard = sizeLabelText
+      .replace(/제공량\s*\(?ml\)?/gi, '')
+      .replace(/제공량\s*\(?oz\)?/gi, '')
+      .trim() || sizeLabelText;
   }
 
-  // (4) 영양 정보 및 사이즈 추출 (핵심 수정 부분 ⭐️)
-  const nutrition = {
-    calories_kcal: 0, sugar_g: 0, protein_g: 0,
-    sodium_mg: 0, saturated_fat_g: 0, caffeine_mg: 0,
-    size_standard: "정보 없음"
+  const data = {
+    block_id: $context.attr('id') || null,
+    size_standard: sizeStandard,
+    calories: null,
+    sugar: null,
+    protein: null,
+    caffeine: null,
+    saturated_fat: null,
+    sodium: null,
+    extra_nutrients: {},
   };
 
-  /**
-   * [Context 설정]
-   * - 우선 '#pSize_S'(Standard/Small) 영역을 찾습니다.
-   * - 만약 사이즈 구분이 없는 메뉴라 pSize_S가 없다면, 기존의 '.nutritional' 클래스를 찾습니다.
-   */
-  let $nutriContext = $('#pSize_S');
-  if ($nutriContext.length === 0) {
-     $nutriContext = $('.nutritional'); // pSize_S가 없을 경우의 대비책
-  }
+  $context.find('ul li').each((i, li) => {
+    const label = normalizeText($(li).find('.tit').text()) || normalizeText($(li).text());
+    const valueText = normalizeText($(li).find('.num').text()) || normalizeText($(li).text());
+    const value = parseNullableNumber(valueText);
 
-  // 4-1. 사이즈 정보 추출 (Context 내부에서만 검색)
-  // 구조: <span class="sizeMl">제공량(ml)<span>360</span></span>
-  const sizeVal = $nutriContext.find('.sizeMl span').text().trim();
-  if (sizeVal) {
-    nutrition.size_standard = `${sizeVal}ml`;
-  }
+    if (!label) return;
 
-  // 4-2. 영양소 수치 추출 (Context 내부에서만 검색)
-  // 구조: <ul><li><span class="tit">열량</span><span class="num">180</span>...</li></ul>
-  $nutriContext.find('ul li').each((i, li) => {
-    const label = $(li).find('.tit').text().trim();
-    const valText = $(li).find('.num').text().trim();
-    const val = parseFloat(valText.replace(/[^0-9.]/g, '')) || 0;
-
-    if (label.includes('열량')) nutrition.calories_kcal = val;
-    else if (label.includes('당류')) nutrition.sugar_g = val;
-    else if (label.includes('단백질')) nutrition.protein_g = val;
-    else if (label.includes('나트륨')) nutrition.sodium_mg = val;
-    else if (label.includes('포화지방')) nutrition.saturated_fat_g = val;
-    else if (label.includes('카페인')) nutrition.caffeine_mg = val;
+    if (label.includes('열량')) data.calories = value;
+    else if (label.includes('당류')) data.sugar = value;
+    else if (label.includes('단백질')) data.protein = value;
+    else if (label.includes('나트륨')) data.sodium = value;
+    else if (label.includes('포화지방')) data.saturated_fat = value;
+    else if (label.includes('카페인')) data.caffeine = value;
+    else if (value !== null) data.extra_nutrients[label] = value;
   });
 
-  // (5) 알레르기 정보 추출
+  const hasAnyValue =
+    data.size_standard ||
+    data.calories !== null ||
+    data.sugar !== null ||
+    data.protein !== null ||
+    data.caffeine !== null ||
+    data.saturated_fat !== null ||
+    data.sodium !== null ||
+    Object.keys(data.extra_nutrients).length > 0;
+
+  return hasAnyValue ? data : null;
+}
+
+/**
+ * 2. 상세 페이지 파싱
+ * - 여러 사이즈 블록이 있으면 pSize_S 우선
+ * - 나머지 블록은 nutrition_json에 보관
+ */
+function parsePaulBassettDetail(htmlContent, baseInfo = {}) {
+  const $ = cheerio.load(htmlContent);
+
+  const $dt = $('.menuTit dl dt').first().clone();
+  $dt.find('span').remove();
+
+  const rawName = normalizeText($dt.text()) || baseInfo.name || null;
+  const normalizedNameInfo = normalizePaulMenuName(rawName);
+  const name = normalizedNameInfo.menuName || baseInfo.name || null;
+  const description = normalizeText($('.menuTit dl dd').first().text());
+
+  let imgUrl = absoluteUrl($('.menuSlide img').first().attr('src'));
+  if (!imgUrl) {
+    imgUrl = baseInfo.imgUrl || null;
+  }
+
+  const nutritionBlocks = [];
+
+  const $sizeSections = $('[id^="pSize_"]');
+  if ($sizeSections.length > 0) {
+    $sizeSections.each((i, el) => {
+      const parsed = parseNutritionBlock($, $(el));
+      if (parsed) nutritionBlocks.push(parsed);
+    });
+  } else {
+    const parsed = parseNutritionBlock($, $('.nutritional').first());
+    if (parsed) nutritionBlocks.push(parsed);
+  }
+
+  const primaryNutrition =
+    nutritionBlocks.find(block => block.block_id === 'pSize_S') ||
+    nutritionBlocks.find(block => block.block_id === 'pSize_R') ||
+    nutritionBlocks[0] || {
+      size_standard: null,
+      calories: null,
+      sugar: null,
+      protein: null,
+      caffeine: null,
+      saturated_fat: null,
+      sodium: null,
+      extra_nutrients: {},
+    };
+
   let allergyInfo = [];
   $('.info li').each((i, li) => {
-    const label = $(li).find('span').text().trim();
-    if (label.includes('알레르기')) {
-      const text = $(li).text().replace(label, '').trim();
-      allergyInfo = text.split(',')
-        .map(s => s.trim())
-        .filter(s => s && s !== '없음');
+    const label = normalizeText($(li).find('span').first().text());
+    if (label && label.includes('알레르기')) {
+      const fullText = normalizeText($(li).text()) || '';
+      const textWithoutLabel = fullText.replace(label, '').trim();
+      allergyInfo = parseAllergyText(textWithoutLabel);
     }
   });
 
-  // (6) 카테고리 매핑
-  const category = normalizeCategory("폴 바셋", "음료", name);
+  const category = normalizeCategory('폴 바셋', '음료', name || '');
+  const menuType = category === '디저트' ? 'food' : 'beverage';
+
+  const nutritionJson = {};
+
+  if (Object.keys(primaryNutrition.extra_nutrients || {}).length > 0) {
+    nutritionJson.extra_nutrients = primaryNutrition.extra_nutrients;
+  }
+
+  if (nutritionBlocks.length > 1) {
+    nutritionJson.additional_sizes = nutritionBlocks
+      .filter(block => block !== primaryNutrition)
+      .map(block => ({
+        block_id: block.block_id || null,
+        size_standard: block.size_standard || null,
+        calories: block.calories,
+        sugar: block.sugar,
+        protein: block.protein,
+        caffeine: block.caffeine,
+        saturated_fat: block.saturated_fat,
+        sodium: block.sodium,
+        extra_nutrients:
+          Object.keys(block.extra_nutrients || {}).length > 0
+            ? block.extra_nutrients
+            : null,
+      }));
+  }
 
   return {
-    brand_name: "폴 바셋",
-    menu_name: name || baseInfo.name,
-    menu_image_url: imgUrl || baseInfo.imgUrl,
-    category: category,
+    brand_name: '폴 바셋',
+    menu_name: name || baseInfo.name || null,
+    category,
+    description,
+    size_standard: primaryNutrition.size_standard || null,
+    image_url: imgUrl || null,
     is_active: true,
-    menu_type: "regular",
-    nutrition: nutrition,
+    menu_type: menuType,
+    calories: primaryNutrition.calories ?? null,
+    sugar: primaryNutrition.sugar ?? null,
+    protein: primaryNutrition.protein ?? null,
+    caffeine: primaryNutrition.caffeine ?? null,
+    saturated_fat: primaryNutrition.saturated_fat ?? null,
+    sodium: primaryNutrition.sodium ?? null,
+    nutrition_json: Object.keys(nutritionJson).length > 0 ? nutritionJson : null,
     allergy_info: allergyInfo,
-    description: description
   };
 }
 
