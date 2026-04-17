@@ -30,12 +30,17 @@ class BottomBarNew extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset("images/main_icon/home.png", width: 30, height: 30),
+                Image.asset(
+                  "images/main_icon/home.png",
+                  width: 30,
+                  height: 30,
+                  color: Color(0xFF197100),
+                ),
                 SizedBox(height: 4),
                 Text(
                   '홈',
                   style: TextStyle(
-                    color: Color(0xFF187100),
+                    color: Color(0xFF197100),
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -59,12 +64,13 @@ class BottomBarNew extends StatelessWidget {
                   "images/main_icon/la_speakap.png",
                   width: 30,
                   height: 30,
+                  color: Color(0xFF197100),
                 ),
                 SizedBox(height: 4),
                 Text(
                   '커뮤니티',
                   style: TextStyle(
-                    color: Color(0xFF187100),
+                    color: Color(0xFF197100),
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -103,12 +109,13 @@ class BottomBarNew extends StatelessWidget {
                   "images/main_icon/bookmark.png",
                   width: 30,
                   height: 30,
+                  color: Color(0xFF197100),
                 ),
                 SizedBox(height: 4),
                 Text(
                   '찜',
                   style: TextStyle(
-                    color: Color(0xFF187100),
+                    color: Color(0xFF197100),
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -132,12 +139,13 @@ class BottomBarNew extends StatelessWidget {
                   "images/main_icon/mypage.png",
                   width: 30,
                   height: 30,
+                  color: Color(0xFF197100),
                 ),
                 SizedBox(height: 4),
                 Text(
                   '내 정보',
                   style: TextStyle(
-                    color: Color(0xFF187100),
+                    color: Color(0xFF197100),
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
