@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:slowpick/screen/example.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 import 'package:slowpick/screen/myPage_input.dart';
 import 'package:carousel_slider/carousel_slider.dart';
@@ -30,6 +31,7 @@ class MyPageScreen extends StatelessWidget {
 
       body: SingleChildScrollView(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 프로필
             _buildProfileSection(context),
@@ -55,6 +57,25 @@ class MyPageScreen extends StatelessWidget {
 
             Container(height: 2, color: const Color(0xFFF5F5F5)), // 구분선
 
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const Example()),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.only(left: 35, top: 16),
+                child: Text(
+                  '예측 알고리즘 테스트 페이지',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: -0.26,
+                  ),
+                ),
+              ),
+            ),
+
             _buildMenuItem(
               context,
               '앱 버전 정보',
@@ -64,7 +85,6 @@ class MyPageScreen extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            // 로그아웃 버튼
             const SizedBox(height: 40),
           ],
         ),

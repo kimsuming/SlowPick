@@ -19,6 +19,10 @@ dependencies:
   cached_network_image: ^3.4.1
   carousel_slider: ^5.1.1
   percent_indicator: ^4.2.5
+  fl_chart: ^0.71.0
+
+  # 알고리즘 관련 패키지
+  http: ^1.6.0
 
 dev_dependencies:
   flutter_test:
