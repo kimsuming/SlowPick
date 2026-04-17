@@ -1,64 +1,104 @@
-const admin = require('firebase-admin');
-const path = require('path');
+require('dotenv').config();
+const pool = require('./src/services/db/mysql');
 
-// 1. 서비스 계정 키 경로 (기존 경로 유지)
-const serviceAccount = require('./slowpick-ebc24-firebase-adminsdk-fbsvc-e20328a442.json'); 
-
-// 2. Firebase 초기화
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
-}
-
-const db = admin.firestore();
-const COLLECTION_NAME = 'menus';
-
-async function cleanupInactiveMenus() {
-  console.log(`🗑️ [${COLLECTION_NAME}] 컬렉션에서 비활성(is_active: false) 데이터 정리를 시작합니다...`);
-
-  const BATCH_SIZE = 400; // 한 번에 처리할 개수 (Firestore 제한 500개 미만으로 설정)
-  let totalDeleted = 0;
-  let isFinished = false;
+async function cleanupInactiveMenus({ dryRun = false } = {}) {
+  let conn;
 
   try {
-    // 반복문을 돌며 데이터가 없을 때까지 삭제 수행
-    while (!isFinished) {
-      // 1. 400개만 딱 끊어서 조회 (메모리 절약)
-      const snapshot = await db.collection(COLLECTION_NAME)
-        .where('is_active', '==', false)
-        .limit(BATCH_SIZE) 
-        .get();
+    conn = await pool.getConnection();
 
-      // 더 이상 삭제할 문서가 없으면 루프 종료
-      if (snapshot.empty) {
-        isFinished = true;
-        break;
-      }
+    console.log('🧹 비활성 메뉴 정리 시작...');
+    console.log(`   - dryRun: ${dryRun ? 'ON' : 'OFF'}`);
 
-      // 2. 배치 생성 및 삭제 등록
-      const batch = db.batch();
-      snapshot.docs.forEach((doc) => {
-        batch.delete(doc.ref);
-      });
+    // 삭제 대상 메뉴 조회
+    const [inactiveMenus] = await conn.query(
+      `
+      SELECT id, doc_id, brand_name, menu_name, is_active
+      FROM menus
+      WHERE nutrition_json IS NULL
+      ORDER BY id ASC
+      `
+    );
 
-      // 3. 커밋 (삭제 실행)
-      await batch.commit();
-
-      // 카운트 증가 및 로그
-      totalDeleted += snapshot.size;
-      console.log(`   ⏳ ${totalDeleted}개 삭제 완료...`);
-
-      // 서버 부하 방지를 위한 아주 짧은 대기 (선택 사항)
-      await new Promise(resolve => setTimeout(resolve, 100));
+    if (inactiveMenus.length === 0) {
+      console.log('✅ 삭제할 is_active = 0 레코드가 없습니다.');
+      return;
     }
 
-    console.log(`✅ 최종 완료: 총 ${totalDeleted}개의 비활성 메뉴를 삭제했습니다.`);
+    console.log(`📌 삭제 대상 menus: ${inactiveMenus.length}개`);
+    console.table(
+      inactiveMenus.slice(0, 10).map(menu => ({
+        id: menu.id,
+        doc_id: menu.doc_id,
+        brand_name: menu.brand_name,
+        menu_name: menu.menu_name,
+        is_active: menu.is_active,
+      }))
+    );
 
+    const inactiveMenuIds = inactiveMenus.map(menu => menu.id);
+
+    // 연결된 allergy 개수 확인
+    const [allergyCountRows] = await conn.query(
+      `
+      SELECT COUNT(*) AS count
+      FROM menu_allergies
+      WHERE menu_id IN (?)
+      `,
+      [inactiveMenuIds]
+    );
+
+    const allergyCount = allergyCountRows[0]?.count || 0;
+    console.log(`📌 삭제 대상 menu_allergies: ${allergyCount}개`);
+
+    if (dryRun) {
+      console.log('👀 dry-run 모드이므로 실제 삭제는 하지 않았습니다.');
+      return;
+    }
+
+    await conn.beginTransaction();
+
+    // 1) 자식 테이블 먼저 삭제
+    const [deleteAllergiesResult] = await conn.query(
+      `
+      DELETE FROM menu_allergies
+      WHERE menu_id IN (?)
+      `,
+      [inactiveMenuIds]
+    );
+
+    // 2) 부모 테이블 삭제
+    const [deleteMenusResult] = await conn.query(
+      `
+      DELETE FROM menus
+      WHERE nutrition_json IS NULL
+      `
+    );
+
+    await conn.commit();
+
+    console.log('✅ 정리 완료');
+    console.log(`   - 삭제된 menu_allergies: ${deleteAllergiesResult.affectedRows}개`);
+    console.log(`   - 삭제된 menus: ${deleteMenusResult.affectedRows}개`);
   } catch (error) {
-    console.error('❌ 정리 작업 중 오류 발생:', error);
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (rollbackError) {
+        console.error('❌ rollback 실패:', rollbackError.message);
+      }
+    }
+
+    console.error('❌ cleanup 실패:', error.message);
+    console.error(error);
+    process.exitCode = 1;
+  } finally {
+    if (conn) conn.release();
+    await pool.end();
+    console.log('🔌 DB 연결 종료');
   }
 }
 
-// 실행
-cleanupInactiveMenus();
+const dryRun = process.argv.includes('--dry-run');
+
+cleanupInactiveMenus({ dryRun });

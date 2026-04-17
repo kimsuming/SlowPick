@@ -75,6 +75,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
       bottomNavigationBar: Container(
         color: const Color(0xFFFCFCFC),
@@ -121,15 +123,19 @@ class _HomeScreenState extends State<HomeScreen> {
               // 카페 목록
               _cafeCatalog(),
 
-              const SizedBox(height: 17),
-              _recomendedMenu(),
-
-              // 첫번째 슬라이더
-              _firstSlider(),
-              const SizedBox(height: 17),
+              const SizedBox(height: 25),
 
               // 검색창 및 메인 컨텐츠
-              _menuSearchBar(),
+              _menuSearchBar(size),
+
+              const SizedBox(height: 34),
+
+              _aiRecomendedMenu(size),
+
+              const SizedBox(height: 14),
+
+              _recomendedMenu(size),
+
               const SizedBox(height: 30),
 
               // 추천 문구 (두번쨰 슬라이더 위 문구)
@@ -138,8 +144,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Container(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    "00 님! 이런 건 어떠세요?",
-                    style: TextStyle(fontSize: 18, letterSpacing: -1),
+                    '00 님을 위한 시즌 한정 메뉴!',
+                    style: TextStyle(
+                      color: const Color(0xFF242526),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: -1,
+                    ),
                   ),
                 ),
               ),
@@ -147,14 +158,12 @@ class _HomeScreenState extends State<HomeScreen> {
               // 두번째 슬라이더
               _secondSlider(),
 
-              SizedBox(height: 30),
+              SizedBox(height: 36),
 
-              // 구분선
-              const SizedBox(
-                width: double.infinity,
-                height: 20,
-                child: ColoredBox(color: Color(0xFFF6F6F6)),
-              ),
+              // 첫번째 슬라이더
+              _firstSlider(),
+
+              SizedBox(height: 28),
 
               // 메뉴 순위
               _menuRank(),
@@ -162,7 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // 구분선
               const SizedBox(
                 width: double.infinity,
-                height: 20,
+                height: 7,
                 child: ColoredBox(color: Color(0xFFF6F6F6)),
               ),
 
@@ -343,8 +352,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // 추천 메뉴 위젯
-  Widget _recomendedMenu() {
+  // AI 추천 메뉴 위젯
+  Widget _aiRecomendedMenu(Size size) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -355,32 +364,61 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
       child: Container(
-        width: double.infinity,
-        height: 140,
-        color: Color(0xFFF6F6F6),
+        width: size.width * 0.9,
+        height: 126,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment(0.00, 0.50),
+            end: Alignment(1.00, 0.50),
+            colors: [Colors.white, const Color(0xFFF1FFDA)],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x3F000000),
+              blurRadius: 6,
+              offset: Offset(0, 1),
+              spreadRadius: 0,
+            ),
+          ],
+          borderRadius: BorderRadius.circular(15),
+        ),
+
         child: Padding(
-          padding: const EdgeInsets.all(26.0),
+          padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 25),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "환영해요, OO 님!",
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.24,
-                    ),
-                  ),
-                  Text(
-                    "제가 OO 님을 위한 추천메뉴를\n만들어 왔어요. 한번 보시겠어요?",
-                    style: TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: -1.5, // 글자 간격 조정
-                    ),
+                  Image.asset('images/home/aiIcon.png', fit: BoxFit.cover),
+
+                  SizedBox(width: 7),
+
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'OO 님을 위한 메뉴 추천 !',
+                        style: TextStyle(
+                          color: const Color(0xFF242526),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: -1,
+                        ),
+                      ),
+
+                      Text(
+                        '제가 OO 님을 위한 추천메뉴를\n만들어 왔어요. 한번 보시겠어요?',
+                        style: TextStyle(
+                          color: const Color(0xFF777777),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w300,
+                          letterSpacing: -1,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -410,6 +448,77 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: EdgeInsets.zero,
                   constraints: BoxConstraints(),
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 추천 메뉴 위젯
+  Widget _recomendedMenu(Size size) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const RecommendedMenuScreen(),
+          ),
+        );
+      },
+      child: Container(
+        width: size.width * 0.9,
+        height: 82,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment(0.00, 0.50),
+            end: Alignment(1.00, 0.50),
+            colors: [Colors.white, const Color(0xFFEBFFF8)],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x3F000000),
+              blurRadius: 6,
+              offset: Offset(0, 1),
+              spreadRadius: 0,
+            ),
+          ],
+          borderRadius: BorderRadius.circular(15),
+        ),
+
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 15),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Image.asset('images/home/recommendIcon.png', fit: BoxFit.cover),
+
+              SizedBox(width: 7),
+
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '고혈당이 3일 이상 지속되고 있어요.',
+                    style: TextStyle(
+                      color: const Color(0xFF242526),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w300,
+                      letterSpacing: -1,
+                    ),
+                  ),
+
+                  Text(
+                    '오늘은 꼭 30분 이상 걸으세요!',
+                    style: TextStyle(
+                      color: const Color(0xFF242526),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -496,9 +605,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // 메뉴 검색 바 위젯
-  Widget _menuSearchBar() {
+  Widget _menuSearchBar(Size size) {
     return SizedBox(
-      width: 350,
+      width: size.width * 0.9,
       child: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('menus').snapshots(),
         builder: (context, snapshot) {
@@ -547,20 +656,10 @@ class _HomeScreenState extends State<HomeScreen> {
             },
             fieldViewBuilder:
                 (context, controller, focusNode, onFieldSubmitted) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Color(0x4C000000),
-                          blurRadius: 2,
-                          offset: Offset(0, 2),
-                          spreadRadius: 0,
-                        ),
-                      ],
-                    ),
-                    height: 40,
+                  return SizedBox(
+                    height: 50,
+
+                    //텍스트필드 스타일링
                     child: TextField(
                       controller: controller,
                       focusNode: focusNode,
@@ -569,22 +668,34 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: InputDecoration(
                         hintText: '원하는 카페 음료를 검색해봐요!',
                         hintStyle: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 14,
+                          color: Color(0xFFCFDACA),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: -0.24,
                         ),
                         filled: true,
-                        fillColor: const Color(0xFFEEEEEE),
+                        fillColor: Colors.white,
                         prefixIcon: const Icon(
                           Icons.search,
                           size: 25,
-                          color: Colors.black54,
+                          color: Color(0xFF74AE31),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12,
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(20),
-                          borderSide: BorderSide.none,
+                          borderSide: const BorderSide(
+                            color: Color(0xFF7BF15B), // 테두리 색
+                            width: 2, // 테두리 두께
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF7BF15B), // 테두리 색
+                            width: 2, // 테두리 두께
+                          ),
                         ),
                       ),
                     ),
@@ -668,38 +779,38 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _menuRank() {
     return Column(
       children: [
-        SizedBox(height: 10),
-
-        Padding(
-          padding: const EdgeInsets.only(left: 20.0, top: 10.0),
-          child: Container(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              '주간 인기 검색어 TOP3',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                letterSpacing: -1,
-              ),
-            ),
-          ),
-        ),
-
         Padding(
           padding: const EdgeInsets.all(20.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _rankingItem(130, '[메가커피]', '아사이볼'),
+              Text(
+                '주간 인기 검색어 TOP3',
+                style: TextStyle(
+                  color: const Color(0xFF242526),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: -1,
+                ),
+              ),
 
-              SizedBox(width: 8),
+              SizedBox(height: 22),
 
-              _rankingItem(110, '[컴포즈]', '제로 리얼 믹스커피'),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _rankingItem(140, '[메가커피]', '아사이볼'),
 
-              SizedBox(width: 8),
+                  SizedBox(width: 8),
 
-              _rankingItem(80, '[메가커피]', '윈터 뱅쇼'),
+                  _rankingItem(120, '[컴포즈]', '제로 리얼 믹스커피'),
+
+                  SizedBox(width: 8),
+
+                  _rankingItem(90, '[메가커피]', '윈터 뱅쇼'),
+                ],
+              ),
             ],
           ),
         ),

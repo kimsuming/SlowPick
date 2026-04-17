@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:slowpick/screen/example.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
+import 'package:slowpick/screen/myPage_input.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 
 class MyPageScreen extends StatelessWidget {
@@ -29,9 +31,10 @@ class MyPageScreen extends StatelessWidget {
 
       body: SingleChildScrollView(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 프로필
-            _buildProfileSection(),
+            _buildProfileSection(context),
 
             // 도전과제 섹션 위젯
             _challengeSection(),
@@ -54,6 +57,25 @@ class MyPageScreen extends StatelessWidget {
 
             Container(height: 2, color: const Color(0xFFF5F5F5)), // 구분선
 
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const Example()),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.only(left: 35, top: 16),
+                child: Text(
+                  '예측 알고리즘 테스트 페이지',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: -0.26,
+                  ),
+                ),
+              ),
+            ),
+
             _buildMenuItem(
               context,
               '앱 버전 정보',
@@ -63,7 +85,6 @@ class MyPageScreen extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            // 로그아웃 버튼
             const SizedBox(height: 40),
           ],
         ),
@@ -72,7 +93,7 @@ class MyPageScreen extends StatelessWidget {
   }
 
   // 프로필 섹션 위젯
-  Widget _buildProfileSection() {
+  Widget _buildProfileSection(BuildContext context) {
     return Container(
       color: Color(0xFFF5F5F5),
       child: Padding(
@@ -159,21 +180,34 @@ class MyPageScreen extends StatelessWidget {
                     // 수정 버튼
                     Column(
                       children: [
-                        Row(
-                          children: [
-                            Text(
-                              '건강 정보 입력하기',
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: Color(0xFF999999),
-                                fontFamily: 'KoPubDotum',
-                                letterSpacing: -1.70,
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MypageInput(),
                               ),
-                            ),
+                            );
+                          },
+                          child: Row(
+                            children: [
+                              Text(
+                                '건강 정보 입력하기',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: Color(0xFF999999),
+                                  fontFamily: 'KoPubDotum',
+                                  letterSpacing: -1.70,
+                                ),
+                              ),
 
-                            // 수정 버튼 (화살표)
-                            const Icon(Icons.chevron_right, color: Colors.grey),
-                          ],
+                              // 수정 버튼 (화살표)
+                              const Icon(
+                                Icons.chevron_right,
+                                color: Colors.grey,
+                              ),
+                            ],
+                          ),
                         ),
                         SizedBox(height: 30),
                       ],

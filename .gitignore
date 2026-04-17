@@ -46,8 +46,8 @@ app.*.map.json
 /android/app/release
 
 # Firebase 서비스 계정 키 !!
-*.json
 serviceAccountKey.json
+google-services.json
 slowpick-ebc24-*.json
 
 # Node.js 의존성 폴더
