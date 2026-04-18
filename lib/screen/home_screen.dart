@@ -23,6 +23,9 @@ class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex1 = 0;
   int _currentIndex2 = 0;
 
+  List<String> _secondSliderUrls = [];
+  late StreamSubscription _secondSliderSub;
+
   @override
   void initState() {
     super.initState();
@@ -35,7 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
               snapshot.docs
                   .where((doc) => doc.id.startsWith("firstSlider_"))
                   .toList()
-                ..sort((a, b) => a.id.compareTo(b.id)); // 정렬 추가 (중요)
+                ..sort((a, b) => a.id.compareTo(b.id));
 
           final newUrls = docs
               .map((doc) {
@@ -51,11 +54,38 @@ class _HomeScreenState extends State<HomeScreen> {
             });
           }
         });
+
+    _secondSliderSub = FirebaseFirestore.instance
+        .collection('banners')
+        .snapshots()
+        .listen((snapshot) {
+          final docs =
+              snapshot.docs
+                  .where((doc) => doc.id.startsWith("seasonSlider_"))
+                  .toList()
+                ..sort((a, b) => a.id.compareTo(b.id));
+
+          final newUrls = docs
+              .map((doc) {
+                final data = doc.data();
+                return data['imgURL'] as String? ?? '';
+              })
+              .where((url) => url.isNotEmpty)
+              .toList();
+
+          if (_secondSliderUrls.toString() != newUrls.toString()) {
+            setState(() {
+              _secondSliderUrls = newUrls;
+            });
+          }
+        });
   }
+
 
   @override
   void dispose() {
     _firstSliderSub.cancel();
+    _secondSliderSub.cancel();
     super.dispose();
   }
 
@@ -738,25 +768,32 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // 두 번째 슬라이더 위젯
   Widget _secondSlider() {
+    if (_secondSliderUrls.isEmpty) {
+      return const SizedBox(
+        height: 200,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return CarouselSlider(
       options: CarouselOptions(
         height: 200,
         aspectRatio: 1,
         viewportFraction: 0.5,
-        enlargeCenterPage: true, //중앙 슬라이드 확대 여부
-        enlargeFactor: 0.2, //확대 비율
+        enlargeCenterPage: true,
+        enlargeFactor: 0.2,
       ),
-      items: [1, 2, 3, 4, 5].map((i) {
+      items: _secondSliderUrls.map((url) {
         return Builder(
           builder: (BuildContext context) {
             return Container(
-              width: 220, // 🔥 height와 동일
-              height: 220,
-              margin: EdgeInsets.symmetric(horizontal: 5.0),
+              width: 250,
+              height: 250,
+              margin: const EdgeInsets.symmetric(horizontal: 5.0),
               decoration: BoxDecoration(
                 color: Colors.amber,
                 borderRadius: BorderRadius.circular(30),
-                boxShadow: [
+                boxShadow: const [
                   BoxShadow(
                     color: Color(0x3F000000),
                     blurRadius: 2,
@@ -765,8 +802,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
-              child: Center(
-                child: Text('text $i', style: TextStyle(fontSize: 16.0)),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(30),
+                child: Image.network(
+                  url,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const Center(child: CircularProgressIndicator());
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Center(
+                      child: Icon(Icons.broken_image, size: 40),
+                    );
+                  },
+                ),
               ),
             );
           },
@@ -890,23 +940,124 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.only(top: 3, left: 10, bottom: 20),
           child: CarouselSlider(
             options: CarouselOptions(
-              height: 170,
+              height: 177,
               enableInfiniteScroll: false,
-              viewportFraction: 0.38, //한 슬라이드가 차지하는 화면 비율
+              viewportFraction: 0.38,
               autoPlayCurve: Curves.fastOutSlowIn,
               padEnds: false,
             ),
             items: [1, 2, 3, 4, 5].map((i) {
               return Container(
-                width: 130,
-                height: 180,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: Colors.grey, width: 1),
+                width: 125,
+                height: 177,
+                clipBehavior: Clip.antiAlias,
+                decoration: ShapeDecoration(
+                  shape: RoundedRectangleBorder(
+                    side: const BorderSide(
+                      width: 0.70,
+                      color: Color(0xFFCCCCCC),
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                child: Center(
-                  child: Text('text $i', style: TextStyle(fontSize: 16.0)),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      left: 0,
+                      top: 1,
+                      child: Container(
+                        width: 125,
+                        height: 87,
+                        clipBehavior: Clip.antiAlias,
+                        decoration: const BoxDecoration(color: Colors.white),
+                        child: Stack(
+                          children: [
+                            Positioned(
+                              left: -22,
+                              top: -14,
+                              child: Opacity(
+                                opacity: 0.90,
+                                child: Container(
+                                  width: 150,
+                                  height: 100,
+                                  decoration: const BoxDecoration(
+                                    image: DecorationImage(
+                                      image: NetworkImage(
+                                        "https://placehold.co/150x100",
+                                      ),
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: 9,
+                      top: 150,
+                      child: Container(
+                        width: 53,
+                        height: 11,
+                        clipBehavior: Clip.antiAlias,
+                        decoration: ShapeDecoration(
+                          color: const Color(0xFFF8E76C),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(40),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: 6,
+                      top: 94,
+                      child: Container(
+                        width: 111,
+                        height: 18,
+                        clipBehavior: Clip.antiAlias,
+                        decoration: ShapeDecoration(
+                          color: const Color(0xFFDDDDDD),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(40),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const Positioned(
+                      left: 14,
+                      top: 93,
+                      child: Text(
+                        '공복에 단 음료는 안돼요!',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Color(0xFF242526),
+                          fontSize: 11,
+                          fontFamily: 'KoPubDotum Bold',
+                          fontWeight: FontWeight.w400,
+                          height: 1.82,
+                          letterSpacing: -1,
+                        ),
+                      ),
+                    ),
+                    const Positioned(
+                      left: 10,
+                      top: 116,
+                      child: Text(
+                        '공복이나 식사 직후에는\n혈당이 급격히 오르기 쉬워요.\n식후 30분 이후가 가장 좋아요.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Color(0xFF242526),
+                          fontSize: 10,
+                          fontFamily: 'KoPubDotum Light',
+                          fontWeight: FontWeight.w400,
+                          height: 1.60,
+                          letterSpacing: -1,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               );
             }).toList(),
