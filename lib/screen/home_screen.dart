@@ -190,35 +190,35 @@ class _HomeScreenState extends State<HomeScreen> {
 
               SizedBox(height: 36),
 
+              // 메뉴 순위
+
+              //정보카드
+              _informationCard(),
+
+              const SizedBox(height: 44),
+
+              // 구분선
+              const SizedBox(
+                width: double.infinity,
+                height: 8,
+                child: ColoredBox(color: Color(0xFFF6F6F6)),
+              ),
+
               // 첫번째 슬라이더
               _firstSlider(),
 
-              SizedBox(height: 28),
-
-              // 메뉴 순위
-              _menuRank(),
-
               // 구분선
               const SizedBox(
                 width: double.infinity,
-                height: 7,
+                height: 8,
                 child: ColoredBox(color: Color(0xFFF6F6F6)),
               ),
 
-              _informationCard(),
-
-              // 구분선
-              const SizedBox(
-                width: double.infinity,
-                height: 20,
-                child: ColoredBox(color: Color(0xFFF6F6F6)),
-              ),
+              SizedBox(height: 24),
 
               _collaborationCategory(),
 
               SizedBox(height: 20),
-
-              _secondBanner(),
 
               const SizedBox(height: 16),
             ],
@@ -936,6 +936,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
 
+        const SizedBox(height: 20),
+
         Padding(
           padding: const EdgeInsets.only(top: 3, left: 10, bottom: 20),
           child: CarouselSlider(
@@ -1071,10 +1073,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _collaborationCategory() {
     return Column(
       children: [
-        SizedBox(height: 10),
-
         Padding(
-          padding: const EdgeInsets.only(left: 20.0, bottom: 5.0, top: 10.0),
+          padding: const EdgeInsets.only(left: 20.0),
           child: Container(
             alignment: Alignment.centerLeft,
             child: Text(
@@ -1087,6 +1087,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
+
+        SizedBox(height: 24),
 
         SizedBox(
           height: MediaQuery.of(context).size.height * 0.26,
