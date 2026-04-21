@@ -7,6 +7,63 @@ import 'package:slowpick/widget/bottomBar_new.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'dart:async';
 
+class _TipSpan {
+  final String text;
+  final bool highlight;
+  const _TipSpan(this.text, {this.highlight = false});
+}
+
+class _TipData {
+  final String title;
+  final List<_TipSpan> spans;
+  const _TipData({required this.title, required this.spans});
+}
+
+const List<_TipData> _tipContent = [
+  _TipData(
+    title: '공복에 단 음료는 안돼요!',
+    spans: [
+      _TipSpan('공복이나 식사 직후에는\n혈당이 급격히 오르기 쉬워요.\n'),
+      _TipSpan('식후 30분 이후', highlight: true),
+      _TipSpan('가 가장 좋아요.'),
+    ],
+  ),
+  _TipData(
+    title: '우유는 저지방으로!',
+    spans: [
+      _TipSpan('일반 우유보다는'),
+      _TipSpan(' 두유', highlight: true),
+      _TipSpan('와\n'),
+      _TipSpan('저지방', highlight: true),
+      _TipSpan('이 혈당 상승을\n완화해줘요.'),
+    ],
+  ),
+  _TipData(
+    title: '당은 섭취열량의 10%',
+    spans: [
+      _TipSpan('내 하루 섭취 열량의 '),
+      _TipSpan('10%가', highlight: true),
+      _TipSpan('\n가장 좋은 당 섭취 기준이에요.'),
+    ],
+  ),
+  _TipData(
+    title: '라벨을 꼭 확인해요!',
+    spans: [
+      _TipSpan('음료의 '),
+      _TipSpan('당류 수치', highlight: true),
+      _TipSpan('를 확인하는\n습관이 혈당 관리의\n시작이에요.'),
+    ],
+  ),
+  _TipData(
+    title: '운동 후엔 괜찮아요!',
+    spans: [
+      _TipSpan('가벼운 운동 후\n'),
+      _TipSpan('30분 이내', highlight: true),
+      _TipSpan('에 소량의\n당분 섭취가\n도움이 돼요.'),
+    ],
+  ),
+];
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -25,6 +82,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<String> _secondSliderUrls = [];
   late StreamSubscription _secondSliderSub;
+
+  List<String> _tipSliderUrls = [];
+  late StreamSubscription _tipSliderSub;
+
+  List<String> _collabSliderUrls = [];
+  late StreamSubscription _collabSliderSub;
 
   @override
   void initState() {
@@ -79,13 +142,58 @@ class _HomeScreenState extends State<HomeScreen> {
             });
           }
         });
-  }
 
+    _tipSliderSub = FirebaseFirestore.instance
+        .collection('banners')
+        .snapshots()
+        .listen((snapshot) {
+          final docs =
+              snapshot.docs
+                  .where((doc) => doc.id.startsWith("tipSlider_"))
+                  .toList()
+                ..sort((a, b) => a.id.compareTo(b.id));
+
+          final newUrls = docs
+              .map((doc) => doc.data()['imgURL'] as String? ?? '')
+              .where((url) => url.isNotEmpty)
+              .toList();
+
+          if (_tipSliderUrls.toString() != newUrls.toString()) {
+            setState(() {
+              _tipSliderUrls = newUrls;
+            });
+          }
+        });
+
+    _collabSliderSub = FirebaseFirestore.instance
+        .collection('banners')
+        .snapshots()
+        .listen((snapshot) {
+          final docs =
+              snapshot.docs
+                  .where((doc) => doc.id.startsWith("collabSlider_"))
+                  .toList()
+                ..sort((a, b) => a.id.compareTo(b.id));
+
+          final newUrls = docs
+              .map((doc) => doc.data()['imgURL'] as String? ?? '')
+              .where((url) => url.isNotEmpty)
+              .toList();
+
+          if (_collabSliderUrls.toString() != newUrls.toString()) {
+            setState(() {
+              _collabSliderUrls = newUrls;
+            });
+          }
+        });
+  }
 
   @override
   void dispose() {
     _firstSliderSub.cancel();
     _secondSliderSub.cancel();
+    _tipSliderSub.cancel();
+    _collabSliderSub.cancel();
     super.dispose();
   }
 
@@ -124,16 +232,16 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: Image.asset(
               "images/main_icon/bell.png",
-              width: 30,
-              height: 30,
+              width: 40,
+              height: 40,
             ),
             onPressed: null,
           ),
           IconButton(
             icon: Image.asset(
               "images/main_icon/list.png",
-              width: 30,
-              height: 30,
+              width: 40,
+              height: 40,
             ),
             onPressed: null,
           ),
@@ -166,7 +274,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
               _recomendedMenu(size),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 50),
 
               // 추천 문구 (두번쨰 슬라이더 위 문구)
               Padding(
@@ -177,7 +285,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     '00 님을 위한 시즌 한정 메뉴!',
                     style: TextStyle(
                       color: const Color(0xFF242526),
-                      fontSize: 16,
+                      fontSize: 18,
                       fontWeight: FontWeight.w500,
                       letterSpacing: -1,
                     ),
@@ -190,37 +298,40 @@ class _HomeScreenState extends State<HomeScreen> {
 
               SizedBox(height: 36),
 
-              // 메뉴 순위
-
-              //정보카드
-              _informationCard(),
-
-              const SizedBox(height: 44),
-
-              // 구분선
-              const SizedBox(
-                width: double.infinity,
-                height: 8,
-                child: ColoredBox(color: Color(0xFFF6F6F6)),
-              ),
-
               // 첫번째 슬라이더
               _firstSlider(),
 
+              // 메뉴 순위
+              //_menuRank(),
+
               // 구분선
               const SizedBox(
                 width: double.infinity,
-                height: 8,
+                height: 7,
                 child: ColoredBox(color: Color(0xFFF6F6F6)),
               ),
 
-              SizedBox(height: 24),
+              _informationCard(),
+
+              // 구분선
+              const SizedBox(
+                width: double.infinity,
+                height: 20,
+                child: ColoredBox(color: Color(0xFFF6F6F6)),
+              ),
 
               _collaborationCategory(),
 
               SizedBox(height: 20),
 
-              const SizedBox(height: 16),
+              // 구분선
+              const SizedBox(
+                width: double.infinity,
+                height: 7,
+                child: ColoredBox(color: Color(0xFFF6F6F6)),
+              ),
+
+              const SizedBox(height: 50),
             ],
           ),
         ),
@@ -236,10 +347,11 @@ class _HomeScreenState extends State<HomeScreen> {
       child: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('banners').snapshots(),
         builder: (context, snapshot) {
-          // 1. 로딩 중일 때 (회색 박스)
+          /* 1. 로딩 중일 때 (회색 박스)
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Container(color: Colors.grey[200]);
           }
+          */
 
           // 2. 데이터가 없을 때
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -900,171 +1012,147 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _tipCard(int index, String imgUrl) {
+    final tip = _tipContent[index];
+    const bodyStyle = TextStyle(
+      color: Color(0xFF242526),
+      fontSize: 12,
+      fontFamily: 'KoPubDotum Light',
+      fontWeight: FontWeight.w400,
+      height: 1.50,
+      letterSpacing: -1,
+    );
+
+    return Container(
+      width: 155,
+      height: 210,
+      clipBehavior: Clip.antiAlias,
+      decoration: ShapeDecoration(
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(width: 0.70, color: Color(0xFFCCCCCC)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      child: Column(
+        children: [
+          SizedBox(
+            width: 155,
+            height: 105,
+            child: CachedNetworkImage(
+              imageUrl: imgUrl,
+              fit: BoxFit.cover,
+              placeholder: (context, url) => Container(color: Colors.grey[200]),
+              errorWidget: (context, url, error) =>
+                  Container(color: Colors.grey[300]),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(5, 10, 5, 0),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDDDDDD),
+                    borderRadius: BorderRadius.circular(40),
+                  ),
+                  child: Text(
+                    tip.title,
+                    style: const TextStyle(
+                      color: Color(0xFF242526),
+                      fontSize: 13,
+                      fontFamily: 'KoPubDotum Bold',
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 7),
+                Text.rich(
+                  textAlign: TextAlign.center,
+                  TextSpan(
+                    style: bodyStyle,
+                    children: tip.spans.map((span) {
+                      if (span.highlight) {
+                        return WidgetSpan(
+                          alignment: PlaceholderAlignment.baseline,
+                          baseline: TextBaseline.alphabetic,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8E76C),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(span.text, style: bodyStyle),
+                          ),
+                        );
+                      }
+                      return TextSpan(text: span.text);
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // 정보 카드 위젯
   Widget _informationCard() {
+    final cardCount = _tipSliderUrls.length.clamp(0, _tipContent.length);
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const Padding(
+          padding: EdgeInsets.only(left: 20.0, top: 20.0),
+          child: Text(
+            "우리 이렇게 해봐요!",
+            style: TextStyle(fontSize: 16, letterSpacing: -1, height: 1.25),
+          ),
+        ),
         Padding(
-          padding: const EdgeInsets.only(left: 20.0, top: 20.0),
-          child: Container(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              "우리 이렇게 해봐요!",
-              style: TextStyle(fontSize: 16, letterSpacing: -1, height: 1.25),
+          padding: const EdgeInsets.only(left: 20.0),
+          child: Text(
+            '소중한 내 혈당을 위한 한 걸음',
+            style: TextStyle(
+              foreground: Paint()
+                ..shader = const LinearGradient(
+                  colors: [Color(0xFF39BB4C), Color(0xFF399EEB)],
+                ).createShader(const Rect.fromLTWH(0, 0, 200, 70)),
+              fontSize: 12,
+              fontFamily: 'KoPubDotum Light',
+              fontWeight: FontWeight.w400,
+              height: 1.67,
+              letterSpacing: -1,
             ),
           ),
         ),
-
-        Padding(
-          padding: const EdgeInsets.only(left: 20.0),
-          child: Container(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              '소중한 내 혈당을 위한 한 걸음',
-              style: TextStyle(
-                foreground: Paint()
-                  ..shader = LinearGradient(
-                    colors: [Color(0xFF39BB4C), Color(0xFF399EEB)],
-                  ).createShader(Rect.fromLTWH(0, 0, 200, 70)),
-                fontSize: 12,
-                fontFamily: 'KoPubDotum Light',
-                fontWeight: FontWeight.w400,
-                height: 1.67,
-                letterSpacing: -1,
+        const SizedBox(height: 12),
+        if (_tipSliderUrls.isEmpty)
+          const SizedBox(
+            height: 215,
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.only(left: 10, bottom: 20),
+            child: CarouselSlider(
+              options: CarouselOptions(
+                height: 215,
+                enableInfiniteScroll: false,
+                viewportFraction: 0.42,
+                padEnds: false,
+              ),
+              items: List.generate(
+                cardCount,
+                (i) => _tipCard(i, _tipSliderUrls[i]),
               ),
             ),
           ),
-        ),
-
-        const SizedBox(height: 20),
-
-        Padding(
-          padding: const EdgeInsets.only(top: 3, left: 10, bottom: 20),
-          child: CarouselSlider(
-            options: CarouselOptions(
-              height: 177,
-              enableInfiniteScroll: false,
-              viewportFraction: 0.38,
-              autoPlayCurve: Curves.fastOutSlowIn,
-              padEnds: false,
-            ),
-            items: [1, 2, 3, 4, 5].map((i) {
-              return Container(
-                width: 125,
-                height: 177,
-                clipBehavior: Clip.antiAlias,
-                decoration: ShapeDecoration(
-                  shape: RoundedRectangleBorder(
-                    side: const BorderSide(
-                      width: 0.70,
-                      color: Color(0xFFCCCCCC),
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      left: 0,
-                      top: 1,
-                      child: Container(
-                        width: 125,
-                        height: 87,
-                        clipBehavior: Clip.antiAlias,
-                        decoration: const BoxDecoration(color: Colors.white),
-                        child: Stack(
-                          children: [
-                            Positioned(
-                              left: -22,
-                              top: -14,
-                              child: Opacity(
-                                opacity: 0.90,
-                                child: Container(
-                                  width: 150,
-                                  height: 100,
-                                  decoration: const BoxDecoration(
-                                    image: DecorationImage(
-                                      image: NetworkImage(
-                                        "https://placehold.co/150x100",
-                                      ),
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      left: 9,
-                      top: 150,
-                      child: Container(
-                        width: 53,
-                        height: 11,
-                        clipBehavior: Clip.antiAlias,
-                        decoration: ShapeDecoration(
-                          color: const Color(0xFFF8E76C),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(40),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      left: 6,
-                      top: 94,
-                      child: Container(
-                        width: 111,
-                        height: 18,
-                        clipBehavior: Clip.antiAlias,
-                        decoration: ShapeDecoration(
-                          color: const Color(0xFFDDDDDD),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(40),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const Positioned(
-                      left: 14,
-                      top: 93,
-                      child: Text(
-                        '공복에 단 음료는 안돼요!',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Color(0xFF242526),
-                          fontSize: 11,
-                          fontFamily: 'KoPubDotum Bold',
-                          fontWeight: FontWeight.w400,
-                          height: 1.82,
-                          letterSpacing: -1,
-                        ),
-                      ),
-                    ),
-                    const Positioned(
-                      left: 10,
-                      top: 116,
-                      child: Text(
-                        '공복이나 식사 직후에는\n혈당이 급격히 오르기 쉬워요.\n식후 30분 이후가 가장 좋아요.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Color(0xFF242526),
-                          fontSize: 10,
-                          fontFamily: 'KoPubDotum Light',
-                          fontWeight: FontWeight.w400,
-                          height: 1.60,
-                          letterSpacing: -1,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
-        ),
       ],
     );
   }
@@ -1073,8 +1161,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _collaborationCategory() {
     return Column(
       children: [
+        SizedBox(height: 10),
         Padding(
-          padding: const EdgeInsets.only(left: 20.0),
+          padding: const EdgeInsets.only(left: 20.0, bottom: 5.0, top: 10.0),
           child: Container(
             alignment: Alignment.centerLeft,
             child: Text(
@@ -1087,8 +1176,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-
-        SizedBox(height: 24),
 
         SizedBox(
           height: MediaQuery.of(context).size.height * 0.26,
@@ -1104,11 +1191,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     });
                   },
                 ),
-                items: _sliderItems.map((i) {
-                  return Container(
+                items: _collabSliderUrls.map((url) {
+                  return SizedBox(
                     width: MediaQuery.of(context).size.width,
-                    color: Colors.green,
-                    child: Center(child: Text('text $i')),
+                    child: CachedNetworkImage(
+                      imageUrl: url,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) =>
+                          Container(color: Colors.grey[200]),
+                      errorWidget: (context, url, error) =>
+                          Container(color: Colors.grey[300]),
+                    ),
                   );
                 }).toList(),
               ),
@@ -1156,7 +1249,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 right: 0,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(_sliderItems.length, (index) {
+                  children: List.generate(_collabSliderUrls.length, (index) {
                     final bool isActive = index == _currentIndex2;
 
                     return AnimatedContainer(
