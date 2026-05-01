@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:slowpick/screen/home_screen.dart';
+import 'package:slowpick/screen/splash_screen.dart';
 import 'firebase_options.dart'; // flutterfire configure로 생성된 파일
 
 void main() async {
@@ -30,10 +30,7 @@ class MyApp extends StatelessWidget {
         ),
         fontFamily: 'KoPubDotum',
       ),
-      home: DefaultTabController(
-        length: 5,
-        child: Scaffold(backgroundColor: Color(0xFFFCFCFC), body: HomeScreen()),
-      ),
+      home: const SplashScreen(),
     );
   }
 }
