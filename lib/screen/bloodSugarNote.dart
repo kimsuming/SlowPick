@@ -198,8 +198,8 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Color(0xFF10B981).withOpacity(0.35),
-                        Color(0xFF10B981).withOpacity(0.0),
+                        Color(0xFF10B981).withValues(alpha:0.35),
+                        Color(0xFF10B981).withValues(alpha:0.0),
                       ],
                     ),
                   ),

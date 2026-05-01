@@ -728,7 +728,7 @@ class _HomeScreenState extends State<HomeScreen> {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.white, width: 1),
-                color: Colors.black.withOpacity(0.49),
+                color: Colors.black.withValues(alpha: 0.49),
                 borderRadius: BorderRadius.circular(50),
               ),
               child: Text(

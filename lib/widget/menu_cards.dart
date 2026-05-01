@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:slowpick/screen/menu_detail_screen.dart';
 
-// 당류 수치에 따라 색상을 반환하는 함수
+num _toNum(dynamic v) => v == null ? 0 : num.tryParse(v.toString()) ?? 0;
+
 Map<String, Color> _getSugarColor(num sugar) {
   if (sugar >= 20) {
     return {'bg': const Color(0xFFFFE0E1), 'text': const Color(0xFFEF4444)};
@@ -15,7 +16,6 @@ Map<String, Color> _getSugarColor(num sugar) {
 
 // === 그리드 뷰 카드 위젯 === 세로로 긴 카드
 class MenuGridCard extends StatelessWidget {
-  // 메뉴 데이터를 담는 Map 변수 (Firebase에서 받아온 데이터)
   final Map<String, dynamic> data;
 
   // 생성자: data를 필수로 받음
@@ -30,11 +30,11 @@ class MenuGridCard extends StatelessWidget {
 
     final String name = data['menu_name'] ?? '이름 없음';
     final String brandName = data['brand_name'] ?? '-';
-    final String imageUrl = data['menu_image_url'] ?? '';
-    final num kcal = data['nutrition']?['calories_kcal'] ?? 0;
-    final num sugar = data['nutrition']?['sugar_g'] ?? 0;
-    final List<String> allergyList = data['allergy_info'] != null
-        ? List<String>.from(data['allergy_info'])
+    final String imageUrl = data['image_url'] ?? '';
+    final num kcal = _toNum(data['calories']);
+    final num sugar = _toNum(data['sugar']);
+    final List<String> allergyList = data['allergies'] != null
+        ? List<String>.from(data['allergies'])
         : [];
     final String allergyText = allergyList.isEmpty
         ? '-'
@@ -201,15 +201,14 @@ class MenuListCard extends StatelessWidget {
     final double cardHeight = 110.0;
 
     final String name = data['menu_name'] ?? '이름 없음';
-    final String imageUrl = data['menu_image_url'] ?? '';
-    final num kcal = data['nutrition']?['calories_kcal'] ?? 0;
-    final num sugar = data['nutrition']?['sugar_g'] ?? 0;
-    // 임시 데이터 (나중에 실제 데이터 연결 필요)
-    final num protein = 12;
-    final num fat = 5;
+    final String imageUrl = data['image_url'] ?? '';
+    final num kcal = _toNum(data['calories']);
+    final num sugar = _toNum(data['sugar']);
+    final num protein = _toNum(data['protein']);
+    final num fat = _toNum(data['saturated_fat']);
 
-    final List<String> allergyList = data['allergy_info'] != null
-        ? List<String>.from(data['allergy_info'])
+    final List<String> allergyList = data['allergies'] != null
+        ? List<String>.from(data['allergies'])
         : [];
     final String allergyText = allergyList.isEmpty
         ? '-'

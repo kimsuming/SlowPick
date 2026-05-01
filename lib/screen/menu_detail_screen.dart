@@ -28,21 +28,21 @@ Map<String, Color> _getSugarColor(num sugar) {
   Widget build(BuildContext context) {
     final String name = data['menu_name'] ?? '이름 없음';
     final String brandName = data['brand_name'] ?? '-';
-    final String imageUrl = data['menu_image_url'] ?? '';
+    final String imageUrl = data['image_url'] ?? '';
     final String description = data['description'] ?? '';
-    final List<String> allergyList = data['allergy_info'] != null
-        ? List<String>.from(data['allergy_info'])
+    final List<String> allergyList = data['allergies'] != null
+        ? List<String>.from(data['allergies'])
         : [];
     final String allergyText = allergyList.isEmpty ? '알러지 성분 없음' : allergyList.join(', ');
 
-    final Map<String, dynamic> nutrition = data['nutrition'] ?? {};
-    final num calories = nutrition['calories_kcal'] ?? 0;
-    final num sugar = nutrition['sugar_g'] ?? 0;
-    final num protein = nutrition['protein_g'] ?? 0;
-    final num sodium = nutrition['sodium_mg'] ?? 0;
-    final num satFat = nutrition['saturated_fat_g'] ?? 0;
-    final num caffeine = nutrition['caffeine_mg'] ?? 0;
-    final String sizeStandard = nutrition['size_standard'] ?? '-';
+    num toNum(dynamic v) => v == null ? 0 : num.tryParse(v.toString()) ?? 0;
+    final num calories = toNum(data['calories']);
+    final num sugar = toNum(data['sugar']);
+    final num protein = toNum(data['protein']);
+    final num sodium = toNum(data['sodium']);
+    final num satFat = toNum(data['saturated_fat']);
+    final num caffeine = toNum(data['caffeine']);
+    final String sizeStandard = data['size_standard'] ?? '-';
 
     final sugarColors = _getSugarColor(sugar);
 
@@ -206,7 +206,7 @@ Map<String, Color> _getSugarColor(num sugar) {
       decoration: BoxDecoration(
         color: colors['bg'],
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors['text']!.withOpacity(0.3)),
+        border: Border.all(color: colors['text']!.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -237,7 +237,7 @@ Map<String, Color> _getSugarColor(num sugar) {
           Icon(
             Icons.water_drop_rounded, // 당류 느낌의 아이콘
             size: 40,
-            color: colors['text']!.withOpacity(0.5),
+            color: colors['text']!.withValues(alpha: 0.5),
           )
         ],
       ),
