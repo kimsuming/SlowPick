@@ -2,9 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class MenuService {
-  // Android 에뮬레이터: 10.0.2.2 = 호스트 머신 localhost
-  // 실제 서버 배포 시 EC2/도메인 주소로 교체
-  static const String _baseUrl = 'http://10.0.2.2:3000';
+  static const String _baseUrl = 'http://3.34.7.133:3000';
 
   static Future<List<Map<String, dynamic>>> fetchMenus({
     String? search,
