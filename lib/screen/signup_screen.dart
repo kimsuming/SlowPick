@@ -20,12 +20,40 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _obscurePwConfirm = true;
   bool _isLoading = false;
 
+  bool _step1Done = false;
+  bool _step2Done = false;
+  bool _step3Done = false;
+
+  bool get _allDone => _step1Done && _step2Done && _step3Done;
+
   static const _pointColor = Color(0xFF74AE31);
   static const _fieldFill = Color(0xFFF2F2F2);
   static const _hintColor = Color(0xFFAAAAAA);
 
   @override
+  void initState() {
+    super.initState();
+    _emailCtrl.addListener(_updateSteps);
+    _passwordCtrl.addListener(_updateSteps);
+    _passwordConfirmCtrl.addListener(_updateSteps);
+    _nicknameCtrl.addListener(_updateSteps);
+  }
+
+  void _updateSteps() {
+    setState(() {
+      _step1Done = _validateEmail(_emailCtrl.text) == null;
+      _step2Done = _validatePassword(_passwordCtrl.text) == null &&
+          _validatePasswordConfirm(_passwordConfirmCtrl.text) == null;
+      _step3Done = _validateNickname(_nicknameCtrl.text) == null;
+    });
+  }
+
+  @override
   void dispose() {
+    _emailCtrl.removeListener(_updateSteps);
+    _passwordCtrl.removeListener(_updateSteps);
+    _passwordConfirmCtrl.removeListener(_updateSteps);
+    _nicknameCtrl.removeListener(_updateSteps);
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     _passwordConfirmCtrl.dispose();
@@ -132,7 +160,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 const SizedBox(height: 32),
 
                 // 단계 안내
-                _buildStepIndicator(current: 1, total: 2, label: '기본 정보 입력'),
+                _buildStepIndicator(),
 
                 const SizedBox(height: 32),
 
@@ -238,21 +266,22 @@ class _SignupScreenState extends State<SignupScreen> {
 
   // ─── 위젯 헬퍼 ───────────────────────────────────────────
 
-  Widget _buildStepIndicator({
-    required int current,
-    required int total,
-    required String label,
-  }) {
+  Widget _buildStepIndicator() {
+    final steps = [_step1Done, _step2Done, _step3Done];
+    const labels = ['이메일 작성', '비밀번호 확인', '닉네임 작성'];
+    final doneCount = steps.where((s) => s).length;
+    final nextIdx = steps.indexWhere((s) => !s);
+    final currentLabel = nextIdx >= 0 ? labels[nextIdx] : '모두 완료';
+
     return Row(
       children: [
-        ...List.generate(total, (i) {
-          final active = i + 1 == current;
+        ...List.generate(3, (i) {
           return Expanded(
             child: Container(
-              margin: EdgeInsets.only(right: i < total - 1 ? 6 : 0),
+              margin: EdgeInsets.only(right: i < 2 ? 6 : 0),
               height: 4,
               decoration: BoxDecoration(
-                color: active ? _pointColor : const Color(0xFFDDDDDD),
+                color: steps[i] ? _pointColor : const Color(0xFFDDDDDD),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -260,7 +289,7 @@ class _SignupScreenState extends State<SignupScreen> {
         }),
         const SizedBox(width: 10),
         Text(
-          '$current / $total  $label',
+          '$doneCount / 3  $currentLabel',
           style: const TextStyle(
             fontSize: 12,
             color: Color(0xFF999999),
@@ -360,11 +389,11 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Widget _buildGradientButton() {
     return GestureDetector(
-      onTap: _isLoading ? null : _submit,
+      onTap: (_isLoading || !_allDone) ? null : _submit,
       child: Container(
         height: 50,
         decoration: BoxDecoration(
-          gradient: _isLoading
+          gradient: (_isLoading || !_allDone)
               ? const LinearGradient(
                   colors: [Color(0xFFCCCCCC), Color(0xFFCCCCCC)])
               : const LinearGradient(

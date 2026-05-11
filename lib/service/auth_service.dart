@@ -15,6 +15,10 @@ class AuthService {
   AuthService._internal();
   static final AuthService instance = AuthService._internal();
 
+  // Amplify 연동 전 화면 테스트용 플래그.
+  // Amplify 설정 완료 후 false로 변경하세요.
+  static const bool _useMock = true;
+
   bool _isLoggedIn = false;
   bool get isLoggedIn => _isLoggedIn;
 
@@ -30,6 +34,7 @@ class AuthService {
     required String password,
     required String nickname,
   }) async {
+    if (_useMock) return const AuthResult.ok();
     try {
       await Amplify.Auth.signUp(
         username: email,
@@ -48,10 +53,6 @@ class AuthService {
     } on InvalidPasswordException {
       return const AuthResult.fail(
           '비밀번호는 8자 이상, 특수문자를 1개 이상 포함해야 합니다.');
-    } on InvalidParameterException catch (e) {
-      return AuthResult.fail(_parseMessage(e.message));
-    } on NetworkException {
-      return const AuthResult.fail('네트워크 연결을 확인해주세요.');
     } on AuthException catch (e) {
       return AuthResult.fail(_parseMessage(e.message));
     }
@@ -65,6 +66,7 @@ class AuthService {
     required String email,
     required String code,
   }) async {
+    if (_useMock) return const AuthResult.ok();
     try {
       final result = await Amplify.Auth.confirmSignUp(
         username: email,
@@ -76,8 +78,6 @@ class AuthService {
       return const AuthResult.fail('인증 코드가 올바르지 않습니다.');
     } on ExpiredCodeException {
       return const AuthResult.fail('인증 코드가 만료되었습니다. 코드를 재전송해주세요.');
-    } on NetworkException {
-      return const AuthResult.fail('네트워크 연결을 확인해주세요.');
     } on AuthException catch (e) {
       return AuthResult.fail(_parseMessage(e.message));
     }
@@ -88,11 +88,10 @@ class AuthService {
   // ────────────────────────────────────────────────────
 
   Future<AuthResult> resendConfirmationCode({required String email}) async {
+    if (_useMock) return const AuthResult.ok();
     try {
       await Amplify.Auth.resendSignUpCode(username: email);
       return const AuthResult.ok();
-    } on NetworkException {
-      return const AuthResult.fail('네트워크 연결을 확인해주세요.');
     } on AuthException catch (e) {
       return AuthResult.fail(_parseMessage(e.message));
     }
@@ -106,6 +105,10 @@ class AuthService {
     required String email,
     required String password,
   }) async {
+    if (_useMock) {
+      _isLoggedIn = true;
+      return const AuthResult.ok();
+    }
     try {
       final result = await Amplify.Auth.signIn(
         username: email,
@@ -118,13 +121,9 @@ class AuthService {
       return const AuthResult.fail('로그인을 완료할 수 없습니다. 다시 시도해주세요.');
     } on UserNotFoundException {
       return const AuthResult.fail('존재하지 않는 계정입니다.');
-    } on NotAuthorizedException {
-      return const AuthResult.fail('이메일 또는 비밀번호가 올바르지 않습니다.');
     } on UserNotConfirmedException {
       // 이메일 미인증 상태 → 호출자가 ConfirmSignupScreen으로 보내야 함
       return const AuthResult.fail('__UNCONFIRMED__');
-    } on NetworkException {
-      return const AuthResult.fail('네트워크 연결을 확인해주세요.');
     } on AuthException catch (e) {
       return AuthResult.fail(_parseMessage(e.message));
     }
@@ -135,7 +134,7 @@ class AuthService {
   // ────────────────────────────────────────────────────
 
   Future<void> signOut() async {
-    await Amplify.Auth.signOut();
+    if (!_useMock) await Amplify.Auth.signOut();
     _isLoggedIn = false;
   }
 
@@ -145,9 +144,13 @@ class AuthService {
 
   /// Cognito 원문 에러 메시지를 사용자 친화적으로 변환
   String _parseMessage(String raw) {
-    if (raw.contains('network')) return '네트워크 연결을 확인해주세요.';
-    if (raw.contains('password')) return '비밀번호 형식이 올바르지 않습니다.';
-    if (raw.contains('email')) return '이메일 형식이 올바르지 않습니다.';
+    final lower = raw.toLowerCase();
+    if (lower.contains('network') || lower.contains('socket')) return '네트워크 연결을 확인해주세요.';
+    if (lower.contains('incorrect username or password') || lower.contains('not authorized')) {
+      return '이메일 또는 비밀번호가 올바르지 않습니다.';
+    }
+    if (lower.contains('password')) return '비밀번호 형식이 올바르지 않습니다.';
+    if (lower.contains('email')) return '이메일 형식이 올바르지 않습니다.';
     return '오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
   }
 }
