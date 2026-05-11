@@ -23,6 +23,8 @@ dependencies:
 
   # 알고리즘 관련 패키지
   http: ^1.6.0
+  amplify_flutter: ^2.11.0
+  amplify_auth_cognito: ^2.11.0
 
 dev_dependencies:
   flutter_test:

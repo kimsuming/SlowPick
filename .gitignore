@@ -58,3 +58,8 @@ node_modules/
 
 # 카페 html 파일
 *.html
+
+# amplify
+.amplify
+amplify_outputs*
+amplifyconfiguration*
