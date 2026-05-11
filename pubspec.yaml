@@ -26,6 +26,10 @@ dependencies:
   amplify_flutter: ^2.11.0
   amplify_auth_cognito: ^2.11.0
 
+  # Cognito 인증 (AWS Amplify)
+  amplify_flutter: ^2.11.0
+  amplify_auth_cognito: ^2.11.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
