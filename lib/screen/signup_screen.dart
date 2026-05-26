@@ -73,6 +73,8 @@ class _SignupScreenState extends State<SignupScreen> {
   String? _validatePassword(String? v) {
     if (v == null || v.isEmpty) return '비밀번호를 입력해주세요.';
     if (v.length < 8) return '비밀번호는 최소 8자 이상이어야 합니다.';
+    if (!RegExp(r'[A-Z]').hasMatch(v)) return '대문자를 1개 이상 포함해야 합니다.';
+    if (!RegExp(r'[0-9]').hasMatch(v)) return '숫자를 1개 이상 포함해야 합니다.';
     if (!RegExp(r'[!@#\$%^&*(),.?":{}|<>_\-+=\[\]\\\/`~]').hasMatch(v)) {
       return '특수문자를 1개 이상 포함해야 합니다.';
     }
@@ -314,7 +316,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Widget _buildPasswordHint() {
     return const Text(
-      '8자 이상, 특수문자(!@#\$ 등) 1개 이상 포함',
+      '8자 이상, 대·소문자·숫자·특수문자(!@#\$ 등) 각 1개 이상',
       style: TextStyle(
         fontSize: 11,
         color: _hintColor,

@@ -15,20 +15,47 @@ class AuthService {
   AuthService._internal();
   static final AuthService instance = AuthService._internal();
 
-  // Amplify 연동 전 화면 테스트용 플래그.
-  // Amplify 설정 완료 후 false로 변경하세요.
-  static const bool _useMock = true;
+  static const bool _useMock = false;
 
   bool _isLoggedIn = false;
   bool get isLoggedIn => _isLoggedIn;
 
   // ────────────────────────────────────────────────────
+  // 앱 시작 시 세션 복원
+  // ────────────────────────────────────────────────────
+
+  Future<void> initialize() async {
+    if (_useMock) return;
+    try {
+      final session = await Amplify.Auth.fetchAuthSession();
+      _isLoggedIn = session.isSignedIn;
+    } catch (_) {
+      _isLoggedIn = false;
+    }
+  }
+
+  // ────────────────────────────────────────────────────
+  // 닉네임 조회
+  // ────────────────────────────────────────────────────
+
+  Future<String> fetchNickname() async {
+    if (_useMock) return '테스트 유저';
+    try {
+      final attributes = await Amplify.Auth.fetchUserAttributes();
+      return attributes
+              .where((a) => a.userAttributeKey == CognitoUserAttributeKey.nickname)
+              .firstOrNull
+              ?.value ??
+          '';
+    } on AuthException {
+      return '';
+    }
+  }
+
+  // ────────────────────────────────────────────────────
   // 회원가입
   // ────────────────────────────────────────────────────
 
-  /// Cognito User Pool에 회원가입 요청.
-  /// 닉네임은 Cognito custom attribute(custom:nickname)으로 함께 전달합니다.
-  /// 성공 시 이메일 인증 코드 발송 → ConfirmSignupScreen으로 이동 필요.
   Future<AuthResult> signUp({
     required String email,
     required String password,
@@ -42,8 +69,7 @@ class AuthService {
         options: SignUpOptions(
           userAttributes: {
             AuthUserAttributeKey.email: email,
-            // Cognito User Pool에 custom attribute "custom:nickname" 설정 필요
-            const CognitoUserAttributeKey.custom('nickname'): nickname,
+            CognitoUserAttributeKey.nickname: nickname,
           },
         ),
       );
