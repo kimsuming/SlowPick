@@ -44,6 +44,7 @@ class _ExampleState extends State<Example> {
     });
 
     try {
+      
       final url = Uri.parse("http://10.0.2.2:8000/predict");
       //10.0.2.2
       //172.30.1.76
@@ -82,6 +83,13 @@ class _ExampleState extends State<Example> {
       isLoading = false;
     });
   }
+
+  @override
+void dispose() {
+  sugarController.dispose();
+  glucoseController.dispose();
+  super.dispose();
+}
 
   // -----------------------------
   // UI

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:slowpick/service/menu_service.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 import 'package:slowpick/widget/menu_cards.dart';
 
@@ -17,6 +17,10 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _isGridView = true;
   late TextEditingController _searchController;
   String _searchText = "";
+
+  List<Map<String, dynamic>> _allMenus = [];
+  bool _isLoading = true;
+  String? _errorMessage;
 
   // 정렬 옵션
   final List<String> _sortOptions = ['모든 메뉴', '최신순', '당류 낮은순', '칼로리 낮은순'];
@@ -50,6 +54,24 @@ class _SearchScreenState extends State<SearchScreen> {
     return '${_selectedBrands.first} 외 ${_selectedBrands.length - 1}';
   }
 
+  List<Map<String, dynamic>> get _filteredMenus {
+    var filtered = _allMenus.where((m) {
+      final name = m['menu_name'] as String? ?? '';
+      final brand = m['brand_name'] as String? ?? '';
+      if (_searchText.isNotEmpty &&
+          !name.toLowerCase().contains(_searchText.toLowerCase())) return false;
+      if (_selectedBrands.isNotEmpty && !_selectedBrands.contains(brand)) return false;
+      return true;
+    }).toList();
+
+    if (_selectedSort == '당류 낮은순') {
+      filtered.sort((a, b) => ((a['sugar'] as num?) ?? 0).compareTo((b['sugar'] as num?) ?? 0));
+    } else if (_selectedSort == '칼로리 낮은순') {
+      filtered.sort((a, b) => ((a['calories'] as num?) ?? 0).compareTo((b['calories'] as num?) ?? 0));
+    }
+    return filtered;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -58,6 +80,24 @@ class _SearchScreenState extends State<SearchScreen> {
     _searchText = initialText;
     if (widget.initialBrand != null && widget.initialBrand != '전체') {
       _selectedBrands.add(widget.initialBrand!);
+    }
+    _loadMenus();
+  }
+
+  Future<void> _loadMenus() async {
+    try {
+      final menus = await MenuService.fetchMenus();
+      if (!mounted) return;
+      setState(() {
+        _allMenus = menus;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
     }
   }
 
@@ -396,129 +436,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
                         // === 검색 결과 리스트 ===
                         Expanded(
-                          child: StreamBuilder<QuerySnapshot>(
-                            stream: FirebaseFirestore.instance
-                                .collection('menus')
-                                .snapshots(),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const Center(
-                                  child: CircularProgressIndicator(
-                                    color: Colors.greenAccent,
-                                  ),
-                                );
-                              }
-                              if (!snapshot.hasData ||
-                                  snapshot.data!.docs.isEmpty) {
-                                return const Center(
-                                  child: Text('저장된 메뉴가 없습니다.'),
-                                );
-                              }
-
-                              final allDocs = snapshot.data!.docs;
-
-                              var filteredDocs = allDocs.where((doc) {
-                                final data = doc.data() as Map<String, dynamic>;
-                                final name = data['menu_name'] as String? ?? '';
-                                final brand =
-                                    data['brand_name'] as String? ?? '';
-
-                                // 1. 검색어 필터
-                                if (_searchText.isNotEmpty &&
-                                    !name.toLowerCase().contains(
-                                      _searchText.toLowerCase(),
-                                    )) {
-                                  return false;
-                                }
-
-                                // [수정] 2. 브랜드 필터 (다중 선택 로직 반영)
-                                // 선택된 브랜드가 1개 이상 존재하고, 현재 메뉴의 브랜드가 선택 목록에 없다면 필터링
-                                if (_selectedBrands.isNotEmpty &&
-                                    !_selectedBrands.contains(brand)) {
-                                  return false;
-                                }
-
-                                return true;
-                              }).toList();
-
-                              // 3. 정렬 로직
-                              if (_selectedSort == '당류 낮은순') {
-                                filteredDocs.sort((a, b) {
-                                  final aData =
-                                      a.data() as Map<String, dynamic>;
-                                  final bData =
-                                      b.data() as Map<String, dynamic>;
-                                  final num aSugar =
-                                      aData['nutrition']?['sugar_g'] ?? 0;
-                                  final num bSugar =
-                                      bData['nutrition']?['sugar_g'] ?? 0;
-                                  return aSugar.compareTo(bSugar);
-                                });
-                              } else if (_selectedSort == '칼로리 낮은순') {
-                                filteredDocs.sort((a, b) {
-                                  final aData =
-                                      a.data() as Map<String, dynamic>;
-                                  final bData =
-                                      b.data() as Map<String, dynamic>;
-                                  final num aCal =
-                                      aData['nutrition']?['calories_kcal'] ?? 0;
-                                  final num bCal =
-                                      bData['nutrition']?['calories_kcal'] ?? 0;
-                                  return aCal.compareTo(bCal);
-                                });
-                              }
-
-                              if (filteredDocs.isEmpty) {
-                                return const Center(
-                                  child: Text('검색 결과가 없습니다.'),
-                                );
-                              }
-
-                              if (_isGridView) {
-                                return GridView.builder(
-                                  padding: EdgeInsets.fromLTRB(
-                                    screenWidth * 0.04,
-                                    10,
-                                    screenWidth * 0.04,
-                                    18,
-                                  ),
-                                  gridDelegate:
-                                      SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 2,
-                                        childAspectRatio: gridAspectRatio,
-                                        crossAxisSpacing: screenWidth * 0.04,
-                                        mainAxisSpacing: screenWidth * 0.04,
-                                      ),
-                                  itemCount: filteredDocs.length,
-                                  itemBuilder: (context, index) {
-                                    final data =
-                                        filteredDocs[index].data()
-                                            as Map<String, dynamic>;
-                                    return MenuGridCard(data: data);
-                                  },
-                                );
-                              } else {
-                                return ListView.separated(
-                                  padding: EdgeInsets.fromLTRB(
-                                    screenWidth * 0.04,
-                                    10,
-                                    screenWidth * 0.04,
-                                    16,
-                                  ),
-                                  itemCount: filteredDocs.length,
-                                  separatorBuilder: (context, index) =>
-                                      SizedBox(height: screenHeight * 0.02),
-                                  itemBuilder: (context, index) {
-                                    final data =
-                                        filteredDocs[index].data()
-                                            as Map<String, dynamic>;
-                                    return MenuListCard(data: data);
-                                  },
-                                );
-                              }
-                            },
-                          ),
+                          child: _buildMenuList(screenWidth, screenHeight, gridAspectRatio),
                         ),
                       ],
                     ),
@@ -530,6 +448,41 @@ class _SearchScreenState extends State<SearchScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildMenuList(double screenWidth, double screenHeight, double gridAspectRatio) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator(color: Colors.greenAccent));
+    }
+    if (_errorMessage != null) {
+      return Center(child: Text('오류: $_errorMessage'));
+    }
+
+    final menus = _filteredMenus;
+    if (menus.isEmpty) {
+      return const Center(child: Text('검색 결과가 없습니다.'));
+    }
+
+    if (_isGridView) {
+      return GridView.builder(
+        padding: EdgeInsets.fromLTRB(screenWidth * 0.04, 10, screenWidth * 0.04, 18),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: gridAspectRatio,
+          crossAxisSpacing: screenWidth * 0.04,
+          mainAxisSpacing: screenWidth * 0.04,
+        ),
+        itemCount: menus.length,
+        itemBuilder: (context, index) => MenuGridCard(data: menus[index]),
+      );
+    } else {
+      return ListView.separated(
+        padding: EdgeInsets.fromLTRB(screenWidth * 0.04, 10, screenWidth * 0.04, 16),
+        itemCount: menus.length,
+        separatorBuilder: (context, index) => SizedBox(height: screenHeight * 0.02),
+        itemBuilder: (context, index) => MenuListCard(data: menus[index]),
+      );
+    }
   }
 
   // 정렬 드롭다운
