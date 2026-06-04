@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:slowpick/screen/confirm_signup_screen.dart';
+import 'package:slowpick/screen/find_password_screen.dart';
 import 'package:slowpick/screen/my_page.dart';
 import 'package:slowpick/screen/signup_screen.dart';
 import 'package:slowpick/service/auth_service.dart';
@@ -134,23 +135,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
               const SizedBox(height: 8),
 
-              // 아이디 찾기 | 비밀번호 찾기
+              // 비밀번호 찾기
               Align(
                 alignment: Alignment.centerRight,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildTextLink('아이디 찾기', onTap: () {}),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 6),
-                      child: Text(
-                        '|',
-                        style: TextStyle(color: _hintColor, fontSize: 12),
-                      ),
+                child: _buildTextLink('비밀번호 찾기', onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const FindPasswordScreen(),
                     ),
-                    _buildTextLink('비밀번호 찾기', onTap: () {}),
-                  ],
-                ),
+                  );
+                }),
               ),
 
               const SizedBox(height: 24),

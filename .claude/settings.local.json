@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(flutter analyze *)"
+      "Bash(flutter analyze *)",
+      "Bash(Remove-Item \"c:\\\\Users\\\\maria\\\\SlowPick\\\\lib\\\\screen\\\\find_id_screen.dart\")"
     ]
   }
 }

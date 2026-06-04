@@ -156,6 +156,68 @@ class AuthService {
   }
 
   // ────────────────────────────────────────────────────
+  // ID 토큰 조회 (EC2 백엔드 인증용)
+  // ────────────────────────────────────────────────────
+
+  /// Cognito ID 토큰을 반환한다. Amplify가 만료 시 자동으로 갱신한다.
+  /// 미로그인 상태이면 null을 반환한다.
+  Future<String?> fetchIdToken() async {
+    if (_useMock) return 'mock-token';
+    try {
+      final session =
+          await Amplify.Auth.fetchAuthSession() as CognitoAuthSession;
+      return session.userPoolTokensResult.value.idToken.raw;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ────────────────────────────────────────────────────
+  // 비밀번호 재설정 코드 전송
+  // ────────────────────────────────────────────────────
+
+  Future<AuthResult> resetPassword({required String email}) async {
+    if (_useMock) return const AuthResult.ok();
+    try {
+      await Amplify.Auth.resetPassword(username: email);
+      return const AuthResult.ok();
+    } on UserNotFoundException {
+      return const AuthResult.fail('등록되지 않은 이메일입니다.');
+    } on AuthException catch (e) {
+      return AuthResult.fail(_parseMessage(e.message));
+    }
+  }
+
+  // ────────────────────────────────────────────────────
+  // 비밀번호 재설정 확인
+  // ────────────────────────────────────────────────────
+
+  Future<AuthResult> confirmResetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    if (_useMock) return const AuthResult.ok();
+    try {
+      await Amplify.Auth.confirmResetPassword(
+        username: email,
+        newPassword: newPassword,
+        confirmationCode: code,
+      );
+      return const AuthResult.ok();
+    } on CodeMismatchException {
+      return const AuthResult.fail('인증 코드가 올바르지 않습니다.');
+    } on ExpiredCodeException {
+      return const AuthResult.fail('인증 코드가 만료되었습니다. 다시 시도해주세요.');
+    } on InvalidPasswordException {
+      return const AuthResult.fail(
+          '비밀번호는 8자 이상, 대소문자·숫자·특수문자를 포함해야 합니다.');
+    } on AuthException catch (e) {
+      return AuthResult.fail(_parseMessage(e.message));
+    }
+  }
+
+  // ────────────────────────────────────────────────────
   // 로그아웃
   // ────────────────────────────────────────────────────
 
