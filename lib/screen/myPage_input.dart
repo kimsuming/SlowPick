@@ -17,8 +17,6 @@ class _MypageInputState extends State<MypageInput> {
   final _heightCtrl        = TextEditingController();
   final _weightCtrl        = TextEditingController();
   final _targetWeightCtrl  = TextEditingController();
-  final _allergyInputCtrl  = TextEditingController();
-  final _allergyFocusNode  = FocusNode();
 
   // ── 당뇨 (선택없음 ↔ 나머지 상호배타) ───────────────────
   bool _diabetes1   = false;
@@ -43,7 +41,6 @@ class _MypageInputState extends State<MypageInput> {
   // ── 알러지 ───────────────────────────────────────────────
   List<String> _selectedAllergies  = [];
   List<String> _availableAllergens = [];
-  List<String> _suggestions        = [];
 
   // ── UI 상태 ───────────────────────────────────────────────
   bool _isLoading = true;
@@ -62,11 +59,6 @@ class _MypageInputState extends State<MypageInput> {
     super.initState();
     _heightCtrl.addListener(_onBodyChanged);
     _weightCtrl.addListener(_onBodyChanged);
-    _allergyFocusNode.addListener(() {
-      if (!_allergyFocusNode.hasFocus) {
-        setState(() => _suggestions = []);
-      }
-    });
     _loadData();
   }
 
@@ -76,8 +68,6 @@ class _MypageInputState extends State<MypageInput> {
     _heightCtrl.dispose();
     _weightCtrl.dispose();
     _targetWeightCtrl.dispose();
-    _allergyInputCtrl.dispose();
-    _allergyFocusNode.dispose();
     super.dispose();
   }
 
@@ -226,40 +216,17 @@ class _MypageInputState extends State<MypageInput> {
   }
 
   // ─────────────────────────────────────────────────────────
-  // 알러지 자동완성
+  // 알러지 토글
   // ─────────────────────────────────────────────────────────
 
-  void _onAllergyInput(String query) {
+  void _toggleAllergen(String allergen) {
     setState(() {
-      if (query.trim().isEmpty) {
-        _suggestions = [];
+      if (_selectedAllergies.contains(allergen)) {
+        _selectedAllergies.remove(allergen);
       } else {
-        _suggestions = _availableAllergens
-            .where((a) =>
-                a.toLowerCase().contains(query.toLowerCase()) &&
-                !_selectedAllergies.contains(a))
-            .take(6)
-            .toList();
+        _selectedAllergies.add(allergen);
       }
     });
-  }
-
-  void _addAllergen(String allergen) {
-    allergen = allergen.trim();
-    if (allergen.isEmpty || _selectedAllergies.contains(allergen)) {
-      _allergyInputCtrl.clear();
-      setState(() => _suggestions = []);
-      return;
-    }
-    setState(() {
-      _selectedAllergies.add(allergen);
-      _allergyInputCtrl.clear();
-      _suggestions = [];
-    });
-  }
-
-  void _removeAllergen(String allergen) {
-    setState(() => _selectedAllergies.remove(allergen));
   }
 
   // ─────────────────────────────────────────────────────────
@@ -506,106 +473,22 @@ class _MypageInputState extends State<MypageInput> {
         children: [
           _sectionTitle('알러지 정보'),
           const SizedBox(height: 14),
-
-          // 선택된 알러지 칩
-          if (_selectedAllergies.isNotEmpty) ...[
+          if (_availableAllergens.isEmpty)
+            const Text(
+              '알러지 목록을 불러오는 중...',
+              style: TextStyle(
+                color: Color(0xFFAAAAAA),
+                fontSize: 13,
+                fontFamily: 'KoPubDotum',
+              ),
+            )
+          else
             Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: _selectedAllergies
-                  .map((a) => _allergenChip(a))
+              spacing: 8,
+              runSpacing: 8,
+              children: _availableAllergens
+                  .map((a) => _allergenToggleChip(a))
                   .toList(),
-            ),
-            const SizedBox(height: 12),
-          ],
-
-          // 입력 필드
-          Container(
-            height: 36,
-            decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFFDDDDDD), width: 1.37),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: TextField(
-              controller: _allergyInputCtrl,
-              focusNode: _allergyFocusNode,
-              onChanged: _onAllergyInput,
-              onSubmitted: _addAllergen,
-              textAlignVertical: TextAlignVertical.center,
-              style: const TextStyle(fontSize: 13, fontFamily: 'KoPubDotum'),
-              decoration: InputDecoration(
-                hintText: '직접 입력 후 Enter, 또는 목록에서 선택',
-                hintStyle: const TextStyle(
-                  color: Color(0xFFBBBBBB),
-                  fontSize: 12,
-                  fontFamily: 'KoPubDotum',
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  borderSide: BorderSide.none,
-                ),
-                suffixIcon: _allergyInputCtrl.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.add_circle_outline,
-                            color: _green, size: 20),
-                        onPressed: () => _addAllergen(_allergyInputCtrl.text),
-                        padding: EdgeInsets.zero,
-                      )
-                    : null,
-              ),
-            ),
-          ),
-
-          // 자동완성 목록
-          if (_suggestions.isNotEmpty)
-            Container(
-              margin: const EdgeInsets.only(top: 4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: const Color(0xFFDDDDDD)),
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x14000000),
-                    blurRadius: 6,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 200),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  padding: EdgeInsets.zero,
-                  itemCount: _suggestions.length,
-                  separatorBuilder: (_, __) =>
-                      const Divider(height: 1, color: Color(0xFFEEEEEE)),
-                  itemBuilder: (context, i) {
-                    final allergen = _suggestions[i];
-                    return InkWell(
-                      onTap: () => _addAllergen(allergen),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 11),
-                        child: Text(
-                          allergen,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontFamily: 'KoPubDotum',
-                            fontWeight: FontWeight.w300,
-                            color: Color(0xFF242526),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
             ),
         ],
       ),
@@ -890,34 +773,31 @@ class _MypageInputState extends State<MypageInput> {
     );
   }
 
-  Widget _allergenChip(String allergen) {
+  Widget _allergenToggleChip(String allergen) {
+    final isSelected = _selectedAllergies.contains(allergen);
     return GestureDetector(
-      onTap: () => _removeAllergen(allergen),
+      onTap: () => _toggleAllergen(allergen),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: ShapeDecoration(
-          color: const Color(0xFFF6FFE4),
+          color: isSelected ? const Color(0xFFF6FFE4) : Colors.white,
           shape: RoundedRectangleBorder(
-            side: const BorderSide(width: 1, color: Color(0xFFB8DE8D)),
+            side: BorderSide(
+              width: 1,
+              color: isSelected ? const Color(0xFFB8DE8D) : const Color(0xFFDDDDDD),
+            ),
             borderRadius: BorderRadius.circular(4),
           ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.close, color: Color(0xFFB8DE8D), size: 15),
-            const SizedBox(width: 3),
-            Text(
-              allergen,
-              style: const TextStyle(
-                color: _lightGreen,
-                fontSize: 12,
-                fontFamily: 'KoPubDotum',
-                fontWeight: FontWeight.w500,
-                letterSpacing: -0.24,
-              ),
-            ),
-          ],
+        child: Text(
+          allergen,
+          style: TextStyle(
+            color: isSelected ? _lightGreen : const Color(0xFF888888),
+            fontSize: 13,
+            fontFamily: 'KoPubDotum',
+            fontWeight: FontWeight.w500,
+            letterSpacing: -0.24,
+          ),
         ),
       ),
     );
