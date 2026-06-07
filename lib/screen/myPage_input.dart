@@ -155,8 +155,9 @@ class _MypageInputState extends State<MypageInput> {
       _showSnack('저장되었습니다.', isError: false);
     } on UnauthorizedException {
       _showSnack('인증이 만료되었습니다. 다시 로그인해주세요.');
-    } catch (_) {
-      _showSnack('저장에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    } catch (e) {
+      debugPrint('[저장 오류] $e');
+      _showSnack('저장 실패: $e');
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
