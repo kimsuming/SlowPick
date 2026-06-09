@@ -98,11 +98,14 @@ S3_BUCKET=<버킷 이름>
 
 | 메서드 | 경로 | 설명 |
 |---|---|---|
-| GET | `/api/menus` | 목록 (`?search=&brands=&sort=`) |
-| GET | `/api/menus/recommended` | 추천 메뉴 10개 (RAND) |
+| GET | `/api/menus` | 목록 (`?search=&brands=&sort=`) — 응답에 `is_liked: bool` 포함 |
+| GET | `/api/menus/recommended` | 추천 메뉴 10개 (RAND) — `is_liked` 포함 |
 | GET | `/api/menus/names` | 메뉴명 목록 (자동완성용) |
+| GET | `/api/menus/liked` | 내가 찜한 메뉴 목록 (`is_liked: true` 항상) |
+| POST | `/api/menus/:id/like` | 찜 토글 → `{ liked: bool }` |
 
 - 실제 컬럼명: `menu_name`, `brand_name` (`name`, `brand` 아님)
+- `is_liked`: 로그인 유저 기준 찜 여부, MySQL EXISTS 서브쿼리로 실시간 계산
 
 ### 유저 `/api/user`
 
@@ -189,6 +192,8 @@ menus          -- id BIGINT PK AUTO, doc_id VARCHAR(255) UNI, brand_name, menu_n
                --   size_standard, image_url TEXT, calories/sugar/protein/caffeine/saturated_fat/sodium DECIMAL(6,1),
                --   nutrition_json JSON, is_active tinyint(1) default 1, last_updated_at, created_at
 menu_allergies -- id BIGINT PK AUTO, menu_id FK, allergy_name VARCHAR(100), created_at
+menu_likes     -- (menu_id, cognito_sub) PK, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+               --   FK: menu_id → menus(id) CASCADE, cognito_sub → users CASCADE
 ```
 
 ### 소통 게시판
@@ -230,6 +235,7 @@ denormalized 카운터는 관련 행 변경 시 반드시 UPDATE:
 | comments DELETE | `posts.comment_count` -1 |
 | comment_likes INSERT/DELETE | `comments.like_count` |
 | recipe_likes INSERT/DELETE | `recipes.like_count` |
+| menu_likes INSERT/DELETE | 카운터 없음 (menus 테이블 컬럼 없음 — EXISTS 서브쿼리로 실시간 계산) |
 
 ### FK 규칙
 
@@ -291,3 +297,5 @@ final response = await ApiClient.instance.post('/api/posts', body: { ... });
 | community_write | POST /api/posts |
 | community_recipe | GET /api/recipes |
 | community_recipewrite | POST /api/upload/presign → PUT S3 → POST /api/recipes |
+| menu_liked_screen | GET /api/menus/liked, POST /api/menus/:id/like |
+| search.dart | GET /api/menus (is_liked 포함), POST /api/menus/:id/like |

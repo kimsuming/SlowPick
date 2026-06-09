@@ -36,4 +36,18 @@ class MenuService {
     final body = jsonDecode(response.body) as Map<String, dynamic>;
     return List<String>.from(body['names']);
   }
+
+  static Future<bool> likeMenu(int id) async {
+    final response = await ApiClient.instance.post('/api/menus/$id/like');
+    if (response.statusCode != 200) throw Exception('찜 실패 (${response.statusCode})');
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    return body['liked'] as bool;
+  }
+
+  static Future<List<Map<String, dynamic>>> fetchLikedMenus() async {
+    final response = await ApiClient.instance.get('/api/menus/liked');
+    if (response.statusCode != 200) throw Exception('찜 목록 로드 실패 (${response.statusCode})');
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    return List<Map<String, dynamic>>.from(body['menus']);
+  }
 }
