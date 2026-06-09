@@ -69,7 +69,8 @@ src/
 - **모든 라우터에 `auth` 미들웨어 필수** — 없으면 인증 없이 접근 가능
 - `req.user.sub` = Cognito sub → RDS `cognito_sub` FK 로 사용
 - 에러는 `next(err)` → `app.js` 전역 핸들러가 500 반환
-- 소프트 삭제 (`is_deleted = 1`) 사용, 실제 행 삭제 안 함
+- 소프트 삭제 없음 — `posts`, `recipes`, `comments` 모두 `is_deleted` 컬럼 없음, 실제 DELETE 사용
+- `posts`, `recipes`에 denormalized 카운터 컬럼 존재 (`like_count`, `dislike_count`, `comment_count` 등) — 투표/댓글 변경 시 반드시 UPDATE로 동기화
 - `posts.js` 에서 `/comments/:id/like` 경로를 `/:id` 경로보다 **반드시 먼저** 등록
 
 ### .env 항목
@@ -138,12 +139,12 @@ S3_BUCKET=<버킷 이름>
 | GET | `/api/posts` | 목록 (`?page=&limit=&q=&sort=latest\|popular`) |
 | POST | `/api/posts` | 글 작성 `{ title, content }` |
 | GET | `/api/posts/:id` | 상세 + 조회수 +1 |
-| DELETE | `/api/posts/:id` | 소프트 삭제 (본인만) |
-| POST | `/api/posts/:id/vote` | 추천·싫어요 토글 `{ type: 'like'\|'dislike' }` |
+| DELETE | `/api/posts/:id` | 실제 삭제 (본인만) |
+| POST | `/api/posts/:id/vote` | 추천·싫어요 토글 `{ type: 'like'\|'dislike' }` — posts.like_count/dislike_count 동기화 |
 | POST | `/api/posts/:id/bookmark` | 북마크 토글 |
 | GET | `/api/posts/:id/comments` | 댓글 목록 (2단계 계층) |
-| POST | `/api/posts/:id/comments` | 댓글·답글 작성 `{ content, parent_id? }` |
-| POST | `/api/posts/comments/:id/like` | 댓글 좋아요 토글 |
+| POST | `/api/posts/:id/comments` | 댓글·답글 작성 `{ content, parent_id? }` — posts.comment_count 동기화 |
+| POST | `/api/posts/comments/:id/like` | 댓글 좋아요 토글 — comments.like_count 동기화 |
 
 ### 레시피 게시판 `/api/recipes`
 
@@ -152,8 +153,8 @@ S3_BUCKET=<버킷 이름>
 | GET | `/api/recipes` | 목록 (`?page=&limit=&q=&sort=latest\|popular&mine=true&liked=true`) |
 | POST | `/api/recipes` | 작성 `{ title, content, thumbnail_url?, tags? }` |
 | GET | `/api/recipes/:id` | 상세 + 조회수 +1 |
-| DELETE | `/api/recipes/:id` | 소프트 삭제 (본인만) |
-| POST | `/api/recipes/:id/like` | 찜 토글 |
+| DELETE | `/api/recipes/:id` | 실제 삭제 (본인만) |
+| POST | `/api/recipes/:id/like` | 찜 토글 — recipes.like_count 동기화 |
 
 ### 이미지 업로드 `/api/upload`
 
@@ -173,41 +174,67 @@ S3_BUCKET=<버킷 이름>
 ### 유저
 
 ```sql
-users               -- cognito_sub (PK), email, nickname, created_at, updated_at
-user_health_info    -- cognito_sub (PK/FK), 당뇨·유제품·카페인·고카페인·체형 정보
-user_allergies      -- id, cognito_sub (FK), allergen
+users             -- cognito_sub VARCHAR(36) PK, email VARCHAR(255) UNI, nickname VARCHAR(50), created_at, updated_at
+user_health_info  -- cognito_sub PK/FK, diabetes_type1/2/pre, dairy_edible/inedible/lactose_intolerant,
+                  --   caffeine_edible/inedible, risk_pregnant/hypertension/minor (모두 tinyint(1) default 0)
+                  --   height_cm DECIMAL(5,1), weight_kg DECIMAL(5,1), target_weight_kg DECIMAL(5,1), updated_at
+user_allergies    -- id BIGINT PK AUTO, cognito_sub FK, allergen VARCHAR(100)
 ```
 
 ### 메뉴
 
 ```sql
-menus               -- 음료 메뉴 (menu_name, brand_name, calories, sugar, price, ...)
-menu_allergies      -- menu_id (FK), allergy_name
+brands         -- id BIGINT PK AUTO, brand_name VARCHAR(100) UNI, created_at
+menus          -- id BIGINT PK AUTO, doc_id VARCHAR(255) UNI, brand_name, menu_name, category, description,
+               --   size_standard, image_url TEXT, calories/sugar/protein/caffeine/saturated_fat/sodium DECIMAL(6,1),
+               --   nutrition_json JSON, is_active tinyint(1) default 1, last_updated_at, created_at
+menu_allergies -- id BIGINT PK AUTO, menu_id FK, allergy_name VARCHAR(100), created_at
 ```
 
 ### 소통 게시판
 
 ```sql
-community_posts          -- id, cognito_sub (FK), title, content, view_count, is_deleted, created_at
-community_post_votes     -- (post_id, cognito_sub) PK, type ENUM('like','dislike')
-community_post_bookmarks -- (post_id, cognito_sub) PK
-community_comments       -- id, post_id (FK), parent_id (FK, NULL=댓글 / 값=답글), cognito_sub, content, is_deleted, created_at
-community_comment_likes  -- (comment_id, cognito_sub) PK
+posts          -- id BIGINT PK AUTO, cognito_sub FK, title VARCHAR(200), content TEXT,
+               --   view_count INT default 0, like_count INT default 0, dislike_count INT default 0,
+               --   comment_count INT default 0, created_at
+               --   ※ is_deleted 없음 — 실제 DELETE 사용
+post_votes     -- (post_id, cognito_sub) PK, type ENUM('like','dislike')
+post_bookmarks -- (post_id, cognito_sub) PK
+comments       -- id BIGINT PK AUTO, post_id BIGINT NULL, recipe_id BIGINT NULL,
+               --   parent_id BIGINT NULL (NULL=댓글 / 값=답글), cognito_sub, content TEXT,
+               --   like_count INT default 0, created_at
+               --   ※ 소통+레시피 댓글 통합 테이블. post_id/recipe_id 중 하나만 사용
+               --   ※ is_deleted 없음 — 실제 DELETE 사용
+comment_likes  -- (comment_id, cognito_sub) PK
 ```
 
 ### 레시피 게시판
 
 ```sql
-community_recipes      -- id, cognito_sub (FK), title, content, thumbnail_url, view_count, is_deleted, created_at
-community_recipe_tags  -- (recipe_id, tag) PK
-community_recipe_likes -- (recipe_id, cognito_sub) PK
+recipes      -- id BIGINT PK AUTO, cognito_sub FK, title VARCHAR(200), content TEXT,
+             --   thumbnail_url VARCHAR(500), view_count INT default 0, like_count INT default 0, created_at
+             --   ※ is_deleted 없음 — 실제 DELETE 사용
+recipe_tags  -- (recipe_id, tag VARCHAR(50)) PK
+recipe_likes -- (recipe_id, cognito_sub) PK
 ```
+
+### 카운터 동기화 규칙
+
+denormalized 카운터는 관련 행 변경 시 반드시 UPDATE:
+
+| 이벤트 | 업데이트 대상 |
+|---|---|
+| post_votes INSERT/DELETE | `posts.like_count` 또는 `posts.dislike_count` |
+| post_bookmarks INSERT/DELETE | 카운터 없음 |
+| comments INSERT | `posts.comment_count` +1 (또는 recipes는 별도 카운터 없음) |
+| comments DELETE | `posts.comment_count` -1 |
+| comment_likes INSERT/DELETE | `comments.like_count` |
+| recipe_likes INSERT/DELETE | `recipes.like_count` |
 
 ### FK 규칙
 
 - 모든 유저 관련 테이블: `cognito_sub` → `users.cognito_sub`
 - 게시글/레시피/댓글: `ON DELETE CASCADE`
-- 소프트 삭제(`is_deleted=1`) 사용 — 실제 행 삭제 없음
 
 ---
 
