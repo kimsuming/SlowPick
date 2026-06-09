@@ -4,6 +4,8 @@ import 'package:slowpick/screen/my_page.dart';
 import 'package:slowpick/screen/community_screen.dart';
 import 'package:slowpick/screen/likedmenu_screen.dart';
 import 'package:slowpick/screen/mainNote.dart';
+import 'package:slowpick/screen/login_screen.dart';
+import 'package:slowpick/service/auth_service.dart';
 
 class BottomBarNew extends StatelessWidget {
   const BottomBarNew({super.key});
@@ -127,10 +129,17 @@ class BottomBarNew extends StatelessWidget {
           // 내 정보 버튼
           GestureDetector(
             onTap: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => MyPageScreen()),
-              );
+              if (AuthService.instance.isLoggedIn) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => MyPageScreen()),
+                );
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                );
+              }
             },
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
