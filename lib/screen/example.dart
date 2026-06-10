@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -91,7 +92,7 @@ class PredictResponse {
 }
 
 // ─────────────────────────────────────────
-// 상태값 enum (서버 스키마와 일치)
+// 상태값 enum
 // ─────────────────────────────────────────
 enum MealStatus {
   fasting(0, '공복'),
@@ -125,9 +126,7 @@ class Example extends StatefulWidget {
 
 class _ExampleState extends State<Example> {
   // 음료 입력
-  final TextEditingController drinkNameController = TextEditingController(
-    text: '',
-  );
+  final TextEditingController drinkNameController = TextEditingController();
   final TextEditingController sugarController = TextEditingController();
   final TextEditingController carbsController = TextEditingController();
   final TextEditingController fatController = TextEditingController(text: '0');
@@ -139,11 +138,65 @@ class _ExampleState extends State<Example> {
   bool isInsulin = false;
   bool isMedication = false;
 
+  // 예측 결과
   PredictResponse? result;
   bool isLoading = false;
 
   // ─────────────────────────────────────────
-  // API 호출
+  // 실측값 입력 (추가된 부분)
+  // ─────────────────────────────────────────
+  final TextEditingController actual30Controller = TextEditingController();
+  final TextEditingController actual60Controller = TextEditingController();
+  final TextEditingController actual120Controller = TextEditingController();
+
+  bool isRecording = false; // /record 전송 중
+  bool recordDone = false; // 기록 완료 여부
+
+  // 타이머
+  Timer? _timer;
+  int _timerSeconds = 5; // 30분 = 1800초
+  bool _timerRunning = false;
+  bool _timerDone = false;
+
+  // ─────────────────────────────────────────
+  // 타이머 시작
+  // ─────────────────────────────────────────
+  void _startTimer() {
+    setState(() {
+      _timerSeconds = 5; // 테스트용으로 5초로 설정 (실제론 1800초) 30 * 60
+      _timerRunning = true;
+      _timerDone = false;
+      recordDone = false;
+    });
+
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (_timerSeconds <= 0) {
+        t.cancel();
+        setState(() {
+          _timerRunning = false;
+          _timerDone = true;
+        });
+      } else {
+        setState(() => _timerSeconds--);
+      }
+    });
+  }
+
+  String get _timerLabel {
+    final m = _timerSeconds ~/ 60;
+    final s = _timerSeconds % 60;
+    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  // ─────────────────────────────────────────
+  // /predict 호출
   // ─────────────────────────────────────────
   Future<void> predictGlucose() async {
     if (sugarController.text.isEmpty || glucoseController.text.isEmpty) {
@@ -154,17 +207,16 @@ class _ExampleState extends State<Example> {
     setState(() => isLoading = true);
 
     try {
-      final url = Uri.parse('http://10.0.2.2:8000/predict');
-
+      final url = Uri.parse('http://3.34.7.133:8000/predict');
       final body = jsonEncode({
-        'user_id': 'user_001', // 실제 앱에서는 로그인된 사용자 ID로 교체
+        'user_id': 'user_001',
         'drink': {
           'name': drinkNameController.text.isEmpty
               ? '음료'
               : drinkNameController.text,
           'sugar_g': double.parse(sugarController.text),
           'carbs_g': carbsController.text.isEmpty
-              ? double.parse(sugarController.text) // carbs 미입력 시 sugar로 대체
+              ? double.parse(sugarController.text)
               : double.parse(carbsController.text),
           'fat_g': double.parse(fatController.text),
         },
@@ -183,7 +235,11 @@ class _ExampleState extends State<Example> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        setState(() => result = PredictResponse.fromJson(data));
+        setState(() {
+          result = PredictResponse.fromJson(data);
+          recordDone = false;
+        });
+        _startTimer(); // 예측 성공 → 타이머 자동 시작
       } else {
         _showSnack('서버 오류: ${response.statusCode}');
       }
@@ -192,6 +248,79 @@ class _ExampleState extends State<Example> {
     }
 
     setState(() => isLoading = false);
+  }
+
+  // ─────────────────────────────────────────
+  // /record 호출 (추가된 부분)
+  // ─────────────────────────────────────────
+  Future<void> recordActual() async {
+    // 하나도 입력 안 했으면 막기
+    if (actual30Controller.text.isEmpty &&
+        actual60Controller.text.isEmpty &&
+        actual120Controller.text.isEmpty) {
+      _showSnack('측정값을 하나 이상 입력하세요');
+      return;
+    }
+
+    setState(() => isRecording = true);
+
+    try {
+      final url = Uri.parse('http://3.34.7.133:8000/record');
+
+      // null 처리: 입력 안 한 항목은 null로 전송
+      double? actual30 = actual30Controller.text.isNotEmpty
+          ? double.parse(actual30Controller.text)
+          : null;
+      double? actual60 = actual60Controller.text.isNotEmpty
+          ? double.parse(actual60Controller.text)
+          : null;
+      double? actual120 = actual120Controller.text.isNotEmpty
+          ? double.parse(actual120Controller.text)
+          : null;
+
+      final body = jsonEncode({
+        'user_id': 'user_001',
+        'predict_request': {
+          'user_id': 'user_001',
+          'drink': {
+            'name': drinkNameController.text.isEmpty
+                ? '음료'
+                : drinkNameController.text,
+            'sugar_g': double.parse(sugarController.text),
+            'carbs_g': carbsController.text.isEmpty
+                ? double.parse(sugarController.text)
+                : double.parse(carbsController.text),
+            'fat_g': double.parse(fatController.text),
+          },
+          'current_glucose': double.parse(glucoseController.text),
+          'meal_status': selectedMeal.value,
+          'exercise_level': selectedExercise.value,
+          'insulin_taken': isInsulin,
+          'medication_taken': isMedication,
+        },
+        'actual_glucose_30m': actual30,
+        'actual_glucose_60m': actual60,
+        'actual_glucose_120m': actual120,
+      });
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: body,
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() => recordDone = true);
+        _showSnack('✅ 기록 완료! ${data['message']}');
+      } else {
+        _showSnack('기록 실패: ${response.statusCode}');
+      }
+    } catch (e) {
+      _showSnack('기록 실패: $e');
+    }
+
+    setState(() => isRecording = false);
   }
 
   void _showSnack(String msg) {
@@ -233,11 +362,7 @@ class _ExampleState extends State<Example> {
                   const SizedBox(height: 16),
                   _inputField('당류 (g)', sugarController, hint: '예: 39'),
                   const SizedBox(height: 16),
-                  _inputField(
-                    '탄수화물 (g)',
-                    carbsController,
-                    hint: '예: 42 (없으면 당류와 동일 적용)',
-                  ),
+                  _inputField('탄수화물 (g)', carbsController, hint: '예: 42'),
                   const SizedBox(height: 16),
                   _inputField('지방 (g)', fatController, hint: '예: 0'),
                   const SizedBox(height: 16),
@@ -248,7 +373,6 @@ class _ExampleState extends State<Example> {
                   ),
                   const SizedBox(height: 20),
 
-                  // 식사 상태
                   _sectionLabel('마지막 식사'),
                   _segmentRow(
                     MealStatus.values.map((e) => e.label).toList(),
@@ -257,7 +381,6 @@ class _ExampleState extends State<Example> {
                   ),
                   const SizedBox(height: 16),
 
-                  // 운동
                   _sectionLabel('운동'),
                   _segmentRow(
                     ExerciseLevel.values.map((e) => e.label).toList(),
@@ -268,7 +391,6 @@ class _ExampleState extends State<Example> {
                   ),
                   const SizedBox(height: 16),
 
-                  // 인슐린 / 약
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 40),
                     child: Row(
@@ -293,11 +415,14 @@ class _ExampleState extends State<Example> {
                   ),
                   const SizedBox(height: 24),
 
-                  // 모델 단계 경고 배지
                   if (result?.accuracyWarning != null) _accuracyBadge(),
-
-                  // 결과 카드
                   _resultSection(size),
+
+                  // ─── 타이머 + 실측값 입력 (추가된 부분) ───
+                  if (result != null) ...[
+                    const SizedBox(height: 8),
+                    _timerSection(),
+                  ],
                 ],
               ),
             ),
@@ -350,7 +475,216 @@ class _ExampleState extends State<Example> {
   }
 
   // ─────────────────────────────────────────
-  // 위젯 헬퍼
+  // 타이머 + 실측값 입력 위젯 (핵심 추가 부분)
+  // ─────────────────────────────────────────
+  Widget _timerSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 40),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 기록 완료 상태
+          if (recordDone)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFe8f5ee),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF1a6b4a), width: 1),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_circle, color: Color(0xFF1a6b4a)),
+                  SizedBox(width: 8),
+                  Text(
+                    '실측값 기록 완료! 모델 학습에 반영됩니다.',
+                    style: TextStyle(
+                      color: Color(0xFF1a6b4a),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          // 타이머 진행 중
+          else if (_timerRunning)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F8F8),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFCCCCCC), width: 1),
+              ),
+              child: Column(
+                children: [
+                  const Text(
+                    '30분 후 혈당을 측정해주세요',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF242526),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _timerLabel,
+                    style: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1a6b4a),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    '남은 시간',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF888888)),
+                  ),
+                ],
+              ),
+            )
+          // 타이머 완료 → 실측값 입력
+          else if (_timerDone)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF1a6b4a), width: 1.5),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(
+                        Icons.notifications_active,
+                        color: Color(0xFF1a6b4a),
+                        size: 18,
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        '혈당을 측정하고 입력해주세요',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1a6b4a),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    '입력할수록 예측 정확도가 높아져요',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF888888)),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // 실측값 입력 3개
+                  _actualInputField(
+                    '30분 후 실측 혈당 (mg/dL)',
+                    actual30Controller,
+                    hint: '예: 128',
+                  ),
+                  const SizedBox(height: 10),
+                  _actualInputField(
+                    '60분 후 실측 혈당 (mg/dL)',
+                    actual60Controller,
+                    hint: '예: 145',
+                  ),
+                  const SizedBox(height: 10),
+                  _actualInputField(
+                    '120분 후 실측 혈당 (mg/dL)',
+                    actual120Controller,
+                    hint: '예: 118',
+                  ),
+                  const SizedBox(height: 14),
+
+                  // 기록하기 버튼
+                  GestureDetector(
+                    onTap: isRecording ? null : recordActual,
+                    child: Container(
+                      width: double.infinity,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1a6b4a),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: isRecording
+                            ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
+                            : const Text(
+                                '기록하기',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          const SizedBox(height: 80),
+        ],
+      ),
+    );
+  }
+
+  Widget _actualInputField(
+    String label,
+    TextEditingController controller, {
+    String hint = '',
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: Color(0xFF888888)),
+        ),
+        const SizedBox(height: 4),
+        TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(color: Color(0xFFBBBBBB), fontSize: 13),
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 10,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(
+                color: Color(0xFFCCCCCC),
+                width: 1.5,
+              ),
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(
+                color: Color(0xFFCCCCCC),
+                width: 1.5,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─────────────────────────────────────────
+  // 기존 위젯 헬퍼 (변경 없음)
   // ─────────────────────────────────────────
   Widget _inputField(
     String label,
@@ -563,8 +897,6 @@ class _ExampleState extends State<Example> {
               ),
             ),
           ),
-
-          // 메인 예측 카드
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 18),
@@ -629,10 +961,7 @@ class _ExampleState extends State<Example> {
               ],
             ),
           ),
-
           const SizedBox(height: 12),
-
-          // 30분 / 60분 / 120분 요약
           Row(
             children: [
               _miniStatCard('30분 후', result!.predicted30m, textColor),
@@ -642,10 +971,7 @@ class _ExampleState extends State<Example> {
               _miniStatCard('120분 후', result!.predicted120m, textColor),
             ],
           ),
-
           const SizedBox(height: 12),
-
-          // 상승량 + 모델 단계
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(14),
@@ -676,14 +1002,10 @@ class _ExampleState extends State<Example> {
               ],
             ),
           ),
-
           const SizedBox(height: 12),
-
-          // AI 코칭
           if (result!.coachingDrinkAlt != null ||
               result!.coachingAction != null)
             _coachingCard(),
-
           const SizedBox(height: 8),
         ],
       ),

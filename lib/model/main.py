@@ -109,11 +109,22 @@ def user_stats(user_id: str):
     )
 
 
+from fastapi import Header, HTTPException
+
+ADMIN_TOKEN = "123456"
+
+
 @app.post("/admin/retrain-shared")
-def retrain_shared():
-    """공용 모델 전체 재학습 (관리자용)"""
+def retrain_shared(x_admin_token: str = Header(None)):
+    if x_admin_token != ADMIN_TOKEN:
+        raise HTTPException(status_code=403, detail="관리자 권한 필요")
+
     model_manager.train_shared_model()
-    return {"status": "ok", "message": "공용 모델 재학습 완료"}
+
+    return {
+        "status": "ok",
+        "message": "공용 모델 재학습 완료"
+    }
 
 
 if __name__ == "__main__":

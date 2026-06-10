@@ -42,13 +42,13 @@ class ModelManager:
     # ──────────────────────────────────────────
 
     def get_model_stage(self, record_count: int) -> int:
-        if record_count >= STAGE4_MIN:
+        if record_count >= STAGE4_MIN: # 4단계: 100건 이상 (개인 LSTM)
             return 4
-        if record_count >= STAGE3_MIN:
+        if record_count >= STAGE3_MIN: # 3단계: 30~99건 (개인 전용 RF)
             return 3
-        if record_count >= STAGE2_MIN:
+        if record_count >= STAGE2_MIN: # 2단계: 3~29건 (공용 모델 + 편차 보정)
             return 2
-        return 1
+        return 1 # 1단계: 0~2건 (공용 모델)
 
     def get_stage_label(self, stage: int) -> str:
         return {
