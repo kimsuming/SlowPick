@@ -17,9 +17,10 @@ Map<String, Color> _getSugarColor(num sugar) {
 // === 그리드 뷰 카드 위젯 === 세로로 긴 카드
 class MenuGridCard extends StatelessWidget {
   final Map<String, dynamic> data;
+  final bool isLiked;
+  final VoidCallback? onLikeTap;
 
-  // 생성자: data를 필수로 받음
-  const MenuGridCard({super.key, required this.data});
+  const MenuGridCard({super.key, required this.data, this.isLiked = false, this.onLikeTap});
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +107,7 @@ class MenuGridCard extends StatelessWidget {
                   Positioned(
                     right: 8,
                     top: 8,
-                    child: const _HeartIcon(size: 35),
+                    child: _HeartIcon(size: 35, isLiked: isLiked, onTap: onLikeTap),
                   ),
                 ],
               ),
@@ -192,8 +193,10 @@ class MenuGridCard extends StatelessWidget {
 // === 리스트 뷰 카드 위젯 === 가로로 긴 카드
 class MenuListCard extends StatelessWidget {
   final Map<String, dynamic> data;
+  final bool isLiked;
+  final VoidCallback? onLikeTap;
 
-  const MenuListCard({super.key, required this.data});
+  const MenuListCard({super.key, required this.data, this.isLiked = false, this.onLikeTap});
 
   @override
   Widget build(BuildContext context) {
@@ -303,7 +306,7 @@ class MenuListCard extends StatelessWidget {
                             ],
                           ),
                         ),
-                        const _HeartIcon(size: 24),
+                        _HeartIcon(size: 24, isLiked: isLiked, onTap: onLikeTap),
                       ],
                     ),
                     Row(
@@ -335,22 +338,26 @@ class MenuListCard extends StatelessWidget {
 // 찜 뱃지
 class _HeartIcon extends StatelessWidget {
   final double size;
-  const _HeartIcon({this.size = 30});
+  final bool isLiked;
+  final VoidCallback? onTap;
+  const _HeartIcon({this.size = 30, this.isLiked = false, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: const BoxDecoration(
-        color: Colors.white38,
-        shape: BoxShape.circle,
-      ),
-      child: Icon(
-        Icons.favorite_border,
-        size: size * 0.8,
-        color: Colors.black26,
-        //color: const Color(0xFF65B700),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: const BoxDecoration(
+          color: Colors.white38,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          isLiked ? Icons.favorite : Icons.favorite_border,
+          size: size * 0.8,
+          color: isLiked ? const Color(0xFFEF4444) : Colors.black26,
+        ),
       ),
     );
   }

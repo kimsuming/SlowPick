@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:slowpick/screen/home_screen.dart';
+import 'package:slowpick/service/auth_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -34,7 +35,10 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    Future.delayed(const Duration(milliseconds: 2200), () {
+    Future.wait([
+      AuthService.instance.initialize(),
+      Future.delayed(const Duration(milliseconds: 2200)),
+    ]).then((_) {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(

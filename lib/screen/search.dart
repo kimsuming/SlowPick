@@ -101,6 +101,19 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  Future<void> _toggleLike(int menuId) async {
+    final idx = _allMenus.indexWhere((m) => m['id'] as int == menuId);
+    if (idx == -1) return;
+    final currently = _allMenus[idx]['is_liked'] as bool? ?? false;
+    setState(() => _allMenus[idx]['is_liked'] = !currently);
+    try {
+      await MenuService.likeMenu(menuId);
+    } catch (e) {
+      setState(() => _allMenus[idx]['is_liked'] = currently);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+    }
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -473,14 +486,22 @@ class _SearchScreenState extends State<SearchScreen> {
           mainAxisSpacing: screenWidth * 0.04,
         ),
         itemCount: menus.length,
-        itemBuilder: (context, index) => MenuGridCard(data: menus[index]),
+        itemBuilder: (context, index) => MenuGridCard(
+          data: menus[index],
+          isLiked: menus[index]['is_liked'] as bool? ?? false,
+          onLikeTap: () => _toggleLike(menus[index]['id'] as int),
+        ),
       );
     } else {
       return ListView.separated(
         padding: EdgeInsets.fromLTRB(screenWidth * 0.04, 10, screenWidth * 0.04, 16),
         itemCount: menus.length,
         separatorBuilder: (context, index) => SizedBox(height: screenHeight * 0.02),
-        itemBuilder: (context, index) => MenuListCard(data: menus[index]),
+        itemBuilder: (context, index) => MenuListCard(
+          data: menus[index],
+          isLiked: menus[index]['is_liked'] as bool? ?? false,
+          onLikeTap: () => _toggleLike(menus[index]['id'] as int),
+        ),
       );
     }
   }
