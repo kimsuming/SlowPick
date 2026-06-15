@@ -3,6 +3,7 @@ import 'package:slowpick/widget/bottomBar_new.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:slowpick/widget/menu_cards.dart';
 import 'package:slowpick/screen/menu_detail_screen.dart';
+import 'package:slowpick/screen/chat_screen.dart';
 
 class RecommendedMenuScreen extends StatefulWidget {
   const RecommendedMenuScreen({super.key});
@@ -20,6 +21,17 @@ class _RecommendedMenuScreenState extends State<RecommendedMenuScreen> {
     final double gridAspectRatio = (screenWidth / 2) / (screenHeight * 0.38);
 
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final created = await Navigator.push<bool>(
+            context,
+            MaterialPageRoute(builder: (_) => ChatScreen(userId: 1)),
+          );
+        },
+        shape: const CircleBorder(),
+        backgroundColor: const Color(0xFF74AE31),
+        child: Image.asset("images/home/chatbot.png", width: 30, height: 30),
+      ),
       bottomNavigationBar: Container(
         color: Color(0xFFFCFCFC), // << 여기 색이 하단까지 채워짐
         child: SafeArea(top: false, child: BottomBarNew()),

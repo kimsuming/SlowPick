@@ -30,7 +30,9 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
       if (mounted) setState(() => _likedMenus = menus);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$e')));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -99,13 +101,17 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
                 width: 150,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: !isCategoryView ? Colors.white : const Color(0xFFF5F5F5),
+                  color: !isCategoryView
+                      ? Colors.white
+                      : const Color(0xFFF5F5F5),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Center(
-                  child: Text('전체',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                  child: Text(
+                    '전체',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
                 ),
               ),
             ),
@@ -119,13 +125,17 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
                 width: 150,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: isCategoryView ? Colors.white : const Color(0xFFF5F5F5),
+                  color: isCategoryView
+                      ? Colors.white
+                      : const Color(0xFFF5F5F5),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Center(
-                  child: Text('카페별 보기',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                  child: Text(
+                    '카페별 보기',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
                 ),
               ),
             ),
@@ -145,11 +155,16 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
   }
 
   // 공통 그리드 - 전체 찜 목록 / 브랜드 필터 모두 사용
-  Widget _likedMenuGrid(List<Map<String, dynamic>> menus, {required bool showBack}) {
+  Widget _likedMenuGrid(
+    List<Map<String, dynamic>> menus, {
+    required bool showBack,
+  }) {
     if (_loading) {
       return const Padding(
         padding: EdgeInsets.only(top: 60),
-        child: Center(child: CircularProgressIndicator(color: Color(0xFF187100))),
+        child: Center(
+          child: CircularProgressIndicator(color: Color(0xFF187100)),
+        ),
       );
     }
 
@@ -167,8 +182,11 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
             child: Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new,
-                      color: Colors.black54, size: 20),
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new,
+                    color: Colors.black54,
+                    size: 20,
+                  ),
                   onPressed: () => setState(() => _selectedBrand = null),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -177,9 +195,10 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
                 Text(
                   _selectedBrand ?? '',
                   style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -1),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -1,
+                  ),
                 ),
               ],
             ),
@@ -208,11 +227,16 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.favorite_border,
-                      size: 60, color: Color(0xFFCCCCCC)),
+                  Icon(
+                    Icons.favorite_border,
+                    size: 60,
+                    color: Color(0xFFCCCCCC),
+                  ),
                   SizedBox(height: 12),
-                  Text('찜한 메뉴가 없습니다.',
-                      style: TextStyle(color: Colors.grey, fontSize: 16)),
+                  Text(
+                    '찜한 메뉴가 없습니다.',
+                    style: TextStyle(color: Colors.grey, fontSize: 16),
+                  ),
                 ],
               ),
             ),
@@ -222,7 +246,11 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             padding: EdgeInsets.fromLTRB(
-                screenWidth * 0.04, 0, screenWidth * 0.04, 18),
+              screenWidth * 0.04,
+              0,
+              screenWidth * 0.04,
+              18,
+            ),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               childAspectRatio: ratio,
@@ -253,18 +281,54 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           children: [
-            _gridItem(imagePath: 'images/brand_logo/logo_starbucks.png',  cafeTitle: '스타벅스'),
-            _gridItem(imagePath: 'images/brand_logo/logo_mega.png',       cafeTitle: '메가MGC커피'),
-            _gridItem(imagePath: 'images/brand_logo/logo_compose.jpg',    cafeTitle: '컴포즈커피'),
-            _gridItem(imagePath: 'images/brand_logo/logo_ediya.jpg',      cafeTitle: '이디야커피'),
-            _gridItem(imagePath: 'images/brand_logo/logo_paik.png',       cafeTitle: '빽다방'),
-            _gridItem(imagePath: 'images/brand_logo/logo_twosome.png',    cafeTitle: '투썸플레이스'),
-            _gridItem(imagePath: 'images/brand_logo/logo_angel.png',      cafeTitle: '엔제리너스'),
-            _gridItem(imagePath: 'images/brand_logo/logo_mammoth.png',    cafeTitle: '매머드커피'),
-            _gridItem(imagePath: 'images/brand_logo/logo_paul.png',       cafeTitle: '폴 바셋'),
-            _gridItem(imagePath: 'images/brand_logo/logo_theventi.png',   cafeTitle: '더벤티'),
-            _gridItem(imagePath: 'images/brand_logo/logo_yoger.png',      cafeTitle: '요거프레소'),
-            _gridItem(imagePath: 'images/brand_logo/logo_mammoth.png',    cafeTitle: '매머드 익스프레스'),
+            _gridItem(
+              imagePath: 'images/brand_logo/logo_starbucks.png',
+              cafeTitle: '스타벅스',
+            ),
+            _gridItem(
+              imagePath: 'images/brand_logo/logo_mega.png',
+              cafeTitle: '메가MGC커피',
+            ),
+            _gridItem(
+              imagePath: 'images/brand_logo/logo_compose.jpg',
+              cafeTitle: '컴포즈커피',
+            ),
+            _gridItem(
+              imagePath: 'images/brand_logo/logo_ediya.jpg',
+              cafeTitle: '이디야커피',
+            ),
+            _gridItem(
+              imagePath: 'images/brand_logo/logo_paik.png',
+              cafeTitle: '빽다방',
+            ),
+            _gridItem(
+              imagePath: 'images/brand_logo/logo_twosome.png',
+              cafeTitle: '투썸플레이스',
+            ),
+            _gridItem(
+              imagePath: 'images/brand_logo/logo_angel.png',
+              cafeTitle: '엔제리너스',
+            ),
+            _gridItem(
+              imagePath: 'images/brand_logo/logo_mammoth.png',
+              cafeTitle: '매머드커피',
+            ),
+            _gridItem(
+              imagePath: 'images/brand_logo/logo_paul.png',
+              cafeTitle: '폴 바셋',
+            ),
+            _gridItem(
+              imagePath: 'images/brand_logo/logo_theventi.png',
+              cafeTitle: '더벤티',
+            ),
+            _gridItem(
+              imagePath: 'images/brand_logo/logo_yoger.png',
+              cafeTitle: '요거프레소',
+            ),
+            _gridItem(
+              imagePath: 'images/brand_logo/logo_mammoth.png',
+              cafeTitle: '매머드 익스프레스',
+            ),
           ],
         ),
       ],
@@ -272,9 +336,7 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
   }
 
   Widget _gridItem({String? imagePath, String? cafeTitle}) {
-    final count = _likedMenus
-        .where((m) => m['brand_name'] == cafeTitle)
-        .length;
+    final count = _likedMenus.where((m) => m['brand_name'] == cafeTitle).length;
 
     return GestureDetector(
       onTap: () => setState(() => _selectedBrand = cafeTitle),
@@ -295,11 +357,14 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                        color: const Color(0xFFE2E2E2), width: 1.5),
+                      color: const Color(0xFFE2E2E2),
+                      width: 1.5,
+                    ),
                     image: imagePath != null
                         ? DecorationImage(
                             image: AssetImage(imagePath),
-                            fit: BoxFit.cover)
+                            fit: BoxFit.cover,
+                          )
                         : null,
                   ),
                 ),
@@ -313,10 +378,11 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
                       child: Text(
                         cafeTitle ?? '',
                         style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -1),
+                          color: Colors.black,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -1,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -325,9 +391,10 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
                       Text(
                         '$count개',
                         style: const TextStyle(
-                            color: Color(0xFF73AD31),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500),
+                          color: Color(0xFF73AD31),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                   ],
                 ),

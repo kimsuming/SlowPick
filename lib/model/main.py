@@ -3,6 +3,8 @@
 음료 섭취 후 혈당 변화를 예측하는 ML 기반 API
 """
 
+
+from chat_router import chat_router
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -42,6 +44,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 챗봇 출입구를 /chat 경로로 등록합니다.
+app.include_router(chat_router, prefix="/chat")
 
 
 @app.get("/")
