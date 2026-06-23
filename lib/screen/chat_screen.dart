@@ -1,57 +1,73 @@
-// SlowPick 챗봇 채팅 화면 예시 코드입니다.
-//
-// 이 화면은 사용자가 메시지를 입력하면 백엔드의 /chat 출입구로
-// 요청을 보내고, 받은 답변을 채팅 목록에 표시합니다.
-//
-// 실제 프로젝트에서는 baseUrl 부분을 SlowPick 서버 주소로 바꾸고,
-// 로그인된 사용자의 아이디(userId)를 실제 값으로 전달해야 합니다.
-
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:slowpick/service/auth_service.dart';
 
-// 채팅 메시지 하나를 표현하는 클래스입니다.
 class ChatMessage {
   final String text;
-  final bool isUser; // true면 사용자가 보낸 메시지, false면 챗봇의 답변
+  final bool isUser;
 
   ChatMessage({required this.text, required this.isUser});
 }
 
 class ChatScreen extends StatefulWidget {
-  // 로그인된 사용자의 아이디입니다. 실제 사용 시 상위 화면에서 전달받으세요.
-  final int userId;
-
   // 사용자가 특정 음료를 보다가 채팅으로 진입한 경우, 해당 음료의 아이디입니다.
   // 일반적인 채팅 진입이라면 null을 전달하면 됩니다.
   final int? menuId;
 
-  const ChatScreen({super.key, required this.userId, this.menuId});
+  const ChatScreen({super.key, this.menuId});
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  // 실제 서버 주소로 변경해야 합니다.
   final String baseUrl = "http://3.34.7.133:8000";
 
   final TextEditingController _controller = TextEditingController();
   final List<ChatMessage> _messages = [];
   bool _isLoading = false;
 
+  // Cognito에서 가져온 사용자 고유 아이디입니다.
+  String? _userId;
+
   @override
   void initState() {
     super.initState();
-    // 화면에 처음 들어왔을 때 보여줄 안내 메시지입니다.
     _messages.add(
-      ChatMessage(text: "안녕하세요! 음료나 혈당 관리에 대해 궁금한 점을 물어보세요.", isUser: false),
+      ChatMessage(
+        text: "안녕하세요! 음료나 혈당 관리에 대해 궁금한 점을 물어보세요. \n\n*정확한 메뉴명을 입력해주셔야 합니다.",
+        isUser: false,
+      ),
     );
+
+    // 화면이 시작될 때 로그인된 사용자의 아이디를 가져옵니다.
+    _loadUserId();
+  }
+
+  Future<void> _loadUserId() async {
+    final userId = await AuthService.instance.fetchUserId();
+    setState(() {
+      _userId = userId;
+    });
   }
 
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
+
+    // 아직 사용자 아이디를 가져오지 못한 경우 잠깐 기다립니다.
+    if (_userId == null) {
+      setState(() {
+        _messages.add(
+          ChatMessage(
+            text: "로그인 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.",
+            isUser: false,
+          ),
+        );
+      });
+      return;
+    }
 
     setState(() {
       _messages.add(ChatMessage(text: text, isUser: true));
@@ -64,7 +80,7 @@ class _ChatScreenState extends State<ChatScreen> {
         Uri.parse("$baseUrl/chat/"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "user_id": widget.userId,
+          "user_id": _userId,
           "message": text,
           "menu_id": widget.menuId,
         }),
@@ -114,7 +130,6 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: [
-          // 채팅 메시지 목록
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(12),
@@ -133,8 +148,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: message.isUser
-                          ? Color(0XFFB5F369)
-                          : Color(0XFFF8E76C),
+                          ? const Color(0XFFB5F369)
+                          : const Color(0XFFF8E76C),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     constraints: BoxConstraints(
@@ -147,14 +162,12 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          // 답변을 기다리는 동안 보여주는 표시
           if (_isLoading)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
               child: Text("답변을 작성하고 있습니다..."),
             ),
 
-          // 입력창과 보내기 버튼
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
@@ -164,32 +177,28 @@ class _ChatScreenState extends State<ChatScreen> {
                     controller: _controller,
                     decoration: InputDecoration(
                       hintText: "메시지를 입력하세요",
-                      hintStyle: TextStyle(
+                      hintStyle: const TextStyle(
                         color: Color(0xFFB0B0B0),
                         fontSize: 14,
                       ),
                       isDense: true,
-                      contentPadding: EdgeInsets.symmetric(
+                      contentPadding: const EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 10,
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
-                        borderSide: BorderSide(color: Color(0xFFD7D7D7)),
+                        borderSide: const BorderSide(color: Color(0xFFD7D7D7)),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
-                        borderSide: BorderSide(color: Color(0xFF187100)),
+                        borderSide: const BorderSide(color: Color(0xFF187100)),
                       ),
                     ),
                     onSubmitted: (_) => _sendMessage(),
                   ),
                 ),
                 const SizedBox(width: 8),
-                // IconButton(
-                //   icon: Icon(Icons.send, color: Color(0xFF187100)),
-                //   onPressed: _isLoading ? null : _sendMessage,
-                // ),
                 GestureDetector(
                   onTap: _isLoading ? null : _sendMessage,
                   child: Container(

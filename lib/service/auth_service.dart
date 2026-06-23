@@ -43,12 +43,28 @@ class AuthService {
     try {
       final attributes = await Amplify.Auth.fetchUserAttributes();
       return attributes
-              .where((a) => a.userAttributeKey == CognitoUserAttributeKey.nickname)
+              .where(
+                (a) => a.userAttributeKey == CognitoUserAttributeKey.nickname,
+              )
               .firstOrNull
               ?.value ??
           '';
     } on AuthException {
       return '';
+    }
+  }
+
+  // ────────────────────────────────────────────────────
+  // 사용자 고유 아이디(sub) 조회
+  // ────────────────────────────────────────────────────
+
+  Future<String?> fetchUserId() async {
+    if (_useMock) return 'mock-user-id';
+    try {
+      final user = await Amplify.Auth.getCurrentUser();
+      return user.userId;
+    } on AuthException {
+      return null;
     }
   }
 
@@ -77,8 +93,7 @@ class AuthService {
     } on UsernameExistsException {
       return const AuthResult.fail('이미 사용 중인 이메일입니다.');
     } on InvalidPasswordException {
-      return const AuthResult.fail(
-          '비밀번호는 8자 이상, 특수문자를 1개 이상 포함해야 합니다.');
+      return const AuthResult.fail('비밀번호는 8자 이상, 특수문자를 1개 이상 포함해야 합니다.');
     } on AuthException catch (e) {
       return AuthResult.fail(_parseMessage(e.message));
     }
@@ -210,8 +225,7 @@ class AuthService {
     } on ExpiredCodeException {
       return const AuthResult.fail('인증 코드가 만료되었습니다. 다시 시도해주세요.');
     } on InvalidPasswordException {
-      return const AuthResult.fail(
-          '비밀번호는 8자 이상, 대소문자·숫자·특수문자를 포함해야 합니다.');
+      return const AuthResult.fail('비밀번호는 8자 이상, 대소문자·숫자·특수문자를 포함해야 합니다.');
     } on AuthException catch (e) {
       return AuthResult.fail(_parseMessage(e.message));
     }
@@ -233,8 +247,10 @@ class AuthService {
   /// Cognito 원문 에러 메시지를 사용자 친화적으로 변환
   String _parseMessage(String raw) {
     final lower = raw.toLowerCase();
-    if (lower.contains('network') || lower.contains('socket')) return '네트워크 연결을 확인해주세요.';
-    if (lower.contains('incorrect username or password') || lower.contains('not authorized')) {
+    if (lower.contains('network') || lower.contains('socket'))
+      return '네트워크 연결을 확인해주세요.';
+    if (lower.contains('incorrect username or password') ||
+        lower.contains('not authorized')) {
       return '이메일 또는 비밀번호가 올바르지 않습니다.';
     }
     if (lower.contains('password')) return '비밀번호 형식이 올바르지 않습니다.';
