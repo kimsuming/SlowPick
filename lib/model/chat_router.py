@@ -43,7 +43,7 @@ MENU_DB_CONFIG = {
 
 
 class ChatRequest(BaseModel):
-    user_id: int
+    user_id: str
     message: str
     menu_id: Optional[int] = None  # 사용자가 특정 음료에 대해 질문하는 경우 함께 전달
 

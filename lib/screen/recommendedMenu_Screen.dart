@@ -25,7 +25,7 @@ class _RecommendedMenuScreenState extends State<RecommendedMenuScreen> {
         onPressed: () async {
           final created = await Navigator.push<bool>(
             context,
-            MaterialPageRoute(builder: (_) => ChatScreen(userId: 1)),
+            MaterialPageRoute(builder: (_) => ChatScreen()),
           );
         },
         shape: const CircleBorder(),
