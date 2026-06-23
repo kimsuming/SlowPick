@@ -71,9 +71,75 @@ class ModelManager:
             logger.info("공용 모델 없음 → 합성 데이터로 초기 학습")
             self.train_shared_model()
 
+    def _load_glucobench_data(self):
+        """
+        GlucoBench DB에서 공용 모델 학습용 데이터 로드.
+        DB가 없거나 데이터가 부족하면 None 반환 → 합성 데이터로 폴백.
+        """
+        import sqlite3
+        from pathlib import Path
+
+        db_path = Path("data/glucose.db")
+        if not db_path.exists():
+            return None
+
+        try:
+            conn = sqlite3.connect(str(db_path))
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute("""
+                SELECT * FROM glucose_records
+                WHERE actual_glucose_60m IS NOT NULL
+                  AND user_id LIKE 'U%'
+            """).fetchall()
+            conn.close()
+        except Exception as e:
+            logger.warning(f"GlucoBench DB 로드 실패: {e}")
+            return None
+
+        if len(rows) < 50:
+            logger.info(f"GlucoBench 데이터 부족 ({len(rows)}건) → 합성 데이터 사용")
+            return None
+
+        X_list, y30_list, y60_list, y120_list = [], [], [], []
+        for r in rows:
+            try:
+                feat = extract_features(
+                    r["current_glucose"], r["sugar_g"], r["carbs_g"], r["fat_g"],
+                    r["meal_status"], r["exercise_level"],
+                    bool(r["insulin_taken"]), bool(r["medication_taken"]),
+                    datetime.fromisoformat(r["measured_at"])
+                )
+                base = r["current_glucose"]
+                X_list.append(feat[0])
+                y30_list.append((r["actual_glucose_30m"] or base) - base)
+                y60_list.append(r["actual_glucose_60m"] - base)
+                y120_list.append((r["actual_glucose_120m"] or base) - base)
+            except Exception:
+                continue
+
+        if len(X_list) < 50:
+            return None
+
+        logger.info(f"GlucoBench 데이터 {len(X_list)}건 로드 완료")
+        return (
+            np.array(X_list),
+            np.array(y30_list),
+            np.array(y60_list),
+            np.array(y120_list),
+        )
+
     def train_shared_model(self):
         logger.info("공용 모델 학습 시작...")
-        X, y30, y60, y120 = generate_synthetic_data(n_samples=2000)
+
+        # GlucoBench 실제 데이터 우선 시도, 없으면 합성 데이터 사용
+        data = self._load_glucobench_data()
+        if data is not None:
+            X, y30, y60, y120 = data
+            logger.info("실제 데이터(GlucoBench)로 공용 모델 학습")
+        else:
+            X, y30, y60, y120 = generate_synthetic_data(n_samples=2000)
+            logger.info("합성 데이터로 공용 모델 학습")
+
         Y = np.column_stack([y30, y60, y120])
 
         self.shared_model = Pipeline([

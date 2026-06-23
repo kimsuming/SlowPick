@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:slowpick/service/auth_service.dart';
 
 void main() {
   runApp(const MaterialApp(home: Example()));
@@ -201,6 +202,7 @@ class _ExampleState extends State<Example> {
   Future<void> predictGlucose() async {
     if (sugarController.text.isEmpty || glucoseController.text.isEmpty) {
       _showSnack('당류와 현재 혈당을 입력하세요');
+
       return;
     }
 
@@ -209,7 +211,7 @@ class _ExampleState extends State<Example> {
     try {
       final url = Uri.parse('http://3.34.7.133:8000/predict');
       final body = jsonEncode({
-        'user_id': 'user_001',
+        'user_id': _userId ?? 'user_001',
         'drink': {
           'name': drinkNameController.text.isEmpty
               ? '음료'
@@ -279,9 +281,9 @@ class _ExampleState extends State<Example> {
           : null;
 
       final body = jsonEncode({
-        'user_id': 'user_001',
+        'user_id': _userId ?? 'user_001',
         'predict_request': {
-          'user_id': 'user_001',
+          'user_id': _userId ?? 'user_001',
           'drink': {
             'name': drinkNameController.text.isEmpty
                 ? '음료'
@@ -321,6 +323,26 @@ class _ExampleState extends State<Example> {
     }
 
     setState(() => isRecording = false);
+  }
+
+  // _ExampleState에 추가
+  String? _userId;
+
+  @override
+  void initState() {
+    super.initState();
+    print('initState 호출됨');
+    _loadUserId();
+  }
+
+  Future<void> _loadUserId() async {
+    try {
+      final id = await AuthService.instance.fetchUserId();
+      print('fetchUserId 결과: $id');
+      setState(() => _userId = id);
+    } catch (e) {
+      print('fetchUserId 에러: $e');
+    }
   }
 
   void _showSnack(String msg) {
@@ -417,12 +439,6 @@ class _ExampleState extends State<Example> {
 
                   if (result?.accuracyWarning != null) _accuracyBadge(),
                   _resultSection(size),
-
-                  // ─── 타이머 + 실측값 입력 (추가된 부분) ───
-                  if (result != null) ...[
-                    const SizedBox(height: 8),
-                    _timerSection(),
-                  ],
                 ],
               ),
             ),

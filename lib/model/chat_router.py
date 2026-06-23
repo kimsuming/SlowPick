@@ -7,8 +7,6 @@ SlowPick 챗봇 기능을 위한 FastAPI 라우터 예시 코드입니다.
 3. 가져온 정보를 정리하여 인공지능 언어모델에게 전달할 안내문(시스템 프롬프트)을 만듭니다.
 4. 안내문과 사용자의 질문을 함께 인공지능 API로 보내고, 받은 답변을 그대로 앱으로 돌려줍니다.
 
-기존 SlowPick의 main.py 또는 app.py 파일에서 이 라우터를 등록해야 사용할 수 있습니다.
-예시: app.include_router(chat_router, prefix="/chat")
 """
 
 import os
@@ -52,7 +50,7 @@ class ChatResponse(BaseModel):
     reply: str
 
 
-def get_user_health_context(user_id: int) -> Optional[dict]:
+def get_user_health_context(user_id: str) -> Optional[dict]:
     """
     사용자의 최근 혈당 기록을 glucose.db에서 가져오는 함수입니다.
 
