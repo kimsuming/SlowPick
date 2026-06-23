@@ -63,13 +63,13 @@ class BloodSugarDrinkSelect extends StatelessWidget {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Color(0xFF242526),
-                            fontSize: 22,
+                            fontSize: 25,
                             fontWeight: FontWeight.w700,
                             letterSpacing: -0.5,
                           ),
                         ),
 
-                        const SizedBox(height: 40),
+                        const SizedBox(height: 60),
 
                         // 카메라로 찍기
                         GestureDetector(

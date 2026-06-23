@@ -82,8 +82,16 @@ class _CommunityRecipewriteState extends State<CommunityRecipewrite> {
     try {
       String? thumbnailUrl;
       if (_imageBytes != null) {
-        thumbnailUrl = await CommunityService.uploadImage(
-            _imageBytes!, _imageContentType);
+        try {
+          thumbnailUrl = await CommunityService.uploadImage(
+              _imageBytes!, _imageContentType);
+        } catch (uploadErr) {
+          final cont = await _confirmSkipImage('$uploadErr');
+          if (!cont) {
+            setState(() => _submitting = false);
+            return;
+          }
+        }
       }
       await CommunityService.createRecipe(
         title: title,
@@ -97,6 +105,31 @@ class _CommunityRecipewriteState extends State<CommunityRecipewrite> {
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
+  }
+
+  Future<bool> _confirmSkipImage(String errorDetail) async {
+    if (!mounted) return false;
+    return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('이미지 업로드 실패'),
+            content: Text(
+              '이미지를 업로드하지 못했습니다.\n이미지 없이 등록할까요?\n\n($errorDetail)',
+              style: const TextStyle(fontSize: 13),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('취소'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('이미지 없이 등록'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 
   void _snack(String msg) {

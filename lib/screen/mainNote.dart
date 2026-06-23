@@ -78,7 +78,7 @@ class _mainNoteState extends State<mainNote> with SingleTickerProviderStateMixin
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
@@ -94,7 +94,7 @@ class _mainNoteState extends State<mainNote> with SingleTickerProviderStateMixin
                     label,
                     style: const TextStyle(
                       color: Color(0xFF242526),
-                      fontSize: 14,
+                      fontSize: 17,
                       fontWeight: FontWeight.w600,
                       letterSpacing: -0.3,
                     ),
@@ -102,8 +102,8 @@ class _mainNoteState extends State<mainNote> with SingleTickerProviderStateMixin
                 ),
                 const SizedBox(width: 10),
                 Container(
-                  width: 50,
-                  height: 50,
+                  width: 62,
+                  height: 62,
                   decoration: BoxDecoration(
                     color: color,
                     shape: BoxShape.circle,
@@ -115,7 +115,7 @@ class _mainNoteState extends State<mainNote> with SingleTickerProviderStateMixin
                       ),
                     ],
                   ),
-                  child: Icon(icon, color: Colors.white, size: 24),
+                  child: Icon(icon, color: Colors.white, size: 30),
                 ),
               ],
             ),
@@ -207,13 +207,19 @@ class _mainNoteState extends State<mainNote> with SingleTickerProviderStateMixin
                     onTap: _toggleFab,
                   ),
                   const SizedBox(height: 4),
-                  FloatingActionButton(
-                    onPressed: _toggleFab,
-                    shape: const CircleBorder(),
-                    backgroundColor: const Color(0xFFFFFFFF),
-                    child: Image.asset(
-                      'images/bloodSugarNote/filepen.png',
-                      fit: BoxFit.contain,
+                  SizedBox(
+                    width: 72,
+                    height: 72,
+                    child: FloatingActionButton(
+                      onPressed: _toggleFab,
+                      shape: const CircleBorder(),
+                      backgroundColor: const Color(0xFFFFFFFF),
+                      child: Image.asset(
+                        'images/bloodSugarNote/filepen.png',
+                        fit: BoxFit.contain,
+                        width: 36,
+                        height: 36,
+                      ),
                     ),
                   ),
                 ],

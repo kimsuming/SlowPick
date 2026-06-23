@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:slowpick/screen/example.dart';
+import 'package:slowpick/screen/login_screen.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 import 'package:slowpick/screen/myPage_input.dart';
 import 'package:slowpick/service/auth_service.dart';
@@ -24,6 +25,16 @@ class _MyPageScreenState extends State<MyPageScreen> {
   Future<void> _loadNickname() async {
     final name = await AuthService.instance.fetchNickname();
     if (mounted) setState(() => _nickname = name);
+  }
+
+  Future<void> _signOut() async {
+    await AuthService.instance.signOut();
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (_) => false,
+    );
   }
 
   @override
@@ -609,7 +620,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
           ),
 
           GestureDetector(
-            onTap: () => {},
+            onTap: _signOut,
             child: Padding(
               padding: const EdgeInsets.only(left: 35, top: 16),
               child: Text(

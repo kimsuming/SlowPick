@@ -67,7 +67,7 @@ class BloodSugarNoteScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(28),
                   image: const DecorationImage(
-                    image: NetworkImage('https://placehold.co/348x183'),
+                    image: NetworkImage('https://imgur.com/xlOj9VO.png'),
                     fit: BoxFit.cover,
                   ),
                   boxShadow: const [

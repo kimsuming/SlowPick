@@ -145,7 +145,10 @@ class CommunityService {
   static Future<String> uploadImage(Uint8List bytes, String contentType) async {
     final presignRes = await ApiClient.instance
         .post('/api/upload/presign', body: {'contentType': contentType});
-    if (presignRes.statusCode != 200) throw Exception('업로드 URL 발급 실패');
+    if (presignRes.statusCode != 200) {
+      throw Exception(
+          'URL 발급 실패 (${presignRes.statusCode}): ${presignRes.body}');
+    }
     final data = jsonDecode(presignRes.body) as Map<String, dynamic>;
 
     final s3Res = await http.put(
@@ -153,7 +156,9 @@ class CommunityService {
       headers: {'Content-Type': contentType},
       body: bytes,
     );
-    if (s3Res.statusCode != 200) throw Exception('이미지 업로드 실패');
+    if (s3Res.statusCode != 200) {
+      throw Exception('이미지 업로드 실패 (${s3Res.statusCode})');
+    }
     return data['public_url'] as String;
   }
 }

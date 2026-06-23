@@ -17,6 +17,40 @@ class _BloodSugarCheckRecordState extends State<BloodSugarCheckRecord> {
   String? _exercise;
   int _bloodSugar = 100;
 
+  static String? _savedMedication;
+  static bool _rememberMedication = false;
+  static String? _savedExercise;
+  static bool _rememberExercise = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_savedMedication != null) _medication = _savedMedication;
+    if (_savedExercise != null) _exercise = _savedExercise;
+  }
+
+  void _onRememberChanged(bool? value) {
+    setState(() {
+      _rememberMedication = value ?? false;
+      if (_rememberMedication) {
+        _savedMedication = _medication;
+      } else {
+        _savedMedication = null;
+      }
+    });
+  }
+
+  void _onRememberExerciseChanged(bool? value) {
+    setState(() {
+      _rememberExercise = value ?? false;
+      if (_rememberExercise) {
+        _savedExercise = _exercise;
+      } else {
+        _savedExercise = null;
+      }
+    });
+  }
+
   void _showBloodSugarInputDialog() {
     final controller = TextEditingController(text: '$_bloodSugar');
     showDialog(
@@ -129,7 +163,30 @@ class _BloodSugarCheckRecordState extends State<BloodSugarCheckRecord> {
                           '당뇨약을 복용 중이신가요?',
                           ['네. 복용하고 있어요.', '아니오. 복용하고 있지 않아요.'],
                           _medication,
-                          (v) => _medication = v,
+                          (v) {
+                            _medication = v;
+                            if (_rememberMedication) _savedMedication = v;
+                          },
+                        ),
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: _rememberMedication,
+                              onChanged: _onRememberChanged,
+                              activeColor: const Color(0xFF74AE31),
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            const Text(
+                              '다음에도 선택하기',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF888888),
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
                         ),
 
                         const SizedBox(height: 20),
@@ -137,7 +194,30 @@ class _BloodSugarCheckRecordState extends State<BloodSugarCheckRecord> {
                           '5시간 안에 운동을 했나요?',
                           ['운동 안함', '가벼운 운동', '격한 운동'],
                           _exercise,
-                          (v) => _exercise = v,
+                          (v) {
+                            _exercise = v;
+                            if (_rememberExercise) _savedExercise = v;
+                          },
+                        ),
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: _rememberExercise,
+                              onChanged: _onRememberExerciseChanged,
+                              activeColor: const Color(0xFF74AE31),
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            const Text(
+                              '다음에도 선택하기',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF888888),
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
                         ),
 
                         const SizedBox(height: 20),
@@ -306,12 +386,12 @@ class _BloodSugarCheckRecordState extends State<BloodSugarCheckRecord> {
                     const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                 decoration: BoxDecoration(
                   color: selectedValue == option
-                      ? const Color(0xFF7BF15B)
+                      ? const Color(0xFFEAF7DC)
                       : Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: selectedValue == option
-                        ? const Color(0xFF7BF15B)
+                        ? const Color(0xFF74AE31)
                         : const Color(0xFFDDDDDD),
                   ),
                 ),
@@ -319,7 +399,7 @@ class _BloodSugarCheckRecordState extends State<BloodSugarCheckRecord> {
                   option,
                   style: TextStyle(
                     color: selectedValue == option
-                        ? Colors.white
+                        ? const Color(0xFF4A7A1E)
                         : const Color(0xFF242526),
                     fontSize: 15,
                     fontWeight: selectedValue == option

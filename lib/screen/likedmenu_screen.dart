@@ -241,42 +241,6 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
   }
 
   Widget _categoryListView() {
-    const allBrands = [
-      {'image': 'images/brand_logo/logo_starbucks.png',  'title': '스타벅스'},
-      {'image': 'images/brand_logo/logo_mega.png',       'title': '메가MGC커피'},
-      {'image': 'images/brand_logo/logo_compose.jpg',    'title': '컴포즈커피'},
-      {'image': 'images/brand_logo/logo_ediya.jpg',      'title': '이디야커피'},
-      {'image': 'images/brand_logo/logo_paik.png',       'title': '빽다방'},
-      {'image': 'images/brand_logo/logo_twosome.png',    'title': '투썸플레이스'},
-      {'image': 'images/brand_logo/logo_angel.png',      'title': '엔제리너스'},
-      {'image': 'images/brand_logo/logo_mammoth.png',    'title': '매머드커피'},
-      {'image': 'images/brand_logo/logo_paul.png',       'title': '폴 바셋'},
-      {'image': 'images/brand_logo/logo_theventi.png',   'title': '더벤티'},
-      {'image': 'images/brand_logo/logo_yoger.png',      'title': '요거프레소'},
-      {'image': 'images/brand_logo/logo_mammoth.png',    'title': '매머드 익스프레스'},
-    ];
-
-    final likedBrands = allBrands
-        .where((b) => _likedMenus.any((m) => m['brand_name'] == b['title']))
-        .toList();
-
-    if (likedBrands.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.only(top: 40),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.favorite_border, size: 60, color: Color(0xFFCCCCCC)),
-              SizedBox(height: 12),
-              Text('찜한 메뉴가 없습니다.',
-                  style: TextStyle(color: Colors.grey, fontSize: 16)),
-            ],
-          ),
-        ),
-      );
-    }
-
     return Column(
       children: [
         const SizedBox(height: 8),
@@ -288,9 +252,20 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
           childAspectRatio: 3,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          children: likedBrands
-              .map((b) => _gridItem(imagePath: b['image'], cafeTitle: b['title']))
-              .toList(),
+          children: [
+            _gridItem(imagePath: 'images/brand_logo/logo_starbucks.png',  cafeTitle: '스타벅스'),
+            _gridItem(imagePath: 'images/brand_logo/logo_mega.png',       cafeTitle: '메가MGC커피'),
+            _gridItem(imagePath: 'images/brand_logo/logo_compose.jpg',    cafeTitle: '컴포즈커피'),
+            _gridItem(imagePath: 'images/brand_logo/logo_ediya.jpg',      cafeTitle: '이디야커피'),
+            _gridItem(imagePath: 'images/brand_logo/logo_paik.png',       cafeTitle: '빽다방'),
+            _gridItem(imagePath: 'images/brand_logo/logo_twosome.png',    cafeTitle: '투썸플레이스'),
+            _gridItem(imagePath: 'images/brand_logo/logo_angel.png',      cafeTitle: '엔제리너스'),
+            _gridItem(imagePath: 'images/brand_logo/logo_mammoth.png',    cafeTitle: '매머드커피'),
+            _gridItem(imagePath: 'images/brand_logo/logo_paul.png',       cafeTitle: '폴 바셋'),
+            _gridItem(imagePath: 'images/brand_logo/logo_theventi.png',   cafeTitle: '더벤티'),
+            _gridItem(imagePath: 'images/brand_logo/logo_yoger.png',      cafeTitle: '요거프레소'),
+            _gridItem(imagePath: 'images/brand_logo/logo_mammoth.png',    cafeTitle: '매머드 익스프레스'),
+          ],
         ),
       ],
     );
