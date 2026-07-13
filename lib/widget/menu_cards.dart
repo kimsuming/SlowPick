@@ -19,8 +19,10 @@ class MenuGridCard extends StatelessWidget {
   final Map<String, dynamic> data;
   final bool isLiked;
   final VoidCallback? onLikeTap;
+  final bool isSelected;
+  final VoidCallback? onSelectTap;
 
-  const MenuGridCard({super.key, required this.data, this.isLiked = false, this.onLikeTap});
+  const MenuGridCard({super.key, required this.data, this.isLiked = false, this.onLikeTap, this.isSelected = false, this.onSelectTap});
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +47,7 @@ class MenuGridCard extends StatelessWidget {
     final Map<String, Color> sugarColors = _getSugarColor(sugar);
 
     return GestureDetector(
-      onTap: () {
+      onTap: onSelectTap ?? () {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => MenuDetailScreen(data: data)),
@@ -56,6 +58,7 @@ class MenuGridCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
+          border: isSelected ? Border.all(color: const Color(0xFF7BF15B), width: 2) : null,
           boxShadow: [
             BoxShadow(
               color: Colors.grey,
@@ -195,8 +198,10 @@ class MenuListCard extends StatelessWidget {
   final Map<String, dynamic> data;
   final bool isLiked;
   final VoidCallback? onLikeTap;
+  final bool isSelected;
+  final VoidCallback? onSelectTap;
 
-  const MenuListCard({super.key, required this.data, this.isLiked = false, this.onLikeTap});
+  const MenuListCard({super.key, required this.data, this.isLiked = false, this.onLikeTap, this.isSelected = false, this.onSelectTap});
 
   @override
   Widget build(BuildContext context) {
@@ -220,12 +225,10 @@ class MenuListCard extends StatelessWidget {
     final Map<String, Color> sugarColors = _getSugarColor(sugar);
 
     return GestureDetector(
-      // 혹은 InkWell
-      onTap: () {
+      onTap: onSelectTap ?? () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            // data를 그대로 전달
             builder: (context) => MenuDetailScreen(data: data),
           ),
         );
@@ -236,6 +239,7 @@ class MenuListCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
+          border: isSelected ? Border.all(color: const Color(0xFF7BF15B), width: 2) : null,
           boxShadow: [
             BoxShadow(
               color: Colors.grey,
