@@ -12,10 +12,27 @@ class BloodSugarCheckRecord extends StatefulWidget {
 }
 
 class _BloodSugarCheckRecordState extends State<BloodSugarCheckRecord> {
+  static const Map<String, String> _mealTimingCodes = {
+    '식후 (식사 후 2시간 이내)': 'after_meal',
+    '식전 (식사 30분 전)': 'before_meal',
+    '공복': 'fasting',
+  };
+
+  static const Map<String, String> _exerciseCodes = {
+    '운동 안함': 'none',
+    '가벼운 운동': 'light',
+    '격한 운동': 'intense',
+  };
+
+  static const String _medicationYes = '네. 복용하고 있어요.';
+
   String? _mealTiming;
   String? _medication;
   String? _exercise;
   int _bloodSugar = 100;
+
+  bool get _isComplete =>
+      _mealTiming != null && _medication != null && _exercise != null;
 
   void _showBloodSugarInputDialog() {
     final controller = TextEditingController(text: '$_bloodSugar');
@@ -158,28 +175,43 @@ class _BloodSugarCheckRecordState extends State<BloodSugarCheckRecord> {
                 color: Colors.white,
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                 child: GestureDetector(
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const BloodSugarNoteScreen(),
-                    ),
-                  ),
+                  onTap: _isComplete
+                      ? () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => BloodSugarNoteScreen(
+                              pendingRecord: {
+                                'meal_timing': _mealTimingCodes[_mealTiming]!,
+                                'medication': _medication == _medicationYes,
+                                'exercise': _exerciseCodes[_exercise]!,
+                                'blood_sugar': _bloodSugar,
+                                'menu_id': widget.menuData['id'] as int?,
+                              },
+                            ),
+                          ),
+                        )
+                      : null,
                   child: Container(
                     width: double.infinity,
                     height: 56,
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment(0.00, 0.50),
-                        end: Alignment(1.00, 0.50),
-                        colors: [Color(0xFFB5F369), Color(0xFF7BF15B)],
-                      ),
+                      gradient: _isComplete
+                          ? const LinearGradient(
+                              begin: Alignment(0.00, 0.50),
+                              end: Alignment(1.00, 0.50),
+                              colors: [Color(0xFFB5F369), Color(0xFF7BF15B)],
+                            )
+                          : null,
+                      color: _isComplete ? null : const Color(0xFFE0E0E0),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Center(
+                    child: Center(
                       child: Text(
                         '완료',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: _isComplete
+                              ? Colors.white
+                              : const Color(0xFF9A9A9A),
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           letterSpacing: -0.5,

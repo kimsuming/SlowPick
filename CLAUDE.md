@@ -174,53 +174,194 @@ S3_BUCKET=<버킷 이름>
 
 ## RDS 스키마
 
+DB: `slowpick` (MySQL 8 / RDS). `mysqldump --no-data` 기준 전체 테이블 구조.
+
 ### 유저
 
 ```sql
-users             -- cognito_sub VARCHAR(36) PK, email VARCHAR(255) UNI, nickname VARCHAR(50), created_at, updated_at
-user_health_info  -- cognito_sub PK/FK, diabetes_type1/2/pre, dairy_edible/inedible/lactose_intolerant,
-                  --   caffeine_edible/inedible, risk_pregnant/hypertension/minor (모두 tinyint(1) default 0)
-                  --   height_cm DECIMAL(5,1), weight_kg DECIMAL(5,1), target_weight_kg DECIMAL(5,1), updated_at
-user_allergies    -- id BIGINT PK AUTO, cognito_sub FK, allergen VARCHAR(100)
+CREATE TABLE users (
+  cognito_sub VARCHAR(36) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  nickname VARCHAR(50) DEFAULT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (cognito_sub),
+  UNIQUE KEY (email)
+);
+
+CREATE TABLE user_health_info (
+  cognito_sub VARCHAR(36) NOT NULL,
+  diabetes_type1 TINYINT(1) NOT NULL DEFAULT 0,
+  diabetes_type2 TINYINT(1) NOT NULL DEFAULT 0,
+  diabetes_pre TINYINT(1) NOT NULL DEFAULT 0,
+  dairy_edible TINYINT(1) NOT NULL DEFAULT 0,
+  dairy_inedible TINYINT(1) NOT NULL DEFAULT 0,
+  dairy_lactose_intolerant TINYINT(1) NOT NULL DEFAULT 0,
+  caffeine_edible TINYINT(1) NOT NULL DEFAULT 0,
+  caffeine_inedible TINYINT(1) NOT NULL DEFAULT 0,
+  risk_pregnant TINYINT(1) NOT NULL DEFAULT 0,
+  risk_hypertension TINYINT(1) NOT NULL DEFAULT 0,
+  risk_minor TINYINT(1) NOT NULL DEFAULT 0,
+  height_cm DECIMAL(5,1) DEFAULT NULL,
+  weight_kg DECIMAL(5,1) DEFAULT NULL,
+  target_weight_kg DECIMAL(5,1) DEFAULT NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (cognito_sub),
+  FOREIGN KEY (cognito_sub) REFERENCES users(cognito_sub) ON DELETE CASCADE
+);
+
+CREATE TABLE user_allergies (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  cognito_sub VARCHAR(36) NOT NULL,
+  allergen VARCHAR(100) NOT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY (cognito_sub, allergen),
+  FOREIGN KEY (cognito_sub) REFERENCES users(cognito_sub) ON DELETE CASCADE
+);
 ```
 
 ### 메뉴
 
 ```sql
-brands         -- id BIGINT PK AUTO, brand_name VARCHAR(100) UNI, created_at
-menus          -- id BIGINT PK AUTO, doc_id VARCHAR(255) UNI, brand_name, menu_name, category, description,
-               --   size_standard, image_url TEXT, calories/sugar/protein/caffeine/saturated_fat/sodium DECIMAL(6,1),
-               --   nutrition_json JSON, is_active tinyint(1) default 1, last_updated_at, created_at
-menu_allergies -- id BIGINT PK AUTO, menu_id FK, allergy_name VARCHAR(100), created_at
-menu_likes     -- (menu_id, cognito_sub) PK, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-               --   FK: menu_id → menus(id) CASCADE, cognito_sub → users CASCADE
+CREATE TABLE brands (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  brand_name VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY (brand_name)
+  -- menus.brand_name 은 문자열 컬럼일 뿐 FK 아님 (참조 무결성 없음)
+);
+
+CREATE TABLE menus (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  doc_id VARCHAR(255) NOT NULL,
+  brand_name VARCHAR(100) NOT NULL,
+  menu_name VARCHAR(255) NOT NULL,
+  category VARCHAR(100) DEFAULT NULL,
+  description TEXT,
+  size_standard VARCHAR(100) DEFAULT NULL,
+  image_url TEXT,
+  calories DECIMAL(6,1) DEFAULT NULL,
+  sugar DECIMAL(6,1) DEFAULT NULL,
+  protein DECIMAL(6,1) DEFAULT NULL,
+  caffeine DECIMAL(6,1) DEFAULT NULL,
+  saturated_fat DECIMAL(6,1) DEFAULT NULL,
+  sodium DECIMAL(6,1) DEFAULT NULL,
+  nutrition_json JSON DEFAULT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  last_updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY (doc_id)
+);
+
+CREATE TABLE menu_allergies (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  menu_id BIGINT NOT NULL,
+  allergy_name VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY (menu_id, allergy_name),
+  FOREIGN KEY (menu_id) REFERENCES menus(id) ON DELETE CASCADE
+);
+
+CREATE TABLE menu_likes (
+  menu_id BIGINT NOT NULL,
+  cognito_sub VARCHAR(36) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (menu_id, cognito_sub),
+  FOREIGN KEY (menu_id) REFERENCES menus(id) ON DELETE CASCADE,
+  FOREIGN KEY (cognito_sub) REFERENCES users(cognito_sub) ON DELETE CASCADE
+);
 ```
 
 ### 소통 게시판
 
 ```sql
-posts          -- id BIGINT PK AUTO, cognito_sub FK, title VARCHAR(200), content TEXT,
-               --   view_count INT default 0, like_count INT default 0, dislike_count INT default 0,
-               --   comment_count INT default 0, created_at
-               --   ※ is_deleted 없음 — 실제 DELETE 사용
-post_votes     -- (post_id, cognito_sub) PK, type ENUM('like','dislike')
-post_bookmarks -- (post_id, cognito_sub) PK
-comments       -- id BIGINT PK AUTO, post_id BIGINT NULL, recipe_id BIGINT NULL,
-               --   parent_id BIGINT NULL (NULL=댓글 / 값=답글), cognito_sub, content TEXT,
-               --   like_count INT default 0, created_at
-               --   ※ 소통+레시피 댓글 통합 테이블. post_id/recipe_id 중 하나만 사용
-               --   ※ is_deleted 없음 — 실제 DELETE 사용
-comment_likes  -- (comment_id, cognito_sub) PK
+CREATE TABLE posts (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  cognito_sub VARCHAR(36) NOT NULL,
+  title VARCHAR(200) NOT NULL,
+  content TEXT NOT NULL,
+  view_count INT NOT NULL DEFAULT 0,
+  like_count INT NOT NULL DEFAULT 0,
+  dislike_count INT NOT NULL DEFAULT 0,
+  comment_count INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  FOREIGN KEY (cognito_sub) REFERENCES users(cognito_sub) ON DELETE CASCADE
+  -- is_deleted 없음 — 실제 DELETE 사용
+);
+
+CREATE TABLE post_votes (
+  post_id BIGINT NOT NULL,
+  cognito_sub VARCHAR(36) NOT NULL,
+  type ENUM('like','dislike') NOT NULL,
+  PRIMARY KEY (post_id, cognito_sub),
+  FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+);
+
+CREATE TABLE post_bookmarks (
+  post_id BIGINT NOT NULL,
+  cognito_sub VARCHAR(36) NOT NULL,
+  PRIMARY KEY (post_id, cognito_sub),
+  FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+);
+
+CREATE TABLE comments (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  post_id BIGINT DEFAULT NULL,
+  recipe_id BIGINT DEFAULT NULL,
+  parent_id BIGINT DEFAULT NULL,
+  cognito_sub VARCHAR(36) NOT NULL,
+  content TEXT NOT NULL,
+  like_count INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id)
+  -- post_id / recipe_id 중 하나만 사용 (소통+레시피 댓글 통합 테이블)
+  -- parent_id NULL=댓글, 값 있음=답글
+  -- post_id/recipe_id/parent_id 모두 FK 제약 없음 (애플리케이션 레벨로 관리)
+  -- is_deleted 없음 — 실제 DELETE 사용
+);
+
+CREATE TABLE comment_likes (
+  comment_id BIGINT NOT NULL,
+  cognito_sub VARCHAR(36) NOT NULL,
+  PRIMARY KEY (comment_id, cognito_sub),
+  FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE
+);
 ```
 
 ### 레시피 게시판
 
 ```sql
-recipes      -- id BIGINT PK AUTO, cognito_sub FK, title VARCHAR(200), content TEXT,
-             --   thumbnail_url VARCHAR(500), view_count INT default 0, like_count INT default 0, created_at
-             --   ※ is_deleted 없음 — 실제 DELETE 사용
-recipe_tags  -- (recipe_id, tag VARCHAR(50)) PK
-recipe_likes -- (recipe_id, cognito_sub) PK
+CREATE TABLE recipes (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  cognito_sub VARCHAR(36) NOT NULL,
+  title VARCHAR(200) NOT NULL,
+  content TEXT NOT NULL,
+  thumbnail_url VARCHAR(500) DEFAULT NULL,
+  view_count INT NOT NULL DEFAULT 0,
+  like_count INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  FOREIGN KEY (cognito_sub) REFERENCES users(cognito_sub) ON DELETE CASCADE
+  -- is_deleted 없음 — 실제 DELETE 사용
+);
+
+CREATE TABLE recipe_tags (
+  recipe_id BIGINT NOT NULL,
+  tag VARCHAR(50) NOT NULL,
+  PRIMARY KEY (recipe_id, tag),
+  FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE
+);
+
+CREATE TABLE recipe_likes (
+  recipe_id BIGINT NOT NULL,
+  cognito_sub VARCHAR(36) NOT NULL,
+  PRIMARY KEY (recipe_id, cognito_sub),
+  FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE
+);
 ```
 
 ### 카운터 동기화 규칙
@@ -231,7 +372,7 @@ denormalized 카운터는 관련 행 변경 시 반드시 UPDATE:
 |---|---|
 | post_votes INSERT/DELETE | `posts.like_count` 또는 `posts.dislike_count` |
 | post_bookmarks INSERT/DELETE | 카운터 없음 |
-| comments INSERT | `posts.comment_count` +1 (또는 recipes는 별도 카운터 없음) |
+| comments INSERT | `posts.comment_count` +1 (recipes는 별도 카운터 없음) |
 | comments DELETE | `posts.comment_count` -1 |
 | comment_likes INSERT/DELETE | `comments.like_count` |
 | recipe_likes INSERT/DELETE | `recipes.like_count` |
@@ -239,8 +380,12 @@ denormalized 카운터는 관련 행 변경 시 반드시 UPDATE:
 
 ### FK 규칙
 
-- 모든 유저 관련 테이블: `cognito_sub` → `users.cognito_sub`
-- 게시글/레시피/댓글: `ON DELETE CASCADE`
+- 모든 유저 관련 테이블: `cognito_sub` → `users.cognito_sub`, `ON DELETE CASCADE`
+- 게시글/레시피 관련 자식 테이블(`post_votes`, `post_bookmarks`, `comment_likes`, `recipe_tags`, `recipe_likes`, `menu_allergies`, `menu_likes`): 부모 PK → `ON DELETE CASCADE`
+- **FK 제약이 없는 컬럼** (애플리케이션 레벨로만 관리, 쿼리 작성 시 주의):
+  - `menus.brand_name` — `brands.brand_name` 을 참조하지 않는 단순 문자열
+  - `comments.post_id` / `comments.recipe_id` / `comments.parent_id` — 참조 무결성 없음
+  - `post_votes.cognito_sub`, `post_bookmarks.cognito_sub`, `recipe_likes.cognito_sub`, `comment_likes.cognito_sub` — `users` FK 없음 (PK의 일부일 뿐)
 
 ---
 
