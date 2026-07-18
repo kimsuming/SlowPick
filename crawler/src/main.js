@@ -1025,8 +1025,8 @@ async function main() {
     console.log("-----------------------------------------");
     await runMammoth();
     console.log("-----------------------------------------");
-    await runTomNToms(page);
     */
+    await runTomNToms(page);
     await runPaik(page);
     console.log("-----------------------------------------");
   } catch (error) {
