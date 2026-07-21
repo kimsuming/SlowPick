@@ -5,28 +5,13 @@ function normalizeText(value) {
   if (value === undefined || value === null) return null;
 
   const text = String(value)
-    .replace(/\u00a0/g, ' ')
+    .replace(/ /g, ' ')
     .replace(/\s+/g, ' ')
     .replace(/^⚬\s*/, '')
     .trim();
 
   if (!text || text === '-') return null;
   return text;
-}
-
-function htmlToTextWithBreaks(html) {
-  if (!html) return null;
-
-  const text = String(html)
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n[ \t]+/g, '\n')
-    .replace(/[ \t]{2,}/g, ' ')
-    .trim();
-
-  return text || null;
 }
 
 function parseNullableNumber(value) {
@@ -49,70 +34,40 @@ function absoluteUrl(url) {
 
 /**
  * 카테고리 페이지 파싱
- * - itemBox 내부 post_숫자 패턴으로 메뉴 ID 추출
- * - 상세 URL은 /menu/{id} 로 구성
+ * - .cafemenu-menu-grid 내 a.cafemenu-menu-item 을 순회
+ * - href 의 item_srl 쿼리파라미터로 메뉴 ID 추출
  */
 function parseComposeCategoryPage(htmlContent, categoryLabel = '음료') {
   const $ = cheerio.load(htmlContent);
   const menuList = [];
   const seenIds = new Set();
 
-  $('#masonry-container .itemBox').each((i, el) => {
+  $('.cafemenu-menu-grid a.cafemenu-menu-item').each((i, el) => {
     const $item = $(el);
 
-    const title =
-      normalizeText($item.find('h3.undertitle').first().text()) ||
-      normalizeText($item.find('.caption .title').first().text());
-
+    const title = normalizeText($item.find('.cafemenu-menu-name').first().text());
     if (!title) return;
 
-    const postIdAttr = $item.find('div[id^="post_"]').first().attr('id') || '';
-    let menuId = null;
+    const href = $item.attr('href') || '';
+    const idMatch = href.match(/item_srl=(\d+)/);
+    if (!idMatch) return;
 
-    const postIdMatch = postIdAttr.match(/^post_(\d+)$/);
-    if (postIdMatch) {
-      menuId = postIdMatch[1];
-    }
-
-    const href = $item.find('a[href*="/menu/"]').first().attr('href');
-    if (href) {
-      const hrefMatch = href.match(/\/menu\/(\d+)/);
-      if (hrefMatch) {
-        menuId = hrefMatch[1];
-      }
-    }
-
-    if (!menuId || seenIds.has(menuId)) return;
+    const menuId = idMatch[1];
+    if (seenIds.has(menuId)) return;
     seenIds.add(menuId);
 
-    let imageUrl = absoluteUrl($item.find('.rthumbnailimg').attr('src'));
+    const imageUrl = absoluteUrl($item.find('.cafemenu-menu-image img').first().attr('src'));
 
     menuList.push({
       menuId,
       name: title,
       imageUrl: imageUrl || null,
-      detailUrl: absoluteUrl(`/menu/${menuId}`),
+      detailUrl: absoluteUrl(href),
       categoryLabel,
     });
   });
 
   return menuList;
-}
-
-function normalizeComposeSize(value) {
-  const text = normalizeText(value);
-  if (!text) return null;
-
-  // 이미 단위가 붙어 있으면 그대로 사용
-  if (/(ml|oz)/i.test(text)) return text;
-
-  // 숫자만 있으면 ml 보정
-  const num = parseNullableNumber(text);
-  if (num !== null) {
-    return `${num}ml`;
-  }
-
-  return text;
 }
 
 function normalizeComposeCategoryByName(menuName, currentCategory) {
@@ -143,25 +98,25 @@ function normalizeComposeCategoryByName(menuName, currentCategory) {
 
 /**
  * 상세 페이지 파싱
- * - 설명/알레르기 정보는 현재 페이지에 없으므로 null / []
- * - 주요 영양성분은 top-level 컬럼
- * - 탄수화물, 지방, 옵션, 고카페인 문구 등은 nutrition_json에 저장
+ * - 설명 정보는 현재 페이지에 없으므로 null
+ * - 영양 정보는 .cafemenu-nutrition-item 의 value id(capacity/calories/sodium/
+ *   carbohydrates/sugars/fat/saturated_fat/protein/caffeine)로 매핑
+ * - 알레르기 정보는 .cafemenu-allergen-text 텍스트에서 라벨(<strong>)을 제거하고 파싱
  */
 function parseComposeDetail(detailHtml, baseInfo = {}, categoryLabel = '음료') {
   const $ = cheerio.load(detailHtml);
 
   const menuName =
-    normalizeText($('h3.page-header').first().text()) ||
+    normalizeText($('#detailTitle').first().text()) ||
+    normalizeText($('.cafemenu-detail-title').first().text()) ||
     baseInfo.name ||
     null;
 
-  const siteCategory =
-    normalizeText($('.viewinfo-bar li').first().text()) ||
-    categoryLabel ||
-    '음료';
+  const siteCategory = categoryLabel || '음료';
 
-  let imageUrl =
-    absoluteUrl($('.restdocument img').first().attr('src')) ||
+  const imageUrl =
+    absoluteUrl($('#detailImage').first().attr('src')) ||
+    absoluteUrl($('.cafemenu-detail-image').first().attr('src')) ||
     absoluteUrl($('meta[property="og:image"]').attr('content')) ||
     baseInfo.imageUrl ||
     null;
@@ -177,73 +132,81 @@ function parseComposeDetail(detailHtml, baseInfo = {}, categoryLabel = '음료')
   const extraNutrition = {};
   const nutritionJson = {};
 
-  $('.extra-row').each((i, row) => {
-    const label = normalizeText($(row).find('.extra-left').first().text());
-    const rawHtml = $(row).find('.extra-right').first().html() || '';
-    const valueText =
-      htmlToTextWithBreaks(rawHtml) ||
-      normalizeText($(row).find('.extra-right').first().text());
+  $('.cafemenu-nutrition-item').each((i, item) => {
+    const $item = $(item);
+    const $value = $item.find('.cafemenu-nutrition-value').first();
+    const id = $value.attr('id');
+    const label = normalizeText($item.find('.cafemenu-nutrition-label').first().text());
+    const valueText = normalizeText($value.text());
+    const unit = normalizeText($value.find('.cafemenu-nutrition-unit').first().text()) || '';
 
-    if (!label || !valueText) return;
+    if (!valueText) return;
+    const value = parseNullableNumber(valueText);
 
-    if (label.includes('용량')) {
-      sizeStandard = normalizeComposeSize(valueText);
-      return;
+    switch (id) {
+      case 'capacity':
+        sizeStandard = value !== null ? `${value}${unit}` : valueText;
+        return;
+
+      case 'calories':
+        calories = value;
+        return;
+
+      case 'sodium':
+        sodium = value;
+        return;
+
+      case 'carbohydrates':
+        extraNutrition.carbohydrate = value;
+        return;
+
+      case 'sugars':
+        sugar = value;
+        return;
+
+      case 'fat':
+        extraNutrition.fat = value;
+        return;
+
+      case 'saturated_fat':
+        saturatedFat = value;
+        return;
+
+      case 'protein':
+        protein = value;
+        return;
+
+      case 'caffeine':
+        caffeine = value;
+        if (valueText.includes('/') || valueText.includes('고카페인')) {
+          nutritionJson.caffeine_raw = valueText;
+        }
+        if (valueText.includes('고카페인')) {
+          nutritionJson.high_caffeine = true;
+        }
+        return;
+
+      default:
+        if (label) extraNutrition[label] = value !== null ? value : valueText;
     }
-
-    if (label.includes('열량')) {
-      calories = parseNullableNumber(valueText);
-      return;
-    }
-
-    if (label.includes('당류')) {
-      sugar = parseNullableNumber(valueText);
-      return;
-    }
-
-    if (label.includes('단백질')) {
-      protein = parseNullableNumber(valueText);
-      return;
-    }
-
-    if (label.includes('나트륨')) {
-      sodium = parseNullableNumber(valueText);
-      return;
-    }
-
-    if (label.includes('포화지방')) {
-      saturatedFat = parseNullableNumber(valueText);
-      return;
-    }
-
-    if (label.includes('카페인')) {
-      caffeine = parseNullableNumber(valueText);
-
-      if (valueText.includes('/') || valueText.includes('고카페인')) {
-        nutritionJson.caffeine_raw = valueText;
-      }
-      if (valueText.includes('고카페인')) {
-        nutritionJson.high_caffeine = true;
-      }
-      return;
-    }
-
-    if (label.includes('탄수화물')) {
-      extraNutrition.carbohydrate = parseNullableNumber(valueText);
-      return;
-    }
-
-    if (label === '지방' || label.includes('지방(g)')) {
-      extraNutrition.fat = parseNullableNumber(valueText);
-      return;
-    }
-
-    extraNutrition[label] = valueText;
   });
 
   if (Object.keys(extraNutrition).length > 0) {
     nutritionJson.extra_nutrition = extraNutrition;
   }
+
+  const allergySet = new Set();
+  $('.cafemenu-allergen-list .cafemenu-allergen-text').each((i, el) => {
+    const $text = $(el).clone();
+    $text.find('strong').remove();
+
+    normalizeText($text.text())
+      ?.split(/[,/]|·|ㆍ/)
+      .map(v => v.trim())
+      .filter(Boolean)
+      .filter(v => v !== '없음' && v !== '-')
+      .forEach(v => allergySet.add(v));
+  });
 
   let category = normalizeCategory('컴포즈커피', siteCategory, menuName || '');
   category = normalizeComposeCategoryByName(menuName, category);
@@ -269,7 +232,7 @@ function parseComposeDetail(detailHtml, baseInfo = {}, categoryLabel = '음료')
     saturated_fat: saturatedFat,
     sodium,
     nutrition_json: Object.keys(nutritionJson).length > 0 ? nutritionJson : null,
-    allergy_info: [],
+    allergy_info: Array.from(allergySet),
   };
 }
 

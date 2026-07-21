@@ -59,13 +59,13 @@ const parseDetail = (detailHtml, baseInfo, categoryName) => {
 
   // 3. 영양성분 추출
   const nutrition = {
-    calories_kcal: 0,
-    sugar_g: 0,
-    protein_g: 0,
-    saturated_fat_g: 0,
-    sodium_mg: 0,
-    caffeine_mg: 0,
-    size_standard: '정보 없음'
+    calories: null,
+    sugar: null,
+    protein: null,
+    saturated_fat: null,
+    sodium: null,
+    caffeine: null,
+    size_standard: null
   };
 
   $('.noti-des dl').each((i, dl) => {
@@ -74,15 +74,15 @@ const parseDetail = (detailHtml, baseInfo, categoryName) => {
 
     // 값 정제: "9.35(17.0%) g" -> 9.35
     // 괄호, 퍼센트, 단위(g, mg, kcal, ml) 제거하고 첫 번째 숫자만 추출
-    const cleanVal = val.split('(')[0].replace(/[^0-9.]/g, ''); 
+    const cleanVal = val.split('(')[0].replace(/[^0-9.]/g, '');
     const numVal = parseFloat(cleanVal) || 0;
 
-    if (key.includes('열량')) nutrition.calories_kcal = numVal;
-    else if (key.includes('당류')) nutrition.sugar_g = numVal;
-    else if (key.includes('단백질')) nutrition.protein_g = numVal;
-    else if (key.includes('포화지방')) nutrition.saturated_fat_g = numVal;
-    else if (key.includes('나트륨')) nutrition.sodium_mg = numVal;
-    else if (key.includes('카페인')) nutrition.caffeine_mg = numVal;
+    if (key.includes('열량')) nutrition.calories = numVal;
+    else if (key.includes('당류')) nutrition.sugar = numVal;
+    else if (key.includes('단백질')) nutrition.protein = numVal;
+    else if (key.includes('포화지방')) nutrition.saturated_fat = numVal;
+    else if (key.includes('나트륨')) nutrition.sodium = numVal;
+    else if (key.includes('카페인')) nutrition.caffeine = numVal;
     else if (key.includes('1회 제공량')) {
         nutrition.size_standard = val;
     }
