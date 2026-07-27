@@ -6,7 +6,10 @@
       "Bash(del \"c:\\\\Users\\\\maria\\\\SlowPick\\\\lib\\\\screen\\\\menu_liked_screen.dart\")",
       "PowerShell(Remove-Item \"c:\\\\Users\\\\maria\\\\SlowPick\\\\lib\\\\screen\\\\menu_liked_screen.dart\" -Confirm:$false)",
       "Bash(find \"C:/Users/maria/AppData/Local/Pub/Cache/hosted/pub.dev\" -maxdepth 1 -iname \"amplify_core*\" -o -maxdepth 1 -iname \"amplify_auth_cognito_dart*\" 2>/dev/null)",
-      "Read(//c/Users/maria/AppData/Local/Pub/Cache/hosted/pub.dev/**)"
+      "Read(//c/Users/maria/AppData/Local/Pub/Cache/hosted/pub.dev/**)",
+      "Bash(find /c/Users/maria -maxdepth 3 -iname \"*slowpick*\" 2>/dev/null | grep -v \"SlowPick/\" )",
+      "Read(//c/Users/maria/**)",
+      "Bash(ssh -i ~/.ssh/slowpick-key.pem -o StrictHostKeyChecking=no ec2-user@3.34.7.133 \"cat /home/ec2-user/slowpick-api/src/config/cognito.js && echo --- && ls /home/ec2-user/slowpick-api/src/middleware/ && echo --- && cd /home/ec2-user/slowpick-api && git status 2>&1 | head -5\")"
     ]
   }
 }
