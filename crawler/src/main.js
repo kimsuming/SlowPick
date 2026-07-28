@@ -426,18 +426,20 @@ async function runPaulBassett(page) {
         await page.goto(item.detailUrl, { waitUntil: 'networkidle2' });
 
         const detailHtml = await page.content();
-        const menuData = parsePaulBassettDetail(detailHtml, item);
+        const menuVariants = parsePaulBassettDetail(detailHtml, item);
 
-        const { isValid, data } = ValidatorService.validate(menuData);
+        for (const menuData of menuVariants) {
+          const { isValid, data } = ValidatorService.validate(menuData);
 
-        if (isValid && data.category !== "제외대상") {
-          const result = await MenuRepository.uploadMenu(data);
+          if (isValid && data.category !== "제외대상") {
+            const result = await MenuRepository.uploadMenu(data);
 
-          if (result.success && result.docId) {
-            foundIds.add(result.docId);
+            if (result.success && result.docId) {
+              foundIds.add(result.docId);
+            }
+
+            console.log(`      ✅ [${index + 1}/${menuItems.length}] 업로드: ${data.menu_name}${data.size_label ? ` (${data.size_label})` : ''}`);
           }
-
-          console.log(`      ✅ [${index + 1}/${menuItems.length}] 업로드: ${data.menu_name}`);
         }
 
         await new Promise(r => setTimeout(r, 500));
@@ -1027,13 +1029,12 @@ async function main() {
 
   try {
     /*
+    */
     await runMega(page);
     console.log("-----------------------------------------");
     await runStarbucks(page);
     console.log("-----------------------------------------");
     await runAngel(page);
-    console.log("-----------------------------------------");
-    await runCompose(page);
     console.log("-----------------------------------------");
     await runTheVenti(page);
     console.log("-----------------------------------------");
@@ -1043,16 +1044,15 @@ async function main() {
     console.log("-----------------------------------------");
     await runMammoth();
     console.log("-----------------------------------------");
-    await runMammoth();
-    console.log("-----------------------------------------");
-    await runYogerpresso();
-    console.log("-----------------------------------------");
     await runTomNToms(page);
     console.log("-----------------------------------------");
     await runPaik(page);
     console.log("-----------------------------------------");
-    */
     await runTwosome(page);
+    console.log("-----------------------------------------");
+    await runYogerpresso();
+    console.log("-----------------------------------------");
+    await runCompose(page);
     console.log("-----------------------------------------");
   } catch (error) {
     console.error("❌ 전체 프로세스 중 오류 발생:", error);

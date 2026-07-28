@@ -1,5 +1,6 @@
 const cheerio = require('cheerio');
 const { normalizeCategory } = require('../utils/categoryMapper');
+const { TEMPERATURE } = require('../utils/variantInfo');
 
 /**
  * 1. 목록 페이지에서 클릭 대상 및 기본 정보 추출
@@ -40,8 +41,13 @@ const normalizeNullableText = (value) => {
   return text;
 };
 
+// 사이트에서 0을 "-"로 표기하는 경우가 있다 (예: 카페인 칸에 "-"만 있는 메뉴).
+// 숫자가 아예 없는데 대시만 있으면 "정보 없음"이 아니라 0으로 본다.
+const isDashOnly = (text) => /^[-–]+$/.test(String(text).trim());
+
 const extractFirstNumber = (text) => {
   if (!text) return null;
+  if (isDashOnly(text)) return 0;
   const match = String(text).replace(/,/g, '').match(/-?\d+(?:\.\d+)?/);
   return match ? Number(match[0]) : null;
 };
@@ -54,9 +60,11 @@ const extractAllNumbers = (text) => {
 
 /**
  * 예:
- * "355 (Hot) / 315 (Iced)" -> { HOT: 355, ICE: 315 }
- * "28 (28%) (HOT)" -> { HOT: 28 }
- * "266 (HOT / ICED)" -> { HOT: 266, ICE: 266 }
+ * "355 (Hot) / 315 (Iced)" -> { HOT: 355, ICE: 315, isSplit: true }
+ * "266 (HOT / ICED)" -> { HOT: 266, ICE: 266, isSplit: true }
+ * "564 (Iced)" -> { STANDARD: 564, impliedTemperature: 'ICED' }
+ *   ("/"로 실제 두 값이 나열된 게 아니라 단일 값에 서빙 온도를 주석처럼 붙인 것 —
+ *    이 메뉴가 그 온도로만 나온다는 뜻이지, 온도별로 다른 값이 있다는 뜻이 아니다.)
  */
 const parseComplexValue = (text) => {
   const result = {};
@@ -67,30 +75,34 @@ const parseComplexValue = (text) => {
 
   if (cleanText.includes('/') && numberMatches.length >= 2) {
     const parts = cleanText.split('/');
+    const splitResult = {};
 
     parts.forEach(part => {
       const value = extractFirstNumber(part);
       if (value === null) return;
 
-      if (/hot|따뜻/i.test(part)) result.HOT = value;
-      else if (/ice|iced|차가운/i.test(part)) result.ICE = value;
+      if (/hot|따뜻/i.test(part)) splitResult.HOT = value;
+      else if (/ice|iced|차가운/i.test(part)) splitResult.ICE = value;
     });
 
-    if (Object.keys(result).length > 0) return result;
+    if (Object.keys(splitResult).length > 0) {
+      return { ...splitResult, isSplit: true };
+    }
   }
 
   const value = extractFirstNumber(cleanText);
   if (value === null) return result;
 
+  result.STANDARD = value;
+
+  // 슬래시로 나열되지 않은 단일 값은 온도별로 다른 게 아니라 이 메뉴가 그 온도로만
+  // 제공된다는 뜻이므로 STANDARD로 두고, 어떤 온도인지만 impliedTemperature에 남긴다.
   if (/hot/i.test(cleanText) && /ice|iced/i.test(cleanText)) {
-    result.HOT = value;
-    result.ICE = value;
-  } else if (/hot/i.test(cleanText)) {
-    result.HOT = value;
-  } else if (/ice|iced/i.test(cleanText)) {
-    result.ICE = value;
-  } else {
-    result.STANDARD = value;
+    // 앙쪽 키워드가 다 있는데 슬래시가 없는 경우는 애매하므로 특정 온도로 단정하지 않는다.
+  } else if (/hot|따뜻/i.test(cleanText)) {
+    result.impliedTemperature = 'HOT';
+  } else if (/ice|iced|차가운/i.test(cleanText)) {
+    result.impliedTemperature = 'ICED';
   }
 
   return result;
@@ -181,27 +193,63 @@ const parseDetail = (detailHtml, basicInfo) => {
     'caffeine',
   ];
 
+  // 1차: 필드별로 파싱만 해두고, 이 메뉴에 실제로 온도별 분리 값("A / B" 형태)이
+  // 있는지 먼저 판단한다. ("564 (Iced)"처럼 슬래시 없는 단일 값에 온도 주석만 붙은
+  // 경우는 분리가 아니라 "이 메뉴는 그 온도로만 나온다"는 뜻이므로 분리로 치지 않는다 —
+  // 안 그러면 아이스 전용 메뉴에도 칼로리 없는 가짜 HOT 변형이 생겨버린다.)
+  const fieldParsed = {};
+  let hasRealSplit = false;
+  let impliedTemperature = null;
+
   nutritionFields.forEach((field, i) => {
     const text = $tds.eq(i + 1).text().trim();
 
     if (field === 'caffeine') {
-      const numbers = extractAllNumbers(text);
+      let caffeineValue = null;
 
-      if (numbers.length === 1) {
-        tempNutrition.STANDARD[field] = numbers[0];
-      } else if (numbers.length >= 2) {
-        // 원두별 카페인처럼 복수 값이 있으면 최대값 저장, 원문은 nutrition_json에 보존
-        tempNutrition.STANDARD[field] = Math.max(...numbers);
+      if (isDashOnly(text)) {
+        caffeineValue = 0;
+      } else {
+        const numbers = extractAllNumbers(text);
+
+        if (numbers.length === 1) {
+          caffeineValue = numbers[0];
+        } else if (numbers.length >= 2) {
+          // 원두별 카페인처럼 복수 값이 있으면 최대값 저장, 원문은 nutrition_json에 보존
+          caffeineValue = Math.max(...numbers);
+        }
       }
 
+      // 카페인 칸은 표에서 온도별로 나뉘지 않는 단일 값이라 항상 STANDARD로 취급한다.
+      fieldParsed[field] = caffeineValue === null ? {} : { STANDARD: caffeineValue };
       return;
     }
 
     const parsed = parseComplexValue(text);
+    fieldParsed[field] = parsed;
 
-    if (parsed.HOT !== undefined) tempNutrition.HOT[field] = parsed.HOT;
-    if (parsed.ICE !== undefined) tempNutrition.ICE[field] = parsed.ICE;
-    if (parsed.STANDARD !== undefined) tempNutrition.STANDARD[field] = parsed.STANDARD;
+    if (parsed.isSplit) {
+      hasRealSplit = true;
+    } else if (parsed.impliedTemperature && !impliedTemperature) {
+      impliedTemperature = parsed.impliedTemperature;
+    }
+  });
+
+  // 2차: 실제로 온도별 분리가 있는 메뉴만 STANDARD 값을 HOT/ICE 양쪽의 기본값으로 채우고,
+  // 분리가 전혀 없는 메뉴는 기존대로 STANDARD 한 줄에만 채운다.
+  nutritionFields.forEach((field) => {
+    const parsed = fieldParsed[field] || {};
+
+    if (hasRealSplit) {
+      if (parsed.STANDARD !== undefined) {
+        tempNutrition.HOT[field] = parsed.STANDARD;
+        tempNutrition.ICE[field] = parsed.STANDARD;
+      }
+      if (parsed.HOT !== undefined) tempNutrition.HOT[field] = parsed.HOT;
+      if (parsed.ICE !== undefined) tempNutrition.ICE[field] = parsed.ICE;
+    } else if (parsed.STANDARD !== undefined) {
+      tempNutrition.STANDARD[field] = parsed.STANDARD;
+    }
   });
 
   const variants = [];
@@ -210,11 +258,10 @@ const parseDetail = (detailHtml, basicInfo) => {
   if (variants.length === 0) variants.push('STANDARD');
 
   const results = variants.map((variantKey) => {
-    let displayName = finalName;
-
-    if (variantKey !== 'STANDARD' && !finalName.toUpperCase().includes(variantKey)) {
-      displayName = `${finalName} [${variantKey}]`;
-    }
+    const temperature =
+      variantKey === 'HOT' ? TEMPERATURE.HOT :
+      variantKey === 'ICE' ? TEMPERATURE.ICED :
+      impliedTemperature;
 
     const nutriData = tempNutrition[variantKey] || {};
 
@@ -232,12 +279,15 @@ const parseDetail = (detailHtml, basicInfo) => {
     return {
       brand_name: '더벤티',
       category,
-      menu_name: displayName,
+      menu_name: finalName,
       description,
       size_standard: nutriData.size_standard || null,
       image_url: popupImageUrl || null,
       is_active: true,
       menu_type: menuType,
+      temperature,
+      size_label: null,
+      size_rank: null,
       calories: nutriData.calories ?? null,
       sugar: nutriData.sugar ?? null,
       protein: nutriData.protein ?? null,

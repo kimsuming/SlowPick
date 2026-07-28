@@ -15,7 +15,7 @@ async function cleanupInactiveMenus({ dryRun = false } = {}) {
       `
       SELECT id, doc_id, brand_name, menu_name, is_active
       FROM menus
-      WHERE nutrition_json IS NULL
+      WHERE is_active = 0
       ORDER BY id ASC
       `
     );

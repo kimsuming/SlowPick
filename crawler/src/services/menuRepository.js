@@ -2,11 +2,19 @@ const pool = require('./db/mysql');
 
 class RdsMenuRepository {
   static makeDocId(menuData) {
-    const safeMenuName = menuData.menu_name
-      .replace(/\s+/g, '_')
-      .replace(/\//g, '_');
+    const safe = (value) => String(value).replace(/\s+/g, '_').replace(/\//g, '_');
 
-    return `${menuData.brand_name}_${safeMenuName}`;
+    const safeMenuName = safe(menuData.menu_name);
+    // temperature/size_label이 있는 메뉴는 이름이 같아도 별개의 doc_id를 가져야
+    // 핫/아이스, 사이즈 변형이 서로 덮어쓰지 않는다.
+    const variantSuffix = [menuData.temperature, menuData.size_label]
+      .filter(Boolean)
+      .map(safe)
+      .join('_');
+
+    return variantSuffix
+      ? `${menuData.brand_name}_${safeMenuName}_${variantSuffix}`
+      : `${menuData.brand_name}_${safeMenuName}`;
   }
 
   static normalizeNumber(value) {
@@ -44,8 +52,11 @@ class RdsMenuRepository {
           sodium,
           nutrition_json,
           is_active,
+          temperature,
+          size_label,
+          size_rank,
           last_updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
         ON DUPLICATE KEY UPDATE
           brand_name = VALUES(brand_name),
           menu_name = VALUES(menu_name),
@@ -61,6 +72,9 @@ class RdsMenuRepository {
           sodium = VALUES(sodium),
           nutrition_json = VALUES(nutrition_json),
           is_active = VALUES(is_active),
+          temperature = VALUES(temperature),
+          size_label = VALUES(size_label),
+          size_rank = VALUES(size_rank),
           last_updated_at = CURRENT_TIMESTAMP
       `;
 
@@ -80,6 +94,9 @@ class RdsMenuRepository {
         this.normalizeNumber(menuData.sodium),
         menuData.nutrition_json ? JSON.stringify(menuData.nutrition_json) : null,
         menuData.is_active ?? true,
+        this.normalizeString(menuData.temperature),
+        this.normalizeString(menuData.size_label),
+        this.normalizeNumber(menuData.size_rank),
       ];
 
       await connection.execute(sql, values);

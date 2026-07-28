@@ -1,5 +1,6 @@
 const cheerio = require('cheerio');
 const { normalizeCategory } = require('../utils/categoryMapper');
+const { normalizeTemperatureToken, sizeRankFor } = require('../utils/variantInfo');
 
 /**
  * [1] 목록 페이지 파싱 (기존과 동일)
@@ -65,10 +66,11 @@ const parseTwosomeDetail = (detailHtml, baseInfo) => {
   const $activeSizeTab = $('.ts24_select_drink_size ul li.is-active a').first();
   const currentSizeName = $activeSizeTab.length > 0 ? $activeSizeTab.text().trim() : '';
 
-  // 메뉴 이름에 온도/사이즈 옵션 붙이기 (예: 디카페인 민트 밀샷추[아이스](레귤러))
-  let finalMenuName = baseName;
-  if (currentOndoName) finalMenuName += `[${currentOndoName}]`;
-  if (currentSizeName) finalMenuName += `(${currentSizeName})`;
+  // 온도/사이즈는 menu_name에 섞지 않고 별도 필드로 저장 — 같은 메뉴의 변형으로 묶어서
+  // 보여주기 위함 (menu_detail_screen에서 핫/아이스, 사이즈 전환).
+  const temperature = normalizeTemperatureToken(currentOndoName);
+  const sizeLabel = currentSizeName || null;
+  const sizeRank = sizeRankFor(sizeLabel);
 
   // 4. 영양성분 추출
   const nutrition = {
@@ -89,7 +91,9 @@ const parseTwosomeDetail = (detailHtml, baseInfo) => {
     // "170" 또는 "36/36" 같은 형태 처리
     // 투썸은 "당류(g/%)" -> "36/36" 형태로 표시함. 앞자리 숫자만 가져와야 함.
     const cleanValue = value.split('/')[0].replace(/[^0-9.]/g, '');
-    const numVal = parseFloat(cleanValue) || 0;
+    // 숫자가 아예 없으면 '0'이 아니라 '정보 없음'이므로 null 유지
+    const parsedValue = parseFloat(cleanValue);
+    const numVal = cleanValue === '' || Number.isNaN(parsedValue) ? null : parsedValue;
 
     if (label.includes('열량')) nutrition.calories = numVal;
     else if (label.includes('당류')) nutrition.sugar = numVal;
@@ -113,18 +117,25 @@ const parseTwosomeDetail = (detailHtml, baseInfo) => {
 
     const contentText = $(box).find('.contents').first().text().trim();
     if (contentText && contentText !== '-' && contentText !== '해당없음') {
-      allergyInfo = contentText.split(',').map(s => s.trim()).filter(s => s);
+      allergyInfo = contentText
+        .replace(/\([^)]*\)/g, '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(s => s);
     }
   });
 
   return {
     brand_name: "투썸플레이스",
     category: category,
-    menu_name: finalMenuName,
+    menu_name: baseName,
     description: description,
     is_active: true,
     menu_image_url: imageUrl || "",
     menu_type: "beverage",
+    temperature,
+    size_label: sizeLabel,
+    size_rank: sizeRank,
     nutrition: nutrition,
     allergy_info: allergyInfo
   };

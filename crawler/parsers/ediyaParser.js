@@ -1,5 +1,6 @@
 const cheerio = require('cheerio');
 const { normalizeCategory } = require('../utils/categoryMapper');
+const { extractVariantFromName } = require('../utils/variantInfo');
 
 function normalizeText(value) {
   if (value === undefined || value === null) return null;
@@ -70,6 +71,8 @@ function parseEdiya(htmlContent) {
     if (!name || seenNames.has(name)) return;
     seenNames.add(name);
 
+    const { displayName, temperature, sizeLabel, sizeRank } = extractVariantFromName(name);
+
     const $li = $(link).closest('li');
 
     let imgUrl =
@@ -135,7 +138,7 @@ function parseEdiya(htmlContent) {
     const description =
       descriptionParts.length > 0 ? descriptionParts.join(' ') : null;
 
-    const category = normalizeCategory('이디야커피', '음료', name);
+    const category = normalizeCategory('이디야커피', '음료', displayName);
     const menuType = category === '디저트' ? 'food' : 'beverage';
 
     const nutritionJson = {};
@@ -145,13 +148,16 @@ function parseEdiya(htmlContent) {
 
     menus.push({
       brand_name: '이디야커피',
-      menu_name: name,
+      menu_name: displayName,
       category,
       description,
       size_standard: sizeStandard,
       image_url: imgUrl,
       is_active: true,
       menu_type: menuType,
+      temperature,
+      size_label: sizeLabel,
+      size_rank: sizeRank,
       calories,
       sugar,
       protein,

@@ -106,6 +106,13 @@ S3_BUCKET=<버킷 이름>
 
 - 실제 컬럼명: `menu_name`, `brand_name` (`name`, `brand` 아님)
 - `is_liked`: 로그인 유저 기준 찜 여부, MySQL EXISTS 서브쿼리로 실시간 계산
+- **핫/아이스·사이즈 변형**: 같은 `(brand_name, menu_name)`을 가진 여러 행이 온도/사이즈만 다른
+  같은 메뉴일 수 있다 (`menus.temperature`/`size_label`/`size_rank` 참고). 크롤러가 각 변형을
+  독립된 행(별도 `doc_id`, 이미지, 영양정보)으로 저장하므로 **DB 레벨에서 부모-자식 FK는 없음** —
+  프론트(`MenuService.groupVariants`)와 `menu_detail_screen.dart`가 `(brand_name, menu_name)`
+  완전일치로 그룹핑해서 하나의 메뉴처럼 보여주고, 상세 화면에서 핫/아이스 토글 + 사이즈 선택(최대 3개)
+  으로 전환한다. 디폴트는 [핫] + 가장 작은 `size_rank`. `/api/menus` 응답에 이 세 필드를 반드시
+  포함시켜야 그룹핑이 동작한다.
 
 ### 유저 `/api/user`
 
@@ -237,6 +244,9 @@ CREATE TABLE menus (
   doc_id VARCHAR(255) NOT NULL,
   brand_name VARCHAR(100) NOT NULL,
   menu_name VARCHAR(255) NOT NULL,
+  temperature ENUM('HOT','ICED') DEFAULT NULL,
+  size_label VARCHAR(50) DEFAULT NULL,
+  size_rank TINYINT DEFAULT NULL,
   category VARCHAR(100) DEFAULT NULL,
   description TEXT,
   size_standard VARCHAR(100) DEFAULT NULL,
@@ -403,6 +413,8 @@ lib/service/
 │                       # get / post / put / delete
 ├── menu_service.dart   # MenuService (static)
 │                       # fetchMenus / fetchRecommended / fetchMenuNames
+│                       # groupVariants — 핫/아이스·사이즈 변형을 (brand_name, menu_name)
+│                       # 기준으로 묶어 대표 변형 + variants 리스트로 반환
 └── user_service.dart   # UserService (static)
                         # fetchProfile / saveProfile / fetchMenuAllergens
 ```

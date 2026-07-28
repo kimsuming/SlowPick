@@ -1,5 +1,6 @@
 const cheerio = require('cheerio');
 const { normalizeCategory } = require('../utils/categoryMapper');
+const { extractVariantFromName } = require('../utils/variantInfo');
 
 function normalizeText(value) {
   if (value === undefined || value === null) return null;
@@ -75,9 +76,8 @@ function normalizeComposeCategoryByName(menuName, currentCategory) {
     return currentCategory;
   }
 
-  const name = (menuName || '')
-    .replace(/^\s*(ICE|HOT)\s+/i, '')
-    .trim();
+  // 이 시점의 menuName은 이미 온도 표기(H-/I-)가 제거된 표시용 이름이다.
+  const name = (menuName || '').trim();
 
   // 명확한 예외 보정
   if (/올데이오트/i.test(name)) return '라떼/밀크티';
@@ -106,11 +106,15 @@ function normalizeComposeCategoryByName(menuName, currentCategory) {
 function parseComposeDetail(detailHtml, baseInfo = {}, categoryLabel = '음료') {
   const $ = cheerio.load(detailHtml);
 
-  const menuName =
+  const rawMenuName =
     normalizeText($('#detailTitle').first().text()) ||
     normalizeText($('.cafemenu-detail-title').first().text()) ||
     baseInfo.name ||
     null;
+
+  const extractedVariant = extractVariantFromName(rawMenuName || '');
+  const menuName = rawMenuName ? extractedVariant.displayName : null;
+  const { temperature, sizeLabel, sizeRank } = extractedVariant;
 
   const siteCategory = categoryLabel || '음료';
 
@@ -201,7 +205,8 @@ function parseComposeDetail(detailHtml, baseInfo = {}, categoryLabel = '음료')
     $text.find('strong').remove();
 
     normalizeText($text.text())
-      ?.split(/[,/]|·|ㆍ/)
+      ?.replace(/\([^)]*\)/g, '')
+      .split(/[,/]|·|ㆍ/)
       .map(v => v.trim())
       .filter(Boolean)
       .filter(v => v !== '없음' && v !== '-')
@@ -225,6 +230,9 @@ function parseComposeDetail(detailHtml, baseInfo = {}, categoryLabel = '음료')
     image_url: imageUrl,
     is_active: true,
     menu_type: menuType,
+    temperature,
+    size_label: sizeLabel,
+    size_rank: sizeRank,
     calories,
     sugar,
     protein,

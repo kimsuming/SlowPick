@@ -1,5 +1,6 @@
 const cheerio = require('cheerio');
 const { normalizeCategory } = require('../utils/categoryMapper');
+const { extractVariantFromName } = require('../utils/variantInfo');
 
 function normalizeText(value) {
   if (value === undefined || value === null) return null;
@@ -154,8 +155,10 @@ const parsePaik = (html) => {
       const $el = $(element);
       const $hover = $el.find('.hover');
 
-      const name = normalizeText($el.find('.menu_tit').text());
-      if (!name) return;
+      const rawName = normalizeText($el.find('.menu_tit').text());
+      if (!rawName) return;
+
+      const { displayName: name, temperature, sizeLabel, sizeRank } = extractVariantFromName(rawName);
 
       let imageUrl = absoluteUrl($el.find('.thumb img').attr('src'));
 
@@ -257,6 +260,9 @@ const parsePaik = (html) => {
         image_url: imageUrl,
         is_active: true,
         menu_type: menuType,
+        temperature,
+        size_label: sizeLabel,
+        size_rank: sizeRank,
         calories,
         sugar,
         protein,
