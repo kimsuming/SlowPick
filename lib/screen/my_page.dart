@@ -2,10 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:slowpick/screen/example.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 import 'package:slowpick/screen/myPage_input.dart';
+import 'package:slowpick/service/auth_service.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 
-class MyPageScreen extends StatelessWidget {
-  MyPageScreen({super.key});
+class MyPageScreen extends StatefulWidget {
+  const MyPageScreen({super.key});
+
+  @override
+  State<MyPageScreen> createState() => _MyPageScreenState();
+}
+
+class _MyPageScreenState extends State<MyPageScreen> {
+  String _nickname = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNickname();
+  }
+
+  Future<void> _loadNickname() async {
+    final name = await AuthService.instance.fetchNickname();
+    if (mounted) setState(() => _nickname = name);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -142,7 +161,7 @@ class MyPageScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '유레카',
+                              _nickname.isEmpty ? '...' : _nickname,
                               style: TextStyle(
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,

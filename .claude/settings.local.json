@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter analyze *)",
+      "Bash(Remove-Item \"c:\\\\Users\\\\maria\\\\SlowPick\\\\lib\\\\screen\\\\find_id_screen.dart\")",
+      "Bash(del \"c:\\\\Users\\\\maria\\\\SlowPick\\\\lib\\\\screen\\\\menu_liked_screen.dart\")",
+      "PowerShell(Remove-Item \"c:\\\\Users\\\\maria\\\\SlowPick\\\\lib\\\\screen\\\\menu_liked_screen.dart\" -Confirm:$false)"
+    ]
+  }
+}
