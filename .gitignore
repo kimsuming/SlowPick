@@ -58,3 +58,7 @@ node_modules/
 
 # 카페 html 파일
 *.html
+
+# AWS Amplify 빌드 산출물
+.amplify/
+lib/amplify_outputs.dart
