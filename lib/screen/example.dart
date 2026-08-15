@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:slowpick/service/auth_service.dart';
+import 'package:slowpick/screen/bloodSugarMenuSelectForExample.dart';
 
 void main() {
   runApp(const MaterialApp(home: Example()));
@@ -139,12 +140,19 @@ class _ExampleState extends State<Example> {
   bool isInsulin = false;
   bool isMedication = false;
 
+  // ─────────────────────────────────────────
+  // 메뉴에서 선택한 음료 (추가된 부분)
+  // 메뉴 선택 화면에서 값이 오면 여기에 저장되고
+  // sugar이름 입력창이 자동으로 채워짐
+  // ─────────────────────────────────────────
+  Map<String, dynamic>? selectedMenu;
+
   // 예측 결과
   PredictResponse? result;
   bool isLoading = false;
 
   // ─────────────────────────────────────────
-  // 실측값 입력 (추가된 부분)
+  // 실측값 입력
   // ─────────────────────────────────────────
   final TextEditingController actual30Controller = TextEditingController();
   final TextEditingController actual60Controller = TextEditingController();
@@ -197,11 +205,45 @@ class _ExampleState extends State<Example> {
   }
 
   // ─────────────────────────────────────────
+  // 값이 num으로 올 수도, String("39")으로 올 수도 있어서
+  // 둘 다 안전하게 num으로 변환해주는 헬퍼
+  // ─────────────────────────────────────────
+  num? _toNum(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value;
+    if (value is String) return num.tryParse(value);
+    return null;
+  }
+
+  // ─────────────────────────────────────────
+  // 메뉴 선택 화면 열기 (추가된 부분)
+  // ─────────────────────────────────────────
+  Future<void> _openMenuSelect() async {
+    final picked = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(builder: (_) => const BloodSugarMenuSelectForExample()),
+    );
+
+    if (picked == null) return; // 선택 안 하고 뒤로 나온 경우
+
+    // menuData에서 값 꺼내기. carbs/fat이 없을 수도 있고,
+
+    final num? sugar = _toNum(picked['sugar']);
+    final String name = (picked['menu_name'] as String?) ?? '음료';
+
+    setState(() {
+      selectedMenu = picked;
+      drinkNameController.text = name;
+      sugarController.text = (sugar ?? 0).toString();
+    });
+  }
+
+  // ─────────────────────────────────────────
   // /predict 호출
   // ─────────────────────────────────────────
   Future<void> predictGlucose() async {
     if (sugarController.text.isEmpty || glucoseController.text.isEmpty) {
-      _showSnack('당류와 현재 혈당을 입력하세요');
+      _showSnack('음료를 먼저 선택해주세요');
 
       return;
     }
@@ -253,7 +295,7 @@ class _ExampleState extends State<Example> {
   }
 
   // ─────────────────────────────────────────
-  // /record 호출 (추가된 부분)
+  // /record 호출
   // ─────────────────────────────────────────
   Future<void> recordActual() async {
     // 하나도 입력 안 했으면 막기
@@ -355,6 +397,7 @@ class _ExampleState extends State<Example> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('혈당 예측'),
@@ -376,18 +419,14 @@ class _ExampleState extends State<Example> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 20),
-                  _inputField(
-                    '음료 이름',
-                    drinkNameController,
-                    hint: '예: 메가커피 블루베리 스무디',
-                  ),
-                  const SizedBox(height: 16),
-                  _inputField('당류 (g)', sugarController, hint: '예: 39'),
-                  const SizedBox(height: 16),
-                  _inputField('탄수화물 (g)', carbsController, hint: '예: 42'),
-                  const SizedBox(height: 16),
-                  _inputField('지방 (g)', fatController, hint: '예: 0'),
-                  const SizedBox(height: 16),
+
+                  // 메뉴 선택 안 했으면 "직접 선택하기" 박스,
+                  // 선택했으면 선택된 메뉴 카드로 바뀜
+                  selectedMenu == null
+                      ? _chooseBox(size)
+                      : _selectedMenuCard(size),
+
+                  const SizedBox(height: 20),
                   _inputField(
                     '현재 혈당 (mg/dL)',
                     glucoseController,
@@ -491,7 +530,7 @@ class _ExampleState extends State<Example> {
   }
 
   // ─────────────────────────────────────────
-  // 타이머 + 실측값 입력 위젯 (핵심 추가 부분)
+  // 타이머 + 실측값 입력 위젯
   // ─────────────────────────────────────────
   Widget _timerSection() {
     return Padding(
@@ -700,7 +739,7 @@ class _ExampleState extends State<Example> {
   }
 
   // ─────────────────────────────────────────
-  // 기존 위젯 헬퍼 (변경 없음)
+  // 기존 위젯 헬퍼
   // ─────────────────────────────────────────
   Widget _inputField(
     String label,
@@ -1123,6 +1162,122 @@ class _ExampleState extends State<Example> {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────
+  // 메뉴 선택 전: "직접 선택하기" 박스 (기존)
+  // ─────────────────────────────────────────
+  Widget _chooseBox(Size size) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 40),
+      child: GestureDetector(
+        onTap: _openMenuSelect,
+        child: Container(
+          width: size.width * 0.85,
+          height: 100,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFF7BF15B), width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(Icons.search, color: Color(0xFF7BF15B), size: 36),
+              SizedBox(width: 12),
+              Text(
+                '직접 선택하기',
+                style: TextStyle(
+                  color: Color(0xFF242526),
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────
+  // 메뉴 선택 후: 선택된 메뉴 카드 (추가된 부분)
+  // 눌러서 다시 선택 화면을 열 수도 있음
+  // ─────────────────────────────────────────
+  Widget _selectedMenuCard(Size size) {
+    final name = selectedMenu?['menu_name'] as String? ?? '이름 없음';
+    final brand = selectedMenu?['brand_name'] as String? ?? '';
+    final sugar = selectedMenu?['sugar'];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 40),
+      child: GestureDetector(
+        onTap: _openMenuSelect,
+        child: Container(
+          width: size.width * 0.85,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF6FFE4),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFF7BF15B), width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.local_cafe, color: Color(0xFF1a6b4a), size: 32),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        color: Color(0xFF242526),
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (brand.isNotEmpty)
+                      Text(
+                        brand,
+                        style: const TextStyle(
+                          color: Color(0xFF888888),
+                          fontSize: 13,
+                        ),
+                      ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '당 ${sugar ?? '-'}g',
+                      style: const TextStyle(
+                        color: Color(0xFF1a6b4a),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.edit, color: Color(0xFF888888), size: 18),
+            ],
+          ),
+        ),
       ),
     );
   }

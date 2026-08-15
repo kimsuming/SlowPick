@@ -9,23 +9,24 @@ from typing import Dict, Any
 
 
 FEATURE_NAMES = [
-    "current_glucose",
-    "sugar_g",
-    "carbs_g",
-    "fat_g",
+    "current_glucose",     # 현재 혈당 (mg/dL)
+    "sugar_g",             # 당류 (g)
+    "carbs_g",             # 탄수화물 (g)
+    "fat_g",               # 지방 (g)
     "net_carbs",           # carbs - fat_dampen 효과 반영
     "gi_proxy",            # sugar/carbs 비율로 GI 근사
-    "meal_status",
-    "exercise_level",
-    "insulin_taken",
-    "medication_taken",
+    "meal_status",         # 마지막 식사 상태 (0=공복, 1=1시간 이내, 2=2시간 이내)
+    "exercise_level",      # 운동 여부 (0=없음, 1=가벼움, 2=강함)
+    "insulin_taken",       # 인슐린 투여 여부 (0=없음, 1=투여)
+    "medication_taken",    # 당뇨 약 복용 여부 (0=없음, 1=복용)
     "hour_sin",            # 시간대 순환 인코딩
-    "hour_cos",
+    "hour_cos",            # 시간대 순환 인코딩
     "is_morning_peak",     # 새벽/아침 혈당 상승 효과
     "glucose_zone",        # 현재 혈당 구간 (정상/주의/위험)
 ]
 
 
+# 사용자의 원시 입력값들을 받아서, ML 모델이 이해할 수 있는 숫자 벡터로 변환하는 함수입니다.
 def extract_features(
     current_glucose: float,
     sugar_g: float,
@@ -69,6 +70,9 @@ def extract_features(
     else:
         glucose_zone = 3   # 위험
 
+
+    # 지금까지 계산한 값들을 순서대로 하나의 배열에 담습니다.
+    # (순서는 FEATURE_NAMES와 반드시 일치해야 함)
     features = np.array([
         current_glucose,
         sugar_g,
@@ -88,7 +92,7 @@ def extract_features(
 
     return features
 
-
+# 최근 여러 건의 기록을 LSTM 모델이 사용할 수 있는 "시퀀스(순서가 있는 데이터)" 형태로 변환하는 함수입니다.
 def build_lstm_sequence(records: list, seq_len: int = 10) -> np.ndarray:
     """
     최근 N개 기록 → LSTM 시퀀스 변환
