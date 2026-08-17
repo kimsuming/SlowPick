@@ -1,5 +1,6 @@
 const cheerio = require('cheerio');
 const { normalizeCategory } = require('../utils/categoryMapper');
+const { TEMPERATURE, sizeRankFor } = require('../utils/variantInfo');
 
 function normalizeText(value) {
   if (value === undefined || value === null) return null;
@@ -12,13 +13,16 @@ function normalizeText(value) {
   return text;
 }
 
+// 사이트에서 0g을 "-"로 표기하는 경우가 있어 숫자 파싱은 normalizeText(대시→null)를
+// 거치지 않은 원본 텍스트를 받아 "-"를 0으로, 진짜 빈 값만 null로 구분한다.
 function parseNullableNumber(value) {
   if (value === undefined || value === null) return null;
 
-  const match = String(value)
-    .replace(/,/g, '')
-    .match(/-?\d+(?:\.\d+)?/);
+  const trimmed = String(value).trim();
+  if (!trimmed) return null;
+  if (trimmed === '-' || trimmed === '–') return 0;
 
+  const match = trimmed.replace(/,/g, '').match(/-?\d+(?:\.\d+)?/);
   return match ? Number(match[0]) : null;
 }
 
@@ -64,7 +68,7 @@ function normalizePaulMenuName(rawName) {
     const rest = prefixMatch[2]?.trim();
 
     if (rest) {
-      temperature = code === 'H' ? 'HOT' : 'ICE';
+      temperature = code === 'H' ? TEMPERATURE.HOT : TEMPERATURE.ICED;
       name = rest;
     }
   }
@@ -82,10 +86,6 @@ function normalizePaulMenuName(rawName) {
       sizeCode = code;
       name = body;
     }
-  }
-
-  if (temperature) {
-    name = `${name} [${temperature}]`;
   }
 
   return {
@@ -176,8 +176,8 @@ function parseNutritionBlock($, $context) {
 
   $context.find('ul li').each((i, li) => {
     const label = normalizeText($(li).find('.tit').text()) || normalizeText($(li).text());
-    const valueText = normalizeText($(li).find('.num').text()) || normalizeText($(li).text());
-    const value = parseNullableNumber(valueText);
+    const rawValueText = ($(li).find('.num').text() || $(li).text() || '').trim();
+    const value = parseNullableNumber(rawValueText);
 
     if (!label) return;
 
@@ -237,10 +237,10 @@ function parsePaulBassettDetail(htmlContent, baseInfo = {}) {
     if (parsed) nutritionBlocks.push(parsed);
   }
 
-  const primaryNutrition =
-    nutritionBlocks.find(block => block.block_id === 'pSize_S') ||
-    nutritionBlocks.find(block => block.block_id === 'pSize_R') ||
-    nutritionBlocks[0] || {
+  const blocks = nutritionBlocks.length > 0
+    ? nutritionBlocks
+    : [{
+      block_id: null,
       size_standard: null,
       calories: null,
       sugar: null,
@@ -249,7 +249,7 @@ function parsePaulBassettDetail(htmlContent, baseInfo = {}) {
       saturated_fat: null,
       sodium: null,
       extra_nutrients: {},
-    };
+    }];
 
   let allergyInfo = [];
   $('.info li').each((i, li) => {
@@ -264,49 +264,38 @@ function parsePaulBassettDetail(htmlContent, baseInfo = {}) {
   const category = normalizeCategory('폴 바셋', '음료', name || '');
   const menuType = category === '디저트' ? 'food' : 'beverage';
 
-  const nutritionJson = {};
+  // 사이즈별로 블록이 여러 개면(pSize_S/pSize_R/pSize_G) 하나로 뭉개지 않고
+  // 각각 별도의 메뉴 행(variant)으로 반환한다 — menu_detail_screen에서 사이즈 전환용.
+  return blocks.map(block => {
+    const nutritionJson = {};
+    if (Object.keys(block.extra_nutrients || {}).length > 0) {
+      nutritionJson.extra_nutrients = block.extra_nutrients;
+    }
 
-  if (Object.keys(primaryNutrition.extra_nutrients || {}).length > 0) {
-    nutritionJson.extra_nutrients = primaryNutrition.extra_nutrients;
-  }
+    const sizeLabel = block.block_id ? block.block_id.replace(/^pSize_/, '') : null;
 
-  if (nutritionBlocks.length > 1) {
-    nutritionJson.additional_sizes = nutritionBlocks
-      .filter(block => block !== primaryNutrition)
-      .map(block => ({
-        block_id: block.block_id || null,
-        size_standard: block.size_standard || null,
-        calories: block.calories,
-        sugar: block.sugar,
-        protein: block.protein,
-        caffeine: block.caffeine,
-        saturated_fat: block.saturated_fat,
-        sodium: block.sodium,
-        extra_nutrients:
-          Object.keys(block.extra_nutrients || {}).length > 0
-            ? block.extra_nutrients
-            : null,
-      }));
-  }
-
-  return {
-    brand_name: '폴 바셋',
-    menu_name: name || baseInfo.name || null,
-    category,
-    description,
-    size_standard: primaryNutrition.size_standard || null,
-    image_url: imgUrl || null,
-    is_active: true,
-    menu_type: menuType,
-    calories: primaryNutrition.calories ?? null,
-    sugar: primaryNutrition.sugar ?? null,
-    protein: primaryNutrition.protein ?? null,
-    caffeine: primaryNutrition.caffeine ?? null,
-    saturated_fat: primaryNutrition.saturated_fat ?? null,
-    sodium: primaryNutrition.sodium ?? null,
-    nutrition_json: Object.keys(nutritionJson).length > 0 ? nutritionJson : null,
-    allergy_info: allergyInfo,
-  };
+    return {
+      brand_name: '폴 바셋',
+      menu_name: name || baseInfo.name || null,
+      category,
+      description,
+      size_standard: block.size_standard || null,
+      image_url: imgUrl || null,
+      is_active: true,
+      menu_type: menuType,
+      temperature: normalizedNameInfo.temperature,
+      size_label: sizeLabel,
+      size_rank: sizeRankFor(sizeLabel),
+      calories: block.calories ?? null,
+      sugar: block.sugar ?? null,
+      protein: block.protein ?? null,
+      caffeine: block.caffeine ?? null,
+      saturated_fat: block.saturated_fat ?? null,
+      sodium: block.sodium ?? null,
+      nutrition_json: Object.keys(nutritionJson).length > 0 ? nutritionJson : null,
+      allergy_info: allergyInfo,
+    };
+  });
 }
 
 module.exports = { parsePaulBassettList, parsePaulBassettDetail };

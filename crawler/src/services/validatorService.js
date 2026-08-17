@@ -56,7 +56,7 @@ class ValidatorService {
       'brand_name', 'category', 'menu_name', 'description', 'size_standard', 'image_url',
       'menu_image_url', 'is_active', 'menu_type', 'calories', 'sugar', 'protein',
       'caffeine', 'saturated_fat', 'sodium', 'nutrition_json', 'nutrition',
-      'allergy_info', 'allergies'
+      'allergy_info', 'allergies', 'temperature', 'size_label', 'size_rank'
     ]);
 
     for (const [key, value] of Object.entries(rawData || {})) {
@@ -85,6 +85,9 @@ class ValidatorService {
         this.normalizeText(rawData.menu_image_url),
       is_active: typeof rawData.is_active === 'boolean' ? rawData.is_active : true,
       menu_type: this.normalizeText(rawData.menu_type) || 'regular',
+      temperature: this.normalizeText(rawData.temperature),
+      size_label: this.normalizeText(rawData.size_label),
+      size_rank: this.normalizeNumber(rawData.size_rank),
       calories: this.normalizeNumber(rawData.calories ?? nutritionSource.calories),
       sugar: this.normalizeNumber(rawData.sugar ?? nutritionSource.sugar),
       protein: this.normalizeNumber(rawData.protein ?? nutritionSource.protein),

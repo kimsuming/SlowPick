@@ -1,5 +1,6 @@
 const cheerio = require('cheerio');
 const { normalizeCategory } = require('../utils/categoryMapper');
+const { TEMPERATURE, sizeRankFor } = require('../utils/variantInfo');
 
 function normalizeText(value) {
   if (value === undefined || value === null) return null;
@@ -300,14 +301,12 @@ const parseDetail = (detailHtml, baseInfo = {}) => {
   });
 
   // [6] 최종 결과 생성
+  // 온도/사이즈는 menu_name에 붙이지 않고 별도 필드로 저장해 같은 메뉴의 변형으로 묶는다.
   return variants.map(variant => {
-    let suffix = '';
-    if (variant.optionName !== 'STANDARD') {
-      const upperBase = (baseName || '').toUpperCase();
-      if (!upperBase.includes(variant.optionName)) {
-        suffix = ` [${variant.optionName}]`;
-      }
-    }
+    const temperature =
+      variant.optionName === 'HOT' ? TEMPERATURE.HOT :
+      variant.optionName === 'ICE' ? TEMPERATURE.ICED :
+      null;
 
     const nutritionJson = {};
     if (Object.keys(variant.extra_nutrients).length > 0) {
@@ -324,12 +323,15 @@ const parseDetail = (detailHtml, baseInfo = {}) => {
     return {
       brand_name: brandName,
       category: normalizedCategory,
-      menu_name: `${baseName || ''}${suffix}`.trim(),
+      menu_name: (baseName || '').trim(),
       description,
       size_standard: variant.size_standard,
       image_url: imageUrl,
       is_active: true,
       menu_type: menuType,
+      temperature,
+      size_label: variant.size_standard,
+      size_rank: sizeRankFor(variant.size_standard),
       calories: variant.calories,
       sugar: variant.sugar,
       protein: variant.protein,

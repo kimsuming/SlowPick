@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:slowpick/service/menu_service.dart';
+import 'package:slowpick/service/settings_service.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 import 'package:slowpick/widget/menu_cards.dart';
 
@@ -43,6 +44,9 @@ class _SearchScreenState extends State<SearchScreen> {
   ];
   Set<String> _selectedBrands = {};
 
+  // 카드 미리보기에 표시할 영양 성분 (설정 버튼으로 변경, SharedPreferences에 저장)
+  List<String> _previewNutrients = SettingsService.defaultPreviewNutrients;
+
   // 선택된 브랜드 수에 따라 버튼 텍스트를 다르게 보여주는 함수
   String _getBrandButtonText() {
     if (_selectedBrands.isEmpty) return '브랜드';
@@ -82,6 +86,13 @@ class _SearchScreenState extends State<SearchScreen> {
       _selectedBrands.add(widget.initialBrand!);
     }
     _loadMenus();
+    _loadPreviewNutrients();
+  }
+
+  Future<void> _loadPreviewNutrients() async {
+    final saved = await SettingsService.loadPreviewNutrients();
+    if (!mounted) return;
+    setState(() => _previewNutrients = saved);
   }
 
   Future<void> _loadMenus() async {
@@ -89,7 +100,7 @@ class _SearchScreenState extends State<SearchScreen> {
       final menus = await MenuService.fetchMenus();
       if (!mounted) return;
       setState(() {
-        _allMenus = menus;
+        _allMenus = MenuService.groupVariants(menus);
         _isLoading = false;
       });
     } catch (e) {
@@ -275,11 +286,151 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
+  // 카드 미리보기 성분 선택 바텀 시트 (최대 _kMaxPreviewNutrients개)
+  void _showPreviewSettingsBottomSheet() {
+    List<String> tempSelected = List.from(_previewNutrients);
+    // 당류는 항상 고정 표시되므로 선택 목록에서 제외
+    final selectableOptions =
+        kPreviewNutrientOptions.where((option) => option.key != 'sugar').toList();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.6,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 12.0,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const SizedBox(width: 24),
+                        const Text(
+                          '미리보기 성분 설정',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'KoPubDotum',
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.black54),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '당류는 항상 표시돼요. 추가로 보고 싶은 성분을 골라주세요.',
+                        style: const TextStyle(
+                          color: Colors.black54,
+                          fontSize: 13,
+                          fontFamily: 'KoPubDotum',
+                        ),
+                      ),
+                    ),
+                  ),
+                  const Divider(height: 1, color: Colors.black26),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: selectableOptions.length,
+                      itemBuilder: (context, index) {
+                        final option = selectableOptions[index];
+                        final isSelected = tempSelected.contains(option.key);
+
+                        return CheckboxListTile(
+                          title: Text(
+                            option.label,
+                            style: TextStyle(
+                              color: isSelected ? Colors.green : Colors.black,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              fontFamily: 'KoPubDotum',
+                            ),
+                          ),
+                          value: isSelected,
+                          activeColor: Colors.green,
+                          onChanged: (bool? value) {
+                            setModalState(() {
+                              if (value == true) {
+                                tempSelected.add(option.key);
+                              } else {
+                                tempSelected.remove(option.key);
+                              }
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          setState(() => _previewNutrients = tempSelected);
+                          await SettingsService.savePreviewNutrients(tempSelected);
+                          if (context.mounted) Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          '적용하기',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            fontFamily: 'KoPubDotum',
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
     final double screenHeight = MediaQuery.of(context).size.height;
-    final double gridAspectRatio = (screenWidth / 2) / (screenHeight * 0.37);
+    // 미리보기 성분 뱃지는 한 줄에 2개씩 배치되므로, 선택 개수가 늘어난 만큼
+    // 줄 수를 계산해 카드 높이(=세로 비율)를 늘려 오버플로우를 막는다.
+    final int extraNutrientLines = (_previewNutrients.length / 2).ceil();
+    final double gridHeightFraction = 0.37 + extraNutrientLines * 0.05;
+    final double gridAspectRatio = (screenWidth / 2) / (screenHeight * gridHeightFraction);
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -386,16 +537,11 @@ class _SearchScreenState extends State<SearchScreen> {
                               ),
                               IconButton(
                                 icon: const Icon(
-                                  Icons.mic,
+                                  Icons.tune,
                                   color: Colors.black54,
                                 ),
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('음성 인식 기능 준비 중입니다.'),
-                                    ),
-                                  );
-                                },
+                                tooltip: '미리보기 성분 설정',
+                                onPressed: _showPreviewSettingsBottomSheet,
                               ),
                             ],
                           ),
@@ -490,6 +636,7 @@ class _SearchScreenState extends State<SearchScreen> {
           data: menus[index],
           isLiked: menus[index]['is_liked'] as bool? ?? false,
           onLikeTap: () => _toggleLike(menus[index]['id'] as int),
+          previewNutrients: _previewNutrients,
         ),
       );
     } else {
@@ -501,6 +648,7 @@ class _SearchScreenState extends State<SearchScreen> {
           data: menus[index],
           isLiked: menus[index]['is_liked'] as bool? ?? false,
           onLikeTap: () => _toggleLike(menus[index]['id'] as int),
+          previewNutrients: _previewNutrients,
         ),
       );
     }

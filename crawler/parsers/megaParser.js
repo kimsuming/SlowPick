@@ -3,6 +3,7 @@
 console.log('[Angel] line-based parser loaded');
 
 const cheerio = require('cheerio');
+const { extractVariantFromName } = require('../utils/variantInfo');
 
 function normalizeText(value = '') {
   return String(value).replace(/\s+/g, ' ').trim();
@@ -25,7 +26,8 @@ function parseMega(htmlContent) {
     const nameNode = $(el).find('.cont_text_title b').first();
     if (nameNode.length === 0) return;
 
-    const name = normalizeText(nameNode.text());
+    const rawName = normalizeText(nameNode.text());
+    const { displayName, temperature, sizeLabel, sizeRank } = extractVariantFromName(rawName);
     const imgUrl = normalizeText($(el).find('.cont_gallery_list_img img').attr('src') || '');
     const $modal = $(el).find('.inner_modal');
 
@@ -87,12 +89,15 @@ function parseMega(htmlContent) {
     menus.push({
       brand_name: '메가MGC커피',
       category: '음료',
-      menu_name: name,
+      menu_name: displayName,
       description: normalizeText($(el).find('.cont_text_box > .cont_text.cont_text_info .text.text2').text()) || null,
       size_standard: sizeStandard,
       image_url: imgUrl || null,
       is_active: true,
       menu_type: 'regular',
+      temperature,
+      size_label: sizeLabel,
+      size_rank: sizeRank,
 
       calories,
       sugar,

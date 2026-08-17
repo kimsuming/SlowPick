@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:slowpick/screen/example.dart';
+import 'package:slowpick/screen/login_screen.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 import 'package:slowpick/screen/myPage_input.dart';
 import 'package:slowpick/service/auth_service.dart';
@@ -609,7 +610,23 @@ class _MyPageScreenState extends State<MyPageScreen> {
           ),
 
           GestureDetector(
-            onTap: () => {},
+            onTap: () => _confirmDeleteAccount(context),
+            child: Padding(
+              padding: const EdgeInsets.only(left: 35, top: 16),
+              child: Text(
+                '회원 탈퇴',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: -0.26,
+                ),
+              ),
+            ),
+          ),
+
+          GestureDetector(
+            onTap: () => _confirmLogout(context),
             child: Padding(
               padding: const EdgeInsets.only(left: 35, top: 16),
               child: Text(
@@ -624,26 +641,76 @@ class _MyPageScreenState extends State<MyPageScreen> {
             ),
           ),
 
-          GestureDetector(
-            onTap: () => {},
-            child: Padding(
-              padding: const EdgeInsets.only(left: 35, top: 16),
-              child: Text(
-                '회원탈퇴',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: -0.26,
-                ),
-              ),
-            ),
-          ),
-
           SizedBox(height: 24),
         ],
       ),
     );
+  }
+
+  Future<void> _confirmLogout(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('로그아웃'),
+        content: const Text('로그아웃 하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('로그아웃'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    await AuthService.instance.signOut();
+    if (!context.mounted) return;
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
+  }
+
+  Future<void> _confirmDeleteAccount(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('회원 탈퇴'),
+        content: const Text('탈퇴 시 모든 정보가 삭제되며 복구할 수 없습니다.\n정말 탈퇴하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('탈퇴', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final result = await AuthService.instance.deleteAccount();
+    if (!context.mounted) return;
+
+    if (result.success) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.errorMessage ?? '탈퇴 중 오류가 발생했습니다.')),
+      );
+    }
   }
 
   Widget _buildMenuItem(

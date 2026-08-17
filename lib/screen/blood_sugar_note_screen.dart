@@ -1,10 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:slowpick/service/blood_sugar_service.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 
-class BloodSugarNoteScreen extends StatelessWidget {
-  const BloodSugarNoteScreen({super.key});
+class BloodSugarNoteScreen extends StatefulWidget {
+  final Map<String, dynamic> pendingRecord;
 
+  const BloodSugarNoteScreen({super.key, required this.pendingRecord});
+
+  @override
+  State<BloodSugarNoteScreen> createState() => _BloodSugarNoteScreenState();
+}
+
+class _BloodSugarNoteScreenState extends State<BloodSugarNoteScreen> {
   static const Color textColor = Color(0xFF242526);
+
+  bool _isSaving = false;
+  bool _isSaved = false;
+
+  Future<void> _addRecord() async {
+    setState(() => _isSaving = true);
+    try {
+      await BloodSugarService.addRecord(
+        mealTiming: widget.pendingRecord['meal_timing'] as String,
+        medication: widget.pendingRecord['medication'] as bool,
+        exercise: widget.pendingRecord['exercise'] as String,
+        bloodSugar: widget.pendingRecord['blood_sugar'] as int,
+        menuId: widget.pendingRecord['menu_id'] as int?,
+      );
+      if (!mounted) return;
+      setState(() => _isSaved = true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('혈당 기록이 저장되었습니다.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('저장에 실패했어요. 다시 시도해주세요. ($e)')),
+      );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -132,11 +168,23 @@ class BloodSugarNoteScreen extends StatelessWidget {
 
               Center(
                 child: ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.add, color: Colors.white),
-                  label: const Text(
-                    '기록 추가하기',
-                    style: TextStyle(
+                  onPressed: (_isSaving || _isSaved) ? null : _addRecord,
+                  icon: _isSaving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Icon(
+                          _isSaved ? Icons.check : Icons.add,
+                          color: Colors.white,
+                        ),
+                  label: Text(
+                    _isSaved ? '추가됨' : '기록 추가하기',
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 19,
                       fontWeight: FontWeight.bold,
@@ -148,6 +196,7 @@ class BloodSugarNoteScreen extends StatelessWidget {
                       vertical: 14,
                     ),
                     backgroundColor: const Color(0xFF81DB60),
+                    disabledBackgroundColor: const Color(0xFF81DB60),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),

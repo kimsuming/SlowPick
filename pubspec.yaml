@@ -29,6 +29,9 @@ dependencies:
   amplify_flutter: ^2.11.0
   amplify_auth_cognito: ^2.11.0
 
+  # 로컬 설정 저장
+  shared_preferences: ^2.3.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

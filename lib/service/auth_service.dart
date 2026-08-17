@@ -241,6 +241,24 @@ class AuthService {
   }
 
   // ────────────────────────────────────────────────────
+  // 회원 탈퇴
+  // ────────────────────────────────────────────────────
+
+  Future<AuthResult> deleteAccount() async {
+    if (_useMock) {
+      _isLoggedIn = false;
+      return const AuthResult.ok();
+    }
+    try {
+      await Amplify.Auth.deleteUser();
+      _isLoggedIn = false;
+      return const AuthResult.ok();
+    } on AuthException catch (e) {
+      return AuthResult.fail(_parseMessage(e.message));
+    }
+  }
+
+  // ────────────────────────────────────────────────────
   // 내부 유틸
   // ────────────────────────────────────────────────────
 

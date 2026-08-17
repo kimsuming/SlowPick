@@ -248,14 +248,13 @@ async function runCompose(page) {
   const seenMenuIds = new Set();
 
   const CATEGORIES = [
-    { name: '컴포즈 콤보', url: 'https://composecoffee.com/menu/category/207002' },
-    { name: '시즌한정', url: 'https://composecoffee.com/menu/category/192677' },
-    { name: '커피 · 더치', url: 'https://composecoffee.com/menu/category/185' },
-    { name: '논커피 라떼', url: 'https://composecoffee.com/menu/category/187' },
-    { name: '프라페 · 스무디', url: 'https://composecoffee.com/menu/category/192' },
-    { name: '밀크쉐이크', url: 'https://composecoffee.com/menu/category/193' },
-    { name: '에이드 · 주스', url: 'https://composecoffee.com/menu/category/188' },
-    { name: '티', url: 'https://composecoffee.com/menu/category/191' },
+    { name: '추천 메뉴', url: 'https://composecoffee.com/index.php?mid=compose&act=dispCafemenuGalleryList&category_srl=301298' },
+    { name: '커피 · 콜드브루', url: 'https://composecoffee.com/index.php?mid=compose&act=dispCafemenuGalleryList&category_srl=303364' },
+    { name: '배버리지', url: 'https://composecoffee.com/index.php?mid=compose&act=dispCafemenuGalleryList&category_srl=303365' },
+    { name: '프라페 · 스무디', url: 'https://composecoffee.com/index.php?mid=compose&act=dispCafemenuGalleryList&category_srl=303366' },
+    { name: '밀크쉐이크', url: 'https://composecoffee.com/index.php?mid=compose&act=dispCafemenuGalleryList&category_srl=303367' },
+    { name: '에이드 · 주스', url: 'https://composecoffee.com/index.php?mid=compose&act=dispCafemenuGalleryList&category_srl=303368' },
+    { name: '티', url: 'https://composecoffee.com/index.php?mid=compose&act=dispCafemenuGalleryList&category_srl=303369' },
   ];
 
   for (const category of CATEGORIES) {
@@ -427,18 +426,20 @@ async function runPaulBassett(page) {
         await page.goto(item.detailUrl, { waitUntil: 'networkidle2' });
 
         const detailHtml = await page.content();
-        const menuData = parsePaulBassettDetail(detailHtml, item);
+        const menuVariants = parsePaulBassettDetail(detailHtml, item);
 
-        const { isValid, data } = ValidatorService.validate(menuData);
+        for (const menuData of menuVariants) {
+          const { isValid, data } = ValidatorService.validate(menuData);
 
-        if (isValid && data.category !== "제외대상") {
-          const result = await MenuRepository.uploadMenu(data);
+          if (isValid && data.category !== "제외대상") {
+            const result = await MenuRepository.uploadMenu(data);
 
-          if (result.success && result.docId) {
-            foundIds.add(result.docId);
+            if (result.success && result.docId) {
+              foundIds.add(result.docId);
+            }
+
+            console.log(`      ✅ [${index + 1}/${menuItems.length}] 업로드: ${data.menu_name}${data.size_label ? ` (${data.size_label})` : ''}`);
           }
-
-          console.log(`      ✅ [${index + 1}/${menuItems.length}] 업로드: ${data.menu_name}`);
         }
 
         await new Promise(r => setTimeout(r, 500));
@@ -769,35 +770,32 @@ async function runTwosome(page) {
             await page.waitForSelector('.text_list_ts24_type02', { timeout: 3000 });
           } catch (e) { }
 
-          const container = await page.$('.ts24_select_drink_size');
+          // 온도(핫/아이스) 탭이 있으면 모두 순회하며 그때마다 사이즈 탭까지 순회
+          const ondoContainer = await page.$('.hot_n_iced');
+          const ondoCount = ondoContainer ? (await ondoContainer.$$('ul li a')).length : 0;
 
-          if (container) {
-            const sizeTabs = await container.$$('ul li a');
-            const tabCount = sizeTabs.length;
+          if (ondoCount > 0) {
+            for (let t = 0; t < ondoCount; t++) {
+              await page.evaluate((idx) => {
+                const c = document.querySelector('.hot_n_iced');
+                const tabs = c?.querySelectorAll('ul li a') || [];
+                if (tabs[idx]) tabs[idx].click();
+              }, t);
 
-            if (tabCount > 0) {
-              for (let i = 0; i < tabCount; i++) {
-                await page.evaluate((idx) => {
+              // 온도 변경 시 .ts24_select_drink_size 가 비워졌다가 AJAX로 재구성됨 - 재구성 대기
+              try {
+                await page.waitForFunction(() => {
                   const c = document.querySelector('.ts24_select_drink_size');
-                  const tabs = c?.querySelectorAll('ul li a') || [];
-                  if (tabs[idx]) tabs[idx].click();
-                }, i);
+                  return !!c && c.querySelectorAll('ul li').length > 0;
+                }, { timeout: 5000 });
+              } catch (e) { }
 
-                await new Promise(r => setTimeout(r, 500));
+              await new Promise(r => setTimeout(r, 300));
 
-                const currentHtml = await page.content();
-                const menuData = parseTwosomeDetail(currentHtml, menuItem);
-                await uploadAndLog(menuData, index, menuList.length, `[Size ${i + 1}/${tabCount}]`);
-              }
-            } else {
-              const currentHtml = await page.content();
-              const menuData = parseTwosomeDetail(currentHtml, menuItem);
-              await uploadAndLog(menuData, index, menuList.length, '[Single]');
+              await crawlSizeTabs(menuItem, index, menuList.length, `온도 ${t + 1}/${ondoCount}`);
             }
           } else {
-            const currentHtml = await page.content();
-            const menuData = parseTwosomeDetail(currentHtml, menuItem);
-            await uploadAndLog(menuData, index, menuList.length, '[Single]');
+            await crawlSizeTabs(menuItem, index, menuList.length, '');
           }
         } catch (err) {
           console.error(`      ❌ [${menuItem.name}] 상세 실패:`, err.message);
@@ -809,6 +807,34 @@ async function runTwosome(page) {
   }
 
   await finalizeDeactivation(BRAND, oldIds, foundIds);
+
+  // 현재 렌더링된 온도 상태 기준으로 사이즈 탭(레귤러/라지/맥스)을 모두 순회하며 업로드
+  async function crawlSizeTabs(menuItem, index, total, ondoLabel) {
+    const container = await page.$('.ts24_select_drink_size');
+    const sizeTabs = container ? await container.$$('ul li a') : [];
+    const tabCount = sizeTabs.length;
+
+    if (tabCount > 0) {
+      for (let i = 0; i < tabCount; i++) {
+        await page.evaluate((idx) => {
+          const c = document.querySelector('.ts24_select_drink_size');
+          const tabs = c?.querySelectorAll('ul li a') || [];
+          if (tabs[idx]) tabs[idx].click();
+        }, i);
+
+        await new Promise(r => setTimeout(r, 500));
+
+        const currentHtml = await page.content();
+        const menuData = parseTwosomeDetail(currentHtml, menuItem);
+        const sizeLabel = `[Size ${i + 1}/${tabCount}]`;
+        await uploadAndLog(menuData, index, total, ondoLabel ? `[${ondoLabel}]${sizeLabel}` : sizeLabel);
+      }
+    } else {
+      const currentHtml = await page.content();
+      const menuData = parseTwosomeDetail(currentHtml, menuItem);
+      await uploadAndLog(menuData, index, total, ondoLabel ? `[${ondoLabel}][Single]` : '[Single]');
+    }
+  }
 
   async function uploadAndLog(menuData, index, total, suffixLog) {
     const uploaded = await uploadValidatedMenu(menuData, foundIds, `[${BRAND}] `);
@@ -1003,31 +1029,30 @@ async function main() {
 
   try {
     /*
+    */
     await runMega(page);
     console.log("-----------------------------------------");
     await runStarbucks(page);
     console.log("-----------------------------------------");
     await runAngel(page);
     console.log("-----------------------------------------");
-    await runPaulBassett(page);
-    console.log("-----------------------------------------");
     await runTheVenti(page);
     console.log("-----------------------------------------");
-    await runCompose(page);
+    await runPaulBassett(page);
     console.log("-----------------------------------------");
     await runEdiya(page);
     console.log("-----------------------------------------");
     await runMammoth();
     console.log("-----------------------------------------");
+    await runTomNToms(page);
+    console.log("-----------------------------------------");
+    await runPaik(page);
+    console.log("-----------------------------------------");
     await runTwosome(page);
     console.log("-----------------------------------------");
     await runYogerpresso();
     console.log("-----------------------------------------");
-    await runMammoth();
-    console.log("-----------------------------------------");
-    await runTomNToms(page);
-    */
-    await runPaik(page);
+    await runCompose(page);
     console.log("-----------------------------------------");
   } catch (error) {
     console.error("❌ 전체 프로세스 중 오류 발생:", error);

@@ -1,5 +1,6 @@
 const cheerio = require('cheerio');
 const { normalizeCategory } = require('../utils/categoryMapper');
+const { normalizeTemperatureToken, sizeRankFor } = require('../utils/variantInfo');
 
 const BRAND_NAME = '엔제리너스';
 const IMAGE_BASE_URL = 'https://img.lotteeatz.com';
@@ -63,39 +64,20 @@ function normalizeMenuKey(value = '') {
 
 /**
  * 숫자 파싱
- * - 정보 없음(-, 빈값): null
+ * - 정보 없음(빈값): null
+ * - "-": 0 (사이트에서 0g을 "-"로 표기)
  * - "0", "0.0": 0
  * - "0.5미만", "1g미만": 0
  */
 function parseNum(text) {
   const clean = cleanText(text);
 
-  if (!clean || clean === '-') return null;
+  if (!clean) return null;
+  if (clean === '-') return 0;
   if (clean.includes('미만')) return 0;
 
   const num = parseFloat(clean.replace(/,/g, '').replace(/g$/i, ''));
   return Number.isNaN(num) ? null : num;
-}
-
-/**
- * HOT/ICE → menu_type 변환
- */
-function inferMenuType(tempText = '') {
-  const temp = cleanText(tempText).toUpperCase();
-
-  if (temp.includes('HOT')) return 'hot';
-  if (temp.includes('ICE')) return 'ice';
-
-  return 'regular';
-}
-
-/**
- * size_standard 생성
- */
-function buildSizeStandard(sizeText = '') {
-  const size = cleanText(sizeText).toUpperCase();
-  if (!size || size === '-') return null;
-  return size;
 }
 
 /**
@@ -394,10 +376,15 @@ function buildAngelMenuFromCells({
   const slots = nutritionCells.slice(0, 12);
   while (slots.length < 12) slots.push('-');
 
+  // slots[0]은 "중량(g)" 칼럼 — "사이즈"(S/R/L) 칼럼과는 별개다.
+  // size_standard는 실제 제공량(예: "300g")을 나타내야 하므로 중량 값을 써야 하고,
+  // S/R/L 코드는 size_label/size_rank로만 쓴다.
+  const weightG = parseNum(slots[0]);
+
   const nutritionJson = {
     source: 'angel_items_table',
     raw_category: cleanText(currentCategory),
-    weight_g: parseNum(slots[0]),
+    weight_g: weightG,
     carbohydrate: parseNum(slots[2]),
     carbohydrate_daily_value: parseNum(slots[4]),
     protein_daily_value: parseNum(slots[6]),
@@ -410,10 +397,13 @@ function buildAngelMenuFromCells({
     category: normalizedCategory,
     menu_name: cleanText(menuName),
     description: null,
-    size_standard: buildSizeStandard(sizeText),
+    size_standard: weightG !== null ? `${weightG}g` : null,
     image_url: info.imageUrl || null,
     is_active: true,
-    menu_type: inferMenuType(tempText),
+    menu_type: 'beverage',
+    temperature: normalizeTemperatureToken(tempText),
+    size_label: cleanText(sizeText),
+    size_rank: sizeRankFor(sizeText),
 
     calories: parseNum(slots[1]),
     sugar: parseNum(slots[3]),

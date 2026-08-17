@@ -1,17 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:slowpick/screen/menu_detail_screen.dart';
+import 'package:slowpick/service/settings_service.dart';
 
-num _toNum(dynamic v) => v == null ? 0 : num.tryParse(v.toString()) ?? 0;
+num? _toNum(dynamic v) => v == null ? null : num.tryParse(v.toString());
 
-Map<String, Color> _getSugarColor(num sugar) {
-  if (sugar >= 20) {
+// 검색 화면 카드 미리보기에서 선택 가능한 영양 성분 목록.
+// key는 menus 테이블 컬럼명과 동일하게 맞춰 data map에서 바로 조회한다.
+class NutrientOption {
+  final String key;
+  final String label;
+  final String unit;
+  const NutrientOption(this.key, this.label, this.unit);
+}
+
+const List<NutrientOption> kPreviewNutrientOptions = [
+  NutrientOption('sugar', '당류', 'g'),
+  NutrientOption('protein', '단백질', 'g'),
+  NutrientOption('saturated_fat', '지방', 'g'),
+  NutrientOption('calories', '칼로리', 'Kcal'),
+  NutrientOption('caffeine', '카페인', 'mg'),
+  NutrientOption('sodium', '나트륨', 'mg'),
+];
+
+NutrientOption? findNutrientOption(String key) {
+  for (final option in kPreviewNutrientOptions) {
+    if (option.key == key) return option;
+  }
+  return null;
+}
+
+Map<String, Color> _getSugarColor(num? sugar) {
+  if (sugar == null) {
+    return {'bg': const Color(0xFFF0F0F0), 'text': const Color(0xFF9E9E9E)};
+  } else if (sugar >= 20) {
     return {'bg': const Color(0xFFFFE0E1), 'text': const Color(0xFFEF4444)};
   } else if (sugar >= 5) {
     return {'bg': const Color(0xFFfff6cf), 'text': const Color(0xFFf29500)};
   } else {
     return {'bg': const Color(0xFFE8F5E9), 'text': const Color(0xFF43A047)};
   }
+}
+
+// 값이 없으면(NULL) '정보 미제공'으로 표시 — 크롤러가 실제로 0인 값과
+// 정보를 못 얻은 값을 구분해 null로 넘겨주므로, 여기서 0으로 뭉개면 안 됨.
+String _formatNutrition(num? value, String unit) {
+  return value == null ? '정보 미제공' : '$value$unit';
 }
 
 // === 그리드 뷰 카드 위젯 === 세로로 긴 카드
@@ -21,8 +55,17 @@ class MenuGridCard extends StatelessWidget {
   final VoidCallback? onLikeTap;
   final bool isSelected;
   final VoidCallback? onSelectTap;
+  final List<String> previewNutrients;
 
-  const MenuGridCard({super.key, required this.data, this.isLiked = false, this.onLikeTap, this.isSelected = false, this.onSelectTap});
+  const MenuGridCard({
+    super.key,
+    required this.data,
+    this.isLiked = false,
+    this.onLikeTap,
+    this.isSelected = false,
+    this.onSelectTap,
+    this.previewNutrients = SettingsService.defaultPreviewNutrients,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -34,8 +77,6 @@ class MenuGridCard extends StatelessWidget {
     final String name = data['menu_name'] ?? '이름 없음';
     final String brandName = data['brand_name'] ?? '-';
     final String imageUrl = data['image_url'] ?? '';
-    final num kcal = _toNum(data['calories']);
-    final num sugar = _toNum(data['sugar']);
     final List<String> allergyList = data['allergies'] != null
         ? List<String>.from(data['allergies'])
         : [];
@@ -43,8 +84,14 @@ class MenuGridCard extends StatelessWidget {
         ? '-'
         : allergyList.join(', ');
 
-    // 당류 수치에 따른 배경색/텍스트색 가져오기
+    // 당류는 항상 이미지 위 뱃지로 고정 표시, 나머지 선택 성분은 이름 아래에 나열
+    final num? sugar = _toNum(data['sugar']);
     final Map<String, Color> sugarColors = _getSugarColor(sugar);
+    final List<NutrientOption> extraOptions = previewNutrients
+        .where((key) => key != 'sugar')
+        .map(findNutrientOption)
+        .whereType<NutrientOption>()
+        .toList();
 
     return GestureDetector(
       onTap: onSelectTap ?? () {
@@ -95,13 +142,13 @@ class MenuGridCard extends StatelessWidget {
                             color: Colors.grey,
                           ),
                   ),
-                  // 당분 뱃지
+                  // 당류 뱃지 (고정)
                   Positioned(
                     left: 8,
                     top: 8,
                     child: _NutritionBadge(
                       screenWidth: screenWidth,
-                      text: '${sugar}g',
+                      text: _formatNutrition(sugar, 'g'),
                       bgColor: sugarColors['bg']!,
                       textColor: sugarColors['text']!,
                     ),
@@ -153,15 +200,20 @@ class MenuGridCard extends StatelessWidget {
                               fontFamily: 'KoPubDotum',
                             ),
                           ),
-                          // 칼로리
-                          Text(
-                            '${kcal}Kcal',
-                            style: TextStyle(
-                              color: Colors.black87,
-                              fontSize: screenWidth * 0.04,
-                              fontFamily: 'KoPubDotum',
+                          // 나머지 선택된 성분 뱃지
+                          if (extraOptions.isNotEmpty) ...[
+                            SizedBox(height: screenHeight * 0.004),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              children: extraOptions.map((option) {
+                                final num? value = _toNum(data[option.key]);
+                                return _MiniBadge(
+                                  text: '${option.label} ${_formatNutrition(value, option.unit)}',
+                                );
+                              }).toList(),
                             ),
-                          ),
+                          ],
                           // 알러지 정보
                           SizedBox(height: screenHeight * 0.005),
                           Column(
@@ -200,8 +252,17 @@ class MenuListCard extends StatelessWidget {
   final VoidCallback? onLikeTap;
   final bool isSelected;
   final VoidCallback? onSelectTap;
+  final List<String> previewNutrients;
 
-  const MenuListCard({super.key, required this.data, this.isLiked = false, this.onLikeTap, this.isSelected = false, this.onSelectTap});
+  const MenuListCard({
+    super.key,
+    required this.data,
+    this.isLiked = false,
+    this.onLikeTap,
+    this.isSelected = false,
+    this.onSelectTap,
+    this.previewNutrients = SettingsService.defaultPreviewNutrients,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -210,10 +271,16 @@ class MenuListCard extends StatelessWidget {
 
     final String name = data['menu_name'] ?? '이름 없음';
     final String imageUrl = data['image_url'] ?? '';
-    final num kcal = _toNum(data['calories']);
-    final num sugar = _toNum(data['sugar']);
-    final num protein = _toNum(data['protein']);
-    final num fat = _toNum(data['saturated_fat']);
+    final num? kcal = _toNum(data['calories']);
+
+    // 당류는 항상 고정 뱃지로 표시, 나머지 선택 성분은 옆으로 스크롤되는 영역에 나열
+    final num? sugar = _toNum(data['sugar']);
+    final Map<String, Color> sugarColors = _getSugarColor(sugar);
+    final List<NutrientOption> extraOptions = previewNutrients
+        .where((key) => key != 'sugar')
+        .map(findNutrientOption)
+        .whereType<NutrientOption>()
+        .toList();
 
     final List<String> allergyList = data['allergies'] != null
         ? List<String>.from(data['allergies'])
@@ -221,8 +288,6 @@ class MenuListCard extends StatelessWidget {
     final String allergyText = allergyList.isEmpty
         ? '-'
         : allergyList.join(', ');
-
-    final Map<String, Color> sugarColors = _getSugarColor(sugar);
 
     return GestureDetector(
       onTap: onSelectTap ?? () {
@@ -291,7 +356,7 @@ class MenuListCard extends StatelessWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                '${kcal}Kcal',
+                                _formatNutrition(kcal, 'Kcal'),
                                 style: TextStyle(
                                   fontSize: screenWidth * 0.032,
                                   fontFamily: 'KoPubDotum',
@@ -316,14 +381,28 @@ class MenuListCard extends StatelessWidget {
                     Row(
                       children: [
                         _ColorMiniBadge(
-                          text: '당 ${sugar}g',
+                          text: '당 ${_formatNutrition(sugar, 'g')}',
                           bgColor: sugarColors['bg']!,
                           textColor: sugarColors['text']!,
                         ),
-                        const SizedBox(width: 6),
-                        _MiniBadge(text: '단백질 ${protein}g'),
-                        const SizedBox(width: 6),
-                        _MiniBadge(text: '지방 ${fat}g'),
+                        if (extraOptions.isNotEmpty) ...[
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: [
+                                  for (final option in extraOptions) ...[
+                                    _MiniBadge(
+                                      text: '${option.label} ${_formatNutrition(_toNum(data[option.key]), option.unit)}',
+                                    ),
+                                    const SizedBox(width: 6),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ],
