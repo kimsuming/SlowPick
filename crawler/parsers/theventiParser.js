@@ -2,6 +2,22 @@ const cheerio = require('cheerio');
 const { normalizeCategory } = require('../utils/categoryMapper');
 const { TEMPERATURE } = require('../utils/variantInfo');
 
+// 더벤티는 메뉴명 뒤에 "(라지/점보)", "(라지)" 같은 사이즈 안내가 붙어서 오는 경우가 있다.
+// 이 정보는 이미 영양정보 표의 size_standard(예: "라지(600ml) / 점보(960ml)")에 따로
+// 들어있으므로, 메뉴명에 붙은 괄호는 그냥 잘라낸다.
+function stripTrailingSizeAnnotation(name) {
+  if (!name) return name;
+  return name.replace(/\s*\([^)]*\)\s*$/, '').trim();
+}
+
+// 설명 뒤에 "※ ..."나 "*..." 형태의 부가 안내(고카페인 기준, 영양성분 측정 기준 등)가
+// 붙는 경우가 많아, 그런 마커가 처음 나오는 지점 앞까지만 설명으로 남긴다.
+function truncateAtFootnoteMarker(text) {
+  if (!text) return text;
+  const idx = text.search(/[*※]/);
+  return idx === -1 ? text : text.slice(0, idx).trim();
+}
+
 /**
  * 1. 목록 페이지에서 클릭 대상 및 기본 정보 추출
  */
@@ -138,7 +154,7 @@ const parseDetail = (detailHtml, basicInfo) => {
   const { name: baseName, imageUrl: listImageUrl } = basicInfo;
 
   const popupTitle = $('.menu_desc_wrap .txt_bx .tit span').last().text().trim();
-  const finalName = popupTitle || baseName;
+  const finalName = stripTrailingSizeAnnotation(popupTitle || baseName);
 
   let popupImageUrl = $('.menu_desc_wrap .img_bx img').attr('src') || listImageUrl || null;
   if (popupImageUrl && !popupImageUrl.startsWith('http')) {
@@ -148,10 +164,12 @@ const parseDetail = (detailHtml, basicInfo) => {
   const descHtml = $('.menu_desc_wrap .txt_bx .txt').first().html() || '';
 
   const description = normalizeNullableText(
-    descHtml
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/&nbsp;/gi, ' ')
-      .replace(/<[^>]+>/g, ' ')
+    truncateAtFootnoteMarker(
+      descHtml
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/<[^>]+>/g, ' ')
+    )
   );
 
   const $tds = $('.menu-ingredient table tbody tr td');

@@ -1029,14 +1029,11 @@ async function main() {
 
   try {
     /*
-    */
     await runMega(page);
     console.log("-----------------------------------------");
     await runStarbucks(page);
     console.log("-----------------------------------------");
     await runAngel(page);
-    console.log("-----------------------------------------");
-    await runTheVenti(page);
     console.log("-----------------------------------------");
     await runPaulBassett(page);
     console.log("-----------------------------------------");
@@ -1053,6 +1050,9 @@ async function main() {
     await runYogerpresso();
     console.log("-----------------------------------------");
     await runCompose(page);
+    console.log("-----------------------------------------");
+    */
+    await runTheVenti(page);
     console.log("-----------------------------------------");
   } catch (error) {
     console.error("❌ 전체 프로세스 중 오류 발생:", error);

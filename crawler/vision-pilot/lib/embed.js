@@ -1,11 +1,13 @@
-const { getClient } = require('./openaiClient');
+const { getClient, withRateLimitRetry } = require('./openaiClient');
 
 async function embedText(text) {
   const client = getClient();
-  const response = await client.embeddings.create({
-    model: 'text-embedding-3-small',
-    input: text,
-  });
+  const response = await withRateLimitRetry(() =>
+    client.embeddings.create({
+      model: 'text-embedding-3-small',
+      input: text,
+    })
+  );
   return response.data[0].embedding;
 }
 

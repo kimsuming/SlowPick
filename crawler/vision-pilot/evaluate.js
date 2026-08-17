@@ -5,6 +5,7 @@
 //   3) test-photos/<브랜드>/manifest.csv 작성 (헤더: filename,true_menu_name)
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const { describeImage } = require('./lib/describeImage');
 const { embedText, cosineSimilarity } = require('./lib/embed');
 
@@ -63,6 +64,7 @@ async function main() {
 
     try {
       const { canonicalText } = await describeImage({ dataUrl });
+      console.log(`${item.filename} 판단 - ${canonicalText}`);
       const queryEmbedding = await embedText(canonicalText);
 
       const ranked = corpus
