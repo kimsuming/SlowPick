@@ -48,9 +48,11 @@ async function main() {
 
   console.log(`corpus ${corpus.length}건, 테스트 사진 ${manifest.length}장 평가 시작\n`);
 
+  const TOP_N = 10;
+  const RECALL_KS = [1, 3, 5, 10];
+
   const results = [];
-  let top1Hit = 0;
-  let top3Hit = 0;
+  const hits = { 1: 0, 3: 0, 5: 0, 10: 0 };
 
   for (const item of manifest) {
     const filePath = path.join(TEST_DIR, item.filename);
@@ -70,19 +72,32 @@ async function main() {
       const ranked = corpus
         .map((c) => ({ menu_name: c.menu_name, score: cosineSimilarity(queryEmbedding, c.embedding) }))
         .sort((a, b) => b.score - a.score)
-        .slice(0, 5);
+        .slice(0, TOP_N);
 
-      const top1 = ranked[0]?.menu_name === item.trueMenuName;
-      const top3 = ranked.slice(0, 3).some((r) => r.menu_name === item.trueMenuName);
-      if (top1) top1Hit++;
-      if (top3) top3Hit++;
+      const recallAt = {};
+      for (const k of RECALL_KS) {
+        recallAt[k] = ranked.slice(0, k).some((r) => r.menu_name === item.trueMenuName);
+        if (recallAt[k]) hits[k]++;
+      }
 
-      results.push({ filename: item.filename, trueMenuName: item.trueMenuName, ranked, top1, top3 });
+      // 정답이 top10 안에 있다면 몇 위인지, 없다면 null
+      const rankPosition = ranked.findIndex((r) => r.menu_name === item.trueMenuName);
+
+      results.push({
+        filename: item.filename,
+        trueMenuName: item.trueMenuName,
+        ranked,
+        rankPosition: rankPosition === -1 ? null : rankPosition + 1,
+        top1: recallAt[1],
+        top3: recallAt[3],
+        top5: recallAt[5],
+        top10: recallAt[10],
+      });
+
       console.log(
-        `${item.filename} (정답: ${item.trueMenuName}) → Top3: ${ranked
-          .slice(0, 3)
-          .map((r) => `${r.menu_name}(${r.score.toFixed(3)})`)
-          .join(', ')} ${top3 ? '✅' : '❌'}`
+        `${item.filename} (정답: ${item.trueMenuName}, 순위: ${rankPosition === -1 ? 'top10 밖' : rankPosition + 1 + '위'}) → Top10: ${ranked
+          .map((r, i) => `${i + 1}.${r.menu_name}(${r.score.toFixed(3)})`)
+          .join(', ')} ${recallAt[3] ? '✅top3' : recallAt[10] ? '🟡top10' : '❌'}`
       );
     } catch (e) {
       console.log(`[오류] ${item.filename}: ${e.message}`);
@@ -91,11 +106,27 @@ async function main() {
 
   const n = results.length;
   console.log(`\n=== 결과 (n=${n}) ===`);
-  console.log(`Top-1 정확도: ${n ? ((top1Hit / n) * 100).toFixed(1) : 0}%`);
-  console.log(`Top-3 Recall: ${n ? ((top3Hit / n) * 100).toFixed(1) : 0}%`);
+  for (const k of RECALL_KS) {
+    console.log(`Top-${k} ${k === 1 ? '정확도' : 'Recall'}: ${n ? ((hits[k] / n) * 100).toFixed(1) : 0}%`);
+  }
 
   const outPath = path.join(__dirname, 'output', `eval_${BRAND}_${Date.now()}.json`);
-  fs.writeFileSync(outPath, JSON.stringify({ brand: BRAND, top1Rate: top1Hit / n, top3Recall: top3Hit / n, results }, null, 2), 'utf-8');
+  fs.writeFileSync(
+    outPath,
+    JSON.stringify(
+      {
+        brand: BRAND,
+        top1Rate: hits[1] / n,
+        top3Recall: hits[3] / n,
+        top5Recall: hits[5] / n,
+        top10Recall: hits[10] / n,
+        results,
+      },
+      null,
+      2
+    ),
+    'utf-8'
+  );
   console.log(`상세 결과 저장: ${outPath}`);
 }
 

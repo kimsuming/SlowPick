@@ -143,20 +143,20 @@ async function runMega(page) {
   const URL = "https://www.mega-mgccoffee.com/menu/?menu_category1=1&menu_category2=1";
   await page.goto(URL, { waitUntil: 'networkidle2' });
 
-  const pageButtons = await page.$$("#board_page li a");
-  const totalPages = pageButtons.length || 1;
+  // #board_page는 "처음/1/2/3/4/다음/마지막"처럼 일부 페이지 번호만 노출하므로
+  // 보이는 버튼 개수를 총 페이지 수로 쓰면 안 된다. "마지막" 링크의 data-page가 진짜 총 페이지 수다.
+  const totalPages = await page
+    .$eval('#board_page a.board_page_last', (el) => Number(el.dataset.page) || 1)
+    .catch(() => 1);
+
+  console.log(`   📄 총 ${totalPages}페이지 확인`);
 
   for (let i = 1; i <= totalPages; i++) {
     if (i > 1) {
-      await page.evaluate((n) => {
-        const btns = document.querySelectorAll("#board_page li a");
-        for (const b of btns) {
-          if (b.innerText.trim() == n) {
-            b.click();
-            break;
-          }
-        }
-      }, i);
+      // 버튼 텍스트로 페이지 번호를 찾아 클릭하면 화면에 없는 번호(5 이상)는 찾지 못해
+      // 4페이지 이후로 더 이상 진행되지 않았다. 사이트가 이미 쓰고 있는
+      // 전역 menu(page) 함수를 직접 호출해 AJAX로 해당 페이지를 불러온다.
+      await page.evaluate((n) => menu(n), i);
       await new Promise(r => setTimeout(r, 2000));
     }
 
@@ -1029,8 +1029,6 @@ async function main() {
 
   try {
     /*
-    await runMega(page);
-    console.log("-----------------------------------------");
     await runStarbucks(page);
     console.log("-----------------------------------------");
     await runAngel(page);
@@ -1051,8 +1049,10 @@ async function main() {
     console.log("-----------------------------------------");
     await runCompose(page);
     console.log("-----------------------------------------");
-    */
     await runTheVenti(page);
+    console.log("-----------------------------------------");
+    */
+    await runMega(page);
     console.log("-----------------------------------------");
   } catch (error) {
     console.error("❌ 전체 프로세스 중 오류 발생:", error);

@@ -3,7 +3,7 @@
 console.log('[Angel] line-based parser loaded');
 
 const cheerio = require('cheerio');
-const { extractVariantFromName } = require('../utils/variantInfo');
+const { extractVariantFromName, normalizeTemperatureToken } = require('../utils/variantInfo');
 
 function normalizeText(value = '') {
   return String(value).replace(/\s+/g, ' ').trim();
@@ -27,7 +27,18 @@ function parseMega(htmlContent) {
     if (nameNode.length === 0) return;
 
     const rawName = normalizeText(nameNode.text());
-    const { displayName, temperature, sizeLabel, sizeRank } = extractVariantFromName(rawName);
+    const { displayName, temperature: nameTemperature, sizeLabel, sizeRank } = extractVariantFromName(rawName);
+
+    // 현재 라이브 목록은 이름에 HOT/ICE를 적지 않고, 이미지 위 배지
+    // (cont_gallery_list_label1=HOT, cont_gallery_list_label2=ICE)로만 표시한다.
+    // 이걸 안 읽으면 같은 메뉴의 HOT/ICE 두 판이 동일한 doc_id를 갖게 되어
+    // 업로드 시 서로 덮어쓴다.
+    const badgeText = normalizeText(
+      $(el).find('.cont_gallery_list_img .cont_gallery_list_label').first().text(),
+    );
+    const badgeTemperature = normalizeTemperatureToken(badgeText);
+
+    const temperature = nameTemperature || badgeTemperature;
     const imgUrl = normalizeText($(el).find('.cont_gallery_list_img img').attr('src') || '');
     const $modal = $(el).find('.inner_modal');
 

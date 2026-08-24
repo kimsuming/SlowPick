@@ -1,0 +1,427 @@
+{
+  "brand": "더벤티",
+  "top1Rate": 0.06666666666666667,
+  "top3Recall": 0.2,
+  "results": [
+    {
+      "filename": "1.jpg",
+      "trueMenuName": "디카페인 오트카페라떼",
+      "ranked": [
+        {
+          "menu_name": "오트펄초코라떼",
+          "score": 0.9665193494127569
+        },
+        {
+          "menu_name": "말차머핀",
+          "score": 0.9398164217335864
+        },
+        {
+          "menu_name": "핫 아메리카노",
+          "score": 0.9304817678601753
+        },
+        {
+          "menu_name": "멜팅초코",
+          "score": 0.9256496913605501
+        },
+        {
+          "menu_name": "디카페인 콜드브루",
+          "score": 0.9239848886843655
+        }
+      ],
+      "top1": false,
+      "top3": false
+    },
+    {
+      "filename": "2.jpg",
+      "trueMenuName": "아이스 아메리카노",
+      "ranked": [
+        {
+          "menu_name": "말차머핀",
+          "score": 1
+        },
+        {
+          "menu_name": "오트펄초코라떼",
+          "score": 0.9413800998293972
+        },
+        {
+          "menu_name": "간장 소보로밥",
+          "score": 0.9402945556561605
+        },
+        {
+          "menu_name": "매콤 소보로밥",
+          "score": 0.9102256039310798
+        },
+        {
+          "menu_name": "멜팅초코",
+          "score": 0.9101092168596905
+        }
+      ],
+      "top1": false,
+      "top3": false
+    },
+    {
+      "filename": "3.jpg",
+      "trueMenuName": "크림소다",
+      "ranked": [
+        {
+          "menu_name": "녹차",
+          "score": 0.9598729708026524
+        },
+        {
+          "menu_name": "핫 아메리카노",
+          "score": 0.9585422778429881
+        },
+        {
+          "menu_name": "토피넛 라떼",
+          "score": 0.9549162681687265
+        },
+        {
+          "menu_name": "헤이즐넛딥라떼",
+          "score": 0.9524077051786803
+        },
+        {
+          "menu_name": "연유라떼",
+          "score": 0.9524077051786803
+        }
+      ],
+      "top1": false,
+      "top3": false
+    },
+    {
+      "filename": "4.jpg",
+      "trueMenuName": "카페라떼",
+      "ranked": [
+        {
+          "menu_name": "핫 아메리카노",
+          "score": 0.9820461578731422
+        },
+        {
+          "menu_name": "바닐라딥라떼",
+          "score": 0.9807111035350367
+        },
+        {
+          "menu_name": "믹스커피",
+          "score": 0.9807111035350367
+        },
+        {
+          "menu_name": "디카페인 연유라떼",
+          "score": 0.9807111035350367
+        },
+        {
+          "menu_name": "복숭아아이스티",
+          "score": 0.980697002507145
+        }
+      ],
+      "top1": false,
+      "top3": false
+    },
+    {
+      "filename": "5.jpg",
+      "trueMenuName": "멜팅초코",
+      "ranked": [
+        {
+          "menu_name": "디카페인 아인슈페너",
+          "score": 0.9744254687874452
+        },
+        {
+          "menu_name": "시그니처딥라떼",
+          "score": 0.9666941244008881
+        },
+        {
+          "menu_name": "아인슈페너",
+          "score": 0.9657918701611429
+        },
+        {
+          "menu_name": "오트초코카페라떼",
+          "score": 0.96547195695473
+        },
+        {
+          "menu_name": "디카페인 카페라떼",
+          "score": 0.96547195695473
+        }
+      ],
+      "top1": false,
+      "top3": false
+    },
+    {
+      "filename": "6.jpg",
+      "trueMenuName": "메론소다",
+      "ranked": [
+        {
+          "menu_name": "디카페인 콜드브루",
+          "score": 0.9364744640543231
+        },
+        {
+          "menu_name": "핫 아메리카노",
+          "score": 0.9334547857131654
+        },
+        {
+          "menu_name": "청포도 레드불 부스트",
+          "score": 0.9321544874643448
+        },
+        {
+          "menu_name": "제로 오렌지 멜론 머틀티",
+          "score": 0.9253932360392976
+        },
+        {
+          "menu_name": "오렌지과채주스",
+          "score": 0.9253932360392976
+        }
+      ],
+      "top1": false,
+      "top3": false
+    },
+    {
+      "filename": "7.jpg",
+      "trueMenuName": "아이스 아메리카노",
+      "ranked": [
+        {
+          "menu_name": "디카페인 콜드브루",
+          "score": 0.9998677895292151
+        },
+        {
+          "menu_name": "레샷추",
+          "score": 0.9850271790521852
+        },
+        {
+          "menu_name": "핫 아메리카노",
+          "score": 0.9820336938666339
+        },
+        {
+          "menu_name": "더쌍화차",
+          "score": 0.9653267040217308
+        },
+        {
+          "menu_name": "아샷추",
+          "score": 0.9651147052355232
+        }
+      ],
+      "top1": false,
+      "top3": false
+    },
+    {
+      "filename": "8.jpg",
+      "trueMenuName": "리치캐모마일 스파클링",
+      "ranked": [
+        {
+          "menu_name": "디카페인 콜드브루",
+          "score": 0.9667403186965998
+        },
+        {
+          "menu_name": "꿀배생강티",
+          "score": 0.9577338662459616
+        },
+        {
+          "menu_name": "스윗 망고주스",
+          "score": 0.9576050994061117
+        },
+        {
+          "menu_name": "레샷추",
+          "score": 0.9490171370918432
+        },
+        {
+          "menu_name": "제로 오렌지 멜론 머틀티",
+          "score": 0.9483149451794748
+        }
+      ],
+      "top1": false,
+      "top3": false
+    },
+    {
+      "filename": "9.jpg",
+      "trueMenuName": "디카페인 시그니처딥라떼",
+      "ranked": [
+        {
+          "menu_name": "시그니처딥라떼",
+          "score": 0.9597952419417163
+        },
+        {
+          "menu_name": "이천쌀 흑임자폼 라떼",
+          "score": 0.9564801978403606
+        },
+        {
+          "menu_name": "오트초코카페라떼",
+          "score": 0.9549889996546803
+        },
+        {
+          "menu_name": "디카페인 카페라떼",
+          "score": 0.9549889996546803
+        },
+        {
+          "menu_name": "오트초코카페라떼",
+          "score": 0.9547802108968566
+        }
+      ],
+      "top1": false,
+      "top3": false
+    },
+    {
+      "filename": "10.jpg",
+      "trueMenuName": "딸기라떼",
+      "ranked": [
+        {
+          "menu_name": "딸기쉐이크",
+          "score": 0.9510271154033888
+        },
+        {
+          "menu_name": "딸기머핀",
+          "score": 0.9396683718471857
+        },
+        {
+          "menu_name": "밀크쉐이크",
+          "score": 0.904405528070562
+        },
+        {
+          "menu_name": "자두피치스무디",
+          "score": 0.8988502512032978
+        },
+        {
+          "menu_name": "말차프라페",
+          "score": 0.898269876919964
+        }
+      ],
+      "top1": false,
+      "top3": false
+    },
+    {
+      "filename": "11.jpg",
+      "trueMenuName": "망고요거트스무디",
+      "ranked": [
+        {
+          "menu_name": "망고요거트스무디",
+          "score": 0.9746685909997131
+        },
+        {
+          "menu_name": "복숭아요거트스무디",
+          "score": 0.9616704704395761
+        },
+        {
+          "menu_name": "코코넛커피프라페",
+          "score": 0.9525463868608095
+        },
+        {
+          "menu_name": "말차아인슈페너",
+          "score": 0.9412543235364114
+        },
+        {
+          "menu_name": "쿠키앤크림프라페",
+          "score": 0.9301280344197064
+        }
+      ],
+      "top1": true,
+      "top3": true
+    },
+    {
+      "filename": "12.jpg",
+      "trueMenuName": "카페모카",
+      "ranked": [
+        {
+          "menu_name": "디카페인 카페모카",
+          "score": 0.9752361878656632
+        },
+        {
+          "menu_name": "더쌍화라떼",
+          "score": 0.967282968624212
+        },
+        {
+          "menu_name": "카페모카",
+          "score": 0.9636245934115684
+        },
+        {
+          "menu_name": "디카페인 에스프레소 쉐이크",
+          "score": 0.9636245934115684
+        },
+        {
+          "menu_name": "에스프레소쉐이크",
+          "score": 0.9636245934115684
+        }
+      ],
+      "top1": false,
+      "top3": true
+    },
+    {
+      "filename": "13.jpg",
+      "trueMenuName": "말차라떼",
+      "ranked": [
+        {
+          "menu_name": "트리플민트",
+          "score": 0.9999999999999999
+        },
+        {
+          "menu_name": "녹차",
+          "score": 0.9481194225097667
+        },
+        {
+          "menu_name": "말차라떼",
+          "score": 0.9453293689959704
+        },
+        {
+          "menu_name": "핫 아메리카노",
+          "score": 0.9449717750111659
+        },
+        {
+          "menu_name": "타로버블티",
+          "score": 0.9443483320063473
+        }
+      ],
+      "top1": false,
+      "top3": true
+    },
+    {
+      "filename": "14.jpg",
+      "trueMenuName": "딸기요거트스무디",
+      "ranked": [
+        {
+          "menu_name": "이천쌀라떼",
+          "score": 0.9141490444265171
+        },
+        {
+          "menu_name": "복숭아요거트스무디",
+          "score": 0.9113968055457874
+        },
+        {
+          "menu_name": "디카페인 아인슈페너",
+          "score": 0.9030397011917667
+        },
+        {
+          "menu_name": "이천쌀 비빔 마빙",
+          "score": 0.8998025365602507
+        },
+        {
+          "menu_name": "망고요거트스무디",
+          "score": 0.8993497967415736
+        }
+      ],
+      "top1": false,
+      "top3": false
+    },
+    {
+      "filename": "15.jpg",
+      "trueMenuName": "딸기초코쿠키스무디",
+      "ranked": [
+        {
+          "menu_name": "디카페인 헤이즐넛딥라떼",
+          "score": 0.9548370165966023
+        },
+        {
+          "menu_name": "아이스 아메리카노",
+          "score": 0.9524958534694774
+        },
+        {
+          "menu_name": "호박팥차",
+          "score": 0.9524958534694774
+        },
+        {
+          "menu_name": "레몬머틀",
+          "score": 0.9524958534694774
+        },
+        {
+          "menu_name": "토피넛 라떼",
+          "score": 0.9524958534694774
+        }
+      ],
+      "top1": false,
+      "top3": false
+    }
+  ]
+}
