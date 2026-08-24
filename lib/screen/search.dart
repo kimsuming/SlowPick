@@ -426,11 +426,6 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
     final double screenHeight = MediaQuery.of(context).size.height;
-    // 미리보기 성분 뱃지는 한 줄에 2개씩 배치되므로, 선택 개수가 늘어난 만큼
-    // 줄 수를 계산해 카드 높이(=세로 비율)를 늘려 오버플로우를 막는다.
-    final int extraNutrientLines = (_previewNutrients.length / 2).ceil();
-    final double gridHeightFraction = 0.37 + extraNutrientLines * 0.05;
-    final double gridAspectRatio = (screenWidth / 2) / (screenHeight * gridHeightFraction);
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -595,7 +590,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
                         // === 검색 결과 리스트 ===
                         Expanded(
-                          child: _buildMenuList(screenWidth, screenHeight, gridAspectRatio),
+                          child: _buildMenuList(screenWidth, screenHeight),
                         ),
                       ],
                     ),
@@ -609,7 +604,7 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _buildMenuList(double screenWidth, double screenHeight, double gridAspectRatio) {
+  Widget _buildMenuList(double screenWidth, double screenHeight) {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator(color: Colors.greenAccent));
     }
@@ -623,21 +618,44 @@ class _SearchScreenState extends State<SearchScreen> {
     }
 
     if (_isGridView) {
-      return GridView.builder(
-        padding: EdgeInsets.fromLTRB(screenWidth * 0.04, 10, screenWidth * 0.04, 18),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: gridAspectRatio,
-          crossAxisSpacing: screenWidth * 0.04,
-          mainAxisSpacing: screenWidth * 0.04,
-        ),
-        itemCount: menus.length,
-        itemBuilder: (context, index) => MenuGridCard(
-          data: menus[index],
-          isLiked: menus[index]['is_liked'] as bool? ?? false,
-          onLikeTap: () => _toggleLike(menus[index]['id'] as int),
-          previewNutrients: _previewNutrients,
-        ),
+      // 카드마다 미리보기 성분 개수나 알러지 텍스트 길이가 달라 필요한 높이가
+      // 제각각이라, 그리드 전체를 같은 비율로 고정하면 카드 하나가 길어질 때
+      // 화면의 모든 카드가 함께 늘어나 버린다. 그래서 GridView 대신 두 장씩
+      // Row로 묶어 IntrinsicHeight로 감싸고, 그 줄(Row) 안에서만 높이를
+      // 맞추도록 한다 — 다른 줄에는 영향이 없다.
+      final rowCount = (menus.length / 2).ceil();
+      final horizontalPadding = screenWidth * 0.04;
+      final gap = screenWidth * 0.04;
+
+      return ListView.separated(
+        padding: EdgeInsets.fromLTRB(horizontalPadding, 10, horizontalPadding, 18),
+        itemCount: rowCount,
+        separatorBuilder: (context, index) => SizedBox(height: gap),
+        itemBuilder: (context, rowIndex) {
+          final firstIndex = rowIndex * 2;
+          final secondIndex = firstIndex + 1;
+          final hasSecond = secondIndex < menus.length;
+
+          Widget buildCard(int index) => MenuGridCard(
+                data: menus[index],
+                isLiked: menus[index]['is_liked'] as bool? ?? false,
+                onLikeTap: () => _toggleLike(menus[index]['id'] as int),
+                previewNutrients: _previewNutrients,
+              );
+
+          return IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: buildCard(firstIndex)),
+                SizedBox(width: gap),
+                Expanded(
+                  child: hasSecond ? buildCard(secondIndex) : const SizedBox.shrink(),
+                ),
+              ],
+            ),
+          );
+        },
       );
     } else {
       return ListView.separated(
