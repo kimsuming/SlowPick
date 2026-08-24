@@ -4,6 +4,7 @@ import 'package:slowpick/screen/bloodSugarNote.dart';
 import 'package:slowpick/screen/dietNote.dart';
 import 'package:slowpick/screen/example.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
+import 'package:slowpick/service/note_title_service.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 
 class mainNote extends StatefulWidget {
@@ -14,11 +15,17 @@ class mainNote extends StatefulWidget {
 }
 
 class _mainNoteState extends State<mainNote> with SingleTickerProviderStateMixin {
+  static const String _defaultBloodSugarNoteTitle = '거부기의 혈당 노트';
+  static const String _defaultDietNoteTitle = '느린거북 다이어트';
+
   bool _isFabExpanded = false;
   late AnimationController _fabController;
   late Animation<double> _bloodSugarAnim;
   late Animation<double> _dietAnim;
   late Animation<double> _basicAnim;
+
+  String _bloodSugarNoteTitle = _defaultBloodSugarNoteTitle;
+  String _dietNoteTitle = _defaultDietNoteTitle;
 
   @override
   void initState() {
@@ -39,6 +46,28 @@ class _mainNoteState extends State<mainNote> with SingleTickerProviderStateMixin
       parent: _fabController,
       curve: const Interval(0.2, 1.0, curve: Curves.easeOut),
     );
+    _loadNoteTitles();
+  }
+
+  Future<void> _loadNoteTitles() async {
+    try {
+      final title = await NoteTitleService.fetchTitle(
+        NoteTitleService.bloodSugarNoteKey,
+        fallback: _defaultBloodSugarNoteTitle,
+      );
+      if (mounted) setState(() => _bloodSugarNoteTitle = title);
+    } catch (_) {
+      // 노트 이름 로딩 실패 시 기본 이름을 그대로 둔다.
+    }
+    try {
+      final title = await NoteTitleService.fetchTitle(
+        NoteTitleService.dietNoteKey,
+        fallback: _defaultDietNoteTitle,
+      );
+      if (mounted) setState(() => _dietNoteTitle = title);
+    } catch (_) {
+      // 노트 이름 로딩 실패 시 기본 이름을 그대로 둔다.
+    }
   }
 
   @override
@@ -305,7 +334,7 @@ class _mainNoteState extends State<mainNote> with SingleTickerProviderStateMixin
           Padding(
             padding: const EdgeInsets.only(left: 20),
             child: Text(
-              '거부기의 혈당노트',
+              _bloodSugarNoteTitle,
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 20,
@@ -314,7 +343,12 @@ class _mainNoteState extends State<mainNote> with SingleTickerProviderStateMixin
               ),
             ),
           ),
-          Row(
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const BloodSugarNote()),
+            ),
+            child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
@@ -379,7 +413,7 @@ class _mainNoteState extends State<mainNote> with SingleTickerProviderStateMixin
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '오늘의 혈당',
+                          '최근 혈당',
                           style: TextStyle(
                             color: const Color(0xFF9A9A9A),
                             fontSize: 12,
@@ -498,6 +532,7 @@ class _mainNoteState extends State<mainNote> with SingleTickerProviderStateMixin
               ),
             ],
           ),
+          ),
         ],
       ),
     );
@@ -515,7 +550,7 @@ class _mainNoteState extends State<mainNote> with SingleTickerProviderStateMixin
           Padding(
             padding: const EdgeInsets.only(left: 20),
             child: Text(
-              '느린거북 다이어트',
+              _dietNoteTitle,
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 20,
@@ -524,7 +559,12 @@ class _mainNoteState extends State<mainNote> with SingleTickerProviderStateMixin
               ),
             ),
           ),
-          Row(
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const DietNote()),
+            ),
+            child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
@@ -679,6 +719,7 @@ class _mainNoteState extends State<mainNote> with SingleTickerProviderStateMixin
                 ),
               ),
             ],
+          ),
           ),
         ],
       ),
