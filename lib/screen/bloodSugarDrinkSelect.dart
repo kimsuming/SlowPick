@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:slowpick/screen/bloodSugarMenuSelect.dart';
+import 'package:slowpick/screen/blood_sugar_check_record.dart';
+import 'package:slowpick/screen/search.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 
 class BloodSugarDrinkSelect extends StatelessWidget {
@@ -121,7 +122,18 @@ class BloodSugarDrinkSelect extends StatelessWidget {
                         GestureDetector(
                           onTap: () => Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const BloodSugarMenuSelect()),
+                            MaterialPageRoute(
+                              builder: (_) => SearchScreen(
+                                selectionMode: true,
+                                onMenuSelected: (menu) => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        BloodSugarCheckRecord(menuData: menu),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                           child: Container(
                             width: screenWidth * 0.85,

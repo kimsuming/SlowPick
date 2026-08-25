@@ -71,3 +71,5 @@ lib/amplify_outputs.dart
 
 # Claude Code local settings (개인별 권한 설정)
 .claude/settings.local.json
+CLAUDE.md
+pubspec.lock

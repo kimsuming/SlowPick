@@ -8,7 +8,18 @@ class SearchScreen extends StatefulWidget {
   final String? initialQuery;
   final String? initialBrand;
 
-  const SearchScreen({super.key, this.initialQuery, this.initialBrand});
+  // true면 메뉴를 찜하는 검색 화면 대신, 하나를 골라 [onMenuSelected]로 넘기는
+  // 선택 화면으로 동작한다 (혈당 기록 등에서 재사용).
+  final bool selectionMode;
+  final ValueChanged<Map<String, dynamic>>? onMenuSelected;
+
+  const SearchScreen({
+    super.key,
+    this.initialQuery,
+    this.initialBrand,
+    this.selectionMode = false,
+    this.onMenuSelected,
+  }) : assert(!selectionMode || onMenuSelected != null);
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -22,6 +33,8 @@ class _SearchScreenState extends State<SearchScreen> {
   List<Map<String, dynamic>> _allMenus = [];
   bool _isLoading = true;
   String? _errorMessage;
+
+  Map<String, dynamic>? _selectedMenu;
 
   // 정렬 옵션
   final List<String> _sortOptions = ['모든 메뉴', '최신순', '당류 낮은순', '칼로리 낮은순'];
@@ -100,7 +113,9 @@ class _SearchScreenState extends State<SearchScreen> {
       final menus = await MenuService.fetchMenus();
       if (!mounted) return;
       setState(() {
-        _allMenus = MenuService.groupVariants(menus);
+        // 선택 모드(혈당 기록 등)에서는 사이즈/온도별로 당류·칼로리가 다르므로
+        // 대표 변형으로 묶지 않고 각 변형을 그대로 보여준다.
+        _allMenus = widget.selectionMode ? menus : MenuService.groupVariants(menus);
         _isLoading = false;
       });
     } catch (e) {
@@ -429,10 +444,12 @@ class _SearchScreenState extends State<SearchScreen> {
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      bottomNavigationBar: Container(
-        color: const Color(0xFFFCFCFC),
-        child: SafeArea(top: false, child: BottomBarNew()),
-      ),
+      bottomNavigationBar: widget.selectionMode
+          ? null
+          : Container(
+              color: const Color(0xFFFCFCFC),
+              child: SafeArea(top: false, child: BottomBarNew()),
+            ),
       body: Stack(
         children: [
           Container(
@@ -592,6 +609,8 @@ class _SearchScreenState extends State<SearchScreen> {
                         Expanded(
                           child: _buildMenuList(screenWidth, screenHeight),
                         ),
+
+                        if (widget.selectionMode) _buildSelectButton(),
                       ],
                     ),
                   ),
@@ -639,7 +658,13 @@ class _SearchScreenState extends State<SearchScreen> {
           Widget buildCard(int index) => MenuGridCard(
                 data: menus[index],
                 isLiked: menus[index]['is_liked'] as bool? ?? false,
-                onLikeTap: () => _toggleLike(menus[index]['id'] as int),
+                onLikeTap: widget.selectionMode
+                    ? null
+                    : () => _toggleLike(menus[index]['id'] as int),
+                isSelected: widget.selectionMode &&
+                    _selectedMenu?['id'] == menus[index]['id'],
+                onSelectTap:
+                    widget.selectionMode ? () => _onCardTap(menus[index]) : null,
                 previewNutrients: _previewNutrients,
               );
 
@@ -665,11 +690,65 @@ class _SearchScreenState extends State<SearchScreen> {
         itemBuilder: (context, index) => MenuListCard(
           data: menus[index],
           isLiked: menus[index]['is_liked'] as bool? ?? false,
-          onLikeTap: () => _toggleLike(menus[index]['id'] as int),
+          onLikeTap: widget.selectionMode
+              ? null
+              : () => _toggleLike(menus[index]['id'] as int),
+          isSelected: widget.selectionMode &&
+              _selectedMenu?['id'] == menus[index]['id'],
+          onSelectTap:
+              widget.selectionMode ? () => _onCardTap(menus[index]) : null,
           previewNutrients: _previewNutrients,
         ),
       );
     }
+  }
+
+  void _onCardTap(Map<String, dynamic> menu) {
+    setState(() {
+      _selectedMenu = _selectedMenu?['id'] == menu['id'] ? null : menu;
+    });
+  }
+
+  Widget _buildSelectButton() {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        child: GestureDetector(
+          onTap: _selectedMenu != null
+              ? () => widget.onMenuSelected!(_selectedMenu!)
+              : null,
+          child: Container(
+            width: double.infinity,
+            height: 52,
+            decoration: BoxDecoration(
+              gradient: _selectedMenu != null
+                  ? const LinearGradient(
+                      begin: Alignment(0.00, 0.50),
+                      end: Alignment(1.00, 0.50),
+                      colors: [Color(0xFFB5F369), Color(0xFF7BF15B)],
+                    )
+                  : null,
+              color: _selectedMenu == null ? const Color(0xFFE0E0E0) : null,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Center(
+              child: Text(
+                '선택',
+                style: TextStyle(
+                  color: _selectedMenu != null
+                      ? Colors.white
+                      : const Color(0xFF9E9E9E),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   // 정렬 드롭다운
