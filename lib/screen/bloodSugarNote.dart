@@ -14,6 +14,21 @@ class BloodSugarNote extends StatefulWidget {
   State<BloodSugarNote> createState() => _BloodSugarNoteState();
 }
 
+/// 30/60/120분 후 실제 혈당 값(레코드 하나당 오프셋별 최대 1건).
+class _Followup {
+  final int bloodSugar;
+  final DateTime recordedAt;
+
+  _Followup({required this.bloodSugar, required this.recordedAt});
+
+  factory _Followup.fromJson(Map<String, dynamic> json) {
+    return _Followup(
+      bloodSugar: (json['blood_sugar'] as num).toInt(),
+      recordedAt: DateTime.parse(json['recorded_at'] as String),
+    );
+  }
+}
+
 class _BloodSugarRecord {
   final int id;
   final int? menuId;
@@ -25,6 +40,7 @@ class _BloodSugarRecord {
   final String exercise;
   final int bloodSugar;
   final DateTime recordedAt;
+  final Map<int, _Followup> followups;
 
   _BloodSugarRecord({
     required this.id,
@@ -37,9 +53,21 @@ class _BloodSugarRecord {
     required this.exercise,
     required this.bloodSugar,
     required this.recordedAt,
+    required this.followups,
   });
 
   factory _BloodSugarRecord.fromJson(Map<String, dynamic> json) {
+    final followups = <int, _Followup>{};
+    final rawFollowups = json['followups'] as List?;
+    if (rawFollowups != null) {
+      for (final item in rawFollowups) {
+        if (item is! Map<String, dynamic>) continue;
+        final offset = item['offset_minutes'] as int?;
+        if (offset == null) continue;
+        followups[offset] = _Followup.fromJson(item);
+      }
+    }
+
     return _BloodSugarRecord(
       id: json['id'] as int,
       menuId: json['menu_id'] as int?,
@@ -51,6 +79,7 @@ class _BloodSugarRecord {
       exercise: json['exercise'] as String? ?? 'none',
       bloodSugar: (json['blood_sugar'] as num).toInt(),
       recordedAt: DateTime.parse(json['recorded_at'] as String),
+      followups: followups,
     );
   }
 
@@ -70,6 +99,7 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
   int _graphCount = 6;
   int _selectedDateIndex = 0;
   final Set<int> _deletingIds = {};
+  final Set<String> _savingFollowupKeys = {};
   String _noteTitleText = _defaultNoteTitle;
 
   @override
@@ -206,6 +236,62 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
       setState(() => _deletingIds.remove(record.id));
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('삭제에 실패했어요. ($e)')),
+      );
+    }
+  }
+
+  Future<void> _editFollowup(_BloodSugarRecord record, int offsetMinutes) async {
+    final controller = TextEditingController(
+      text: record.followups[offsetMinutes]?.bloodSugar.toString() ?? '',
+    );
+    final result = await showDialog<int>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('$offsetMinutes분 후 혈당 입력'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(hintText: '예: 132', suffixText: 'mg/dL'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () {
+              final value = int.tryParse(controller.text.trim());
+              if (value == null) return;
+              Navigator.pop(ctx, value);
+            },
+            child: const Text('저장'),
+          ),
+        ],
+      ),
+    );
+    if (result == null) return;
+
+    final key = '${record.id}_$offsetMinutes';
+    setState(() => _savingFollowupKeys.add(key));
+    try {
+      await BloodSugarService.addFollowup(
+        recordId: record.id,
+        offsetMinutes: offsetMinutes,
+        bloodSugar: result,
+      );
+      if (!mounted) return;
+      setState(() {
+        record.followups[offsetMinutes] =
+            _Followup(bloodSugar: result, recordedAt: DateTime.now());
+        _savingFollowupKeys.remove(key);
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _savingFollowupKeys.remove(key));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('저장에 실패했어요. ($e)')),
       );
     }
   }
@@ -981,6 +1067,17 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
                         ],
                       ),
                     ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        for (final offset in const [30, 60, 120])
+                          _followupChip(record, offset),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1003,6 +1100,91 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // 30/60/120분 후 혈당 입력 칩
+  Widget _followupChip(_BloodSugarRecord record, int offsetMinutes) {
+    final entry = record.followups[offsetMinutes];
+    final saving =
+        _savingFollowupKeys.contains('${record.id}_$offsetMinutes');
+    final due = DateTime.now()
+        .isAfter(record.recordedAt.add(Duration(minutes: offsetMinutes)));
+
+    if (saving) {
+      return _chipShell(
+        label: '저장 중',
+        background: const Color(0xFFF5F5F5),
+        border: const Color(0xFFE0E0E0),
+        textColor: _muted,
+        trailing: const SizedBox(
+          width: 10,
+          height: 10,
+          child: CircularProgressIndicator(strokeWidth: 1.5),
+        ),
+      );
+    }
+
+    if (entry != null) {
+      return _chipShell(
+        label: '$offsetMinutes분후 ${entry.bloodSugar}',
+        background: const Color(0xFFF0FDF0),
+        border: const Color(0xFFCCEFCC),
+        textColor: const Color(0xFF187100),
+      );
+    }
+
+    if (due) {
+      return GestureDetector(
+        onTap: () => _editFollowup(record, offsetMinutes),
+        child: _chipShell(
+          label: '$offsetMinutes분 후 입력',
+          background: Colors.white,
+          border: _accent,
+          textColor: _accent,
+        ),
+      );
+    }
+
+    return _chipShell(
+      label: '$offsetMinutes분 후',
+      background: const Color(0xFFFAFAFA),
+      border: const Color(0xFFEDEDED),
+      textColor: const Color(0xFFBBBBBB),
+    );
+  }
+
+  Widget _chipShell({
+    required String label,
+    required Color background,
+    required Color border,
+    required Color textColor,
+    Widget? trailing,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (trailing != null) ...[
+            const SizedBox(width: 4),
+            trailing,
+          ],
+        ],
       ),
     );
   }

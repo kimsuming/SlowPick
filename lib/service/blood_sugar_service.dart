@@ -13,6 +13,10 @@ import 'package:slowpick/service/api_client.dart';
 ///     (로그인 유저 소유 기록만, req.user.sub 기준, recorded_at DESC)
 ///   DELETE /api/blood-sugar-records/:id
 ///     (본인 기록만 삭제 가능, WHERE id = ? AND cognito_sub = ?)
+///   POST /api/blood-sugar-records/:id/followups
+///     body: { offset_minutes: 30|60|120, blood_sugar }
+///     응답: { offset_minutes, blood_sugar, recorded_at }
+///     (같은 offset_minutes로 다시 호출하면 값을 덮어씀 — upsert)
 class BloodSugarService {
   BloodSugarService._();
 
@@ -70,6 +74,24 @@ class BloodSugarService {
     if (response.statusCode != 200 && response.statusCode != 204) {
       throw Exception(
           '혈당 기록 삭제 실패 (${response.statusCode}): ${_extractMessage(response)}');
+    }
+  }
+
+  static Future<void> addFollowup({
+    required int recordId,
+    required int offsetMinutes,
+    required int bloodSugar,
+  }) async {
+    final response = await ApiClient.instance.post(
+      '/api/blood-sugar-records/$recordId/followups',
+      body: {
+        'offset_minutes': offsetMinutes,
+        'blood_sugar': bloodSugar,
+      },
+    );
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception(
+          '후속 혈당 저장 실패 (${response.statusCode}): ${_extractMessage(response)}');
     }
   }
 }
