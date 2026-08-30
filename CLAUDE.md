@@ -225,6 +225,15 @@ CREATE TABLE user_allergies (
   UNIQUE KEY (cognito_sub, allergen),
   FOREIGN KEY (cognito_sub) REFERENCES users(cognito_sub) ON DELETE CASCADE
 );
+
+CREATE TABLE user_note_titles (
+  cognito_sub VARCHAR(36) NOT NULL,
+  note_key VARCHAR(30) NOT NULL,
+  title VARCHAR(50) NOT NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (cognito_sub, note_key),
+  FOREIGN KEY (cognito_sub) REFERENCES users(cognito_sub) ON DELETE CASCADE
+);
 ```
 
 ### 메뉴
@@ -308,14 +317,16 @@ CREATE TABLE post_votes (
   cognito_sub VARCHAR(36) NOT NULL,
   type ENUM('like','dislike') NOT NULL,
   PRIMARY KEY (post_id, cognito_sub),
-  FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+  FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+  FOREIGN KEY (cognito_sub) REFERENCES users(cognito_sub) ON DELETE CASCADE
 );
 
 CREATE TABLE post_bookmarks (
   post_id BIGINT NOT NULL,
   cognito_sub VARCHAR(36) NOT NULL,
   PRIMARY KEY (post_id, cognito_sub),
-  FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+  FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+  FOREIGN KEY (cognito_sub) REFERENCES users(cognito_sub) ON DELETE CASCADE
 );
 
 CREATE TABLE comments (
@@ -327,10 +338,11 @@ CREATE TABLE comments (
   content TEXT NOT NULL,
   like_count INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (id)
+  PRIMARY KEY (id),
+  FOREIGN KEY (cognito_sub) REFERENCES users(cognito_sub) ON DELETE CASCADE
   -- post_id / recipe_id 중 하나만 사용 (소통+레시피 댓글 통합 테이블)
   -- parent_id NULL=댓글, 값 있음=답글
-  -- post_id/recipe_id/parent_id 모두 FK 제약 없음 (애플리케이션 레벨로 관리)
+  -- post_id/recipe_id/parent_id 는 FK 제약 없음 (애플리케이션 레벨로 관리)
   -- is_deleted 없음 — 실제 DELETE 사용
 );
 
@@ -338,7 +350,8 @@ CREATE TABLE comment_likes (
   comment_id BIGINT NOT NULL,
   cognito_sub VARCHAR(36) NOT NULL,
   PRIMARY KEY (comment_id, cognito_sub),
-  FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE
+  FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE,
+  FOREIGN KEY (cognito_sub) REFERENCES users(cognito_sub) ON DELETE CASCADE
 );
 ```
 
@@ -370,7 +383,39 @@ CREATE TABLE recipe_likes (
   recipe_id BIGINT NOT NULL,
   cognito_sub VARCHAR(36) NOT NULL,
   PRIMARY KEY (recipe_id, cognito_sub),
-  FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE
+  FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
+  FOREIGN KEY (cognito_sub) REFERENCES users(cognito_sub) ON DELETE CASCADE
+);
+```
+
+### 혈당 기록
+
+```sql
+CREATE TABLE blood_sugar_records (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  cognito_sub VARCHAR(36) NOT NULL,
+  menu_id BIGINT DEFAULT NULL,
+  meal_timing ENUM('after_meal','before_meal','fasting') NOT NULL,
+  medication TINYINT(1) NOT NULL,
+  exercise ENUM('none','light','intense') NOT NULL,
+  blood_sugar SMALLINT UNSIGNED NOT NULL,
+  recorded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  FOREIGN KEY (cognito_sub) REFERENCES users(cognito_sub) ON DELETE CASCADE,
+  FOREIGN KEY (menu_id) REFERENCES menus(id) ON DELETE SET NULL
+  -- menu_id 는 메뉴 삭제와 무관하게 혈당 기록 이력을 보존하기 위해 SET NULL (다른 FK와 다름)
+);
+
+CREATE TABLE blood_sugar_followups (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  record_id BIGINT NOT NULL,
+  offset_minutes TINYINT UNSIGNED NOT NULL,
+  blood_sugar SMALLINT UNSIGNED NOT NULL,
+  recorded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY (record_id, offset_minutes),
+  FOREIGN KEY (record_id) REFERENCES blood_sugar_records(id) ON DELETE CASCADE
+  -- 식후 30/60/120분 등 후속 혈당값. 한 기록당 같은 offset_minutes 중복 불가
 );
 ```
 
@@ -390,12 +435,13 @@ denormalized 카운터는 관련 행 변경 시 반드시 UPDATE:
 
 ### FK 규칙
 
-- 모든 유저 관련 테이블: `cognito_sub` → `users.cognito_sub`, `ON DELETE CASCADE`
+- 모든 유저 관련 테이블(`user_health_info`, `user_allergies`, `user_note_titles`, `posts`, `recipes`, `comments`, `blood_sugar_records`, `post_votes`, `post_bookmarks`, `comment_likes`, `recipe_likes`, `menu_likes`): `cognito_sub` → `users.cognito_sub`, `ON DELETE CASCADE`
 - 게시글/레시피 관련 자식 테이블(`post_votes`, `post_bookmarks`, `comment_likes`, `recipe_tags`, `recipe_likes`, `menu_allergies`, `menu_likes`): 부모 PK → `ON DELETE CASCADE`
+- `blood_sugar_records.menu_id` → `menus.id`, `ON DELETE SET NULL` (메뉴 삭제 시에도 혈당 기록 이력 보존, 유일한 SET NULL 케이스)
+- `blood_sugar_followups.record_id` → `blood_sugar_records.id`, `ON DELETE CASCADE`
 - **FK 제약이 없는 컬럼** (애플리케이션 레벨로만 관리, 쿼리 작성 시 주의):
   - `menus.brand_name` — `brands.brand_name` 을 참조하지 않는 단순 문자열
   - `comments.post_id` / `comments.recipe_id` / `comments.parent_id` — 참조 무결성 없음
-  - `post_votes.cognito_sub`, `post_bookmarks.cognito_sub`, `recipe_likes.cognito_sub`, `comment_likes.cognito_sub` — `users` FK 없음 (PK의 일부일 뿐)
 
 ---
 

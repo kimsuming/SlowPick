@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:slowpick/service/menu_service.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
+import 'package:slowpick/widget/brand_card.dart';
 import 'package:slowpick/widget/menu_cards.dart';
 
 class LikedmenuScreen extends StatefulWidget {
@@ -252,100 +253,19 @@ class _LikedmenuScreenState extends State<LikedmenuScreen> {
           childAspectRatio: 3,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          children: [
-            _gridItem(imagePath: 'images/brand_logo/logo_starbucks.png',  cafeTitle: '스타벅스'),
-            _gridItem(imagePath: 'images/brand_logo/logo_mega.png',       cafeTitle: '메가MGC커피'),
-            _gridItem(imagePath: 'images/brand_logo/logo_compose.jpg',    cafeTitle: '컴포즈커피'),
-            _gridItem(imagePath: 'images/brand_logo/logo_ediya.jpg',      cafeTitle: '이디야커피'),
-            _gridItem(imagePath: 'images/brand_logo/logo_paik.png',       cafeTitle: '빽다방'),
-            _gridItem(imagePath: 'images/brand_logo/logo_twosome.png',    cafeTitle: '투썸플레이스'),
-            _gridItem(imagePath: 'images/brand_logo/logo_angel.png',      cafeTitle: '엔제리너스'),
-            _gridItem(imagePath: 'images/brand_logo/logo_mammoth.png',    cafeTitle: '매머드커피'),
-            _gridItem(imagePath: 'images/brand_logo/logo_paul.png',       cafeTitle: '폴 바셋'),
-            _gridItem(imagePath: 'images/brand_logo/logo_theventi.png',   cafeTitle: '더벤티'),
-            _gridItem(imagePath: 'images/brand_logo/logo_yoger.png',      cafeTitle: '요거프레소'),
-            _gridItem(imagePath: 'images/brand_logo/logo_mammoth.png',    cafeTitle: '매머드 익스프레스'),
-          ],
+          children: kBrandList.map((brand) {
+            final count = _likedMenus
+                .where((m) => m['brand_name'] == brand.name)
+                .length;
+            return BrandCard(
+              name: brand.name,
+              logoAsset: brand.logoAsset,
+              badgeText: count > 0 ? '$count개' : null,
+              onTap: () => setState(() => _selectedBrand = brand.name),
+            );
+          }).toList(),
         ),
       ],
-    );
-  }
-
-  Widget _gridItem({String? imagePath, String? cafeTitle}) {
-    final count = _likedMenus
-        .where((m) => m['brand_name'] == cafeTitle)
-        .length;
-
-    return GestureDetector(
-      onTap: () => setState(() => _selectedBrand = cafeTitle),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFE2E2E2), width: 1.5),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                const SizedBox(width: 10),
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                        color: const Color(0xFFE2E2E2), width: 1.5),
-                    image: imagePath != null
-                        ? DecorationImage(
-                            image: AssetImage(imagePath),
-                            fit: BoxFit.cover)
-                        : null,
-                  ),
-                ),
-                const SizedBox(width: 5),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: 70,
-                      child: Text(
-                        cafeTitle ?? '',
-                        style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -1),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (count > 0)
-                      Text(
-                        '$count개',
-                        style: const TextStyle(
-                            color: Color(0xFF73AD31),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.only(right: 4),
-              child: Icon(
-                Icons.chevron_right,
-                color: count > 0
-                    ? const Color(0xFF73AD31)
-                    : const Color(0xFFE3E3E3),
-                size: 28,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

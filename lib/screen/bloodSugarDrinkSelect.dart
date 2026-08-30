@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:slowpick/screen/blood_sugar_check_record.dart';
 import 'package:slowpick/screen/search.dart';
+import 'package:slowpick/screen/vision_pilot_brand_select.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 
 class BloodSugarDrinkSelect extends StatelessWidget {
@@ -74,7 +75,12 @@ class BloodSugarDrinkSelect extends StatelessWidget {
 
                         // 카메라로 찍기
                         GestureDetector(
-                          onTap: () {},
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const VisionPilotBrandSelect(),
+                            ),
+                          ),
                           child: Container(
                             width: screenWidth * 0.85,
                             height: 100,
