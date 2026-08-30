@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:slowpick/screen/blood_sugar_check_record.dart';
+import 'package:slowpick/screen/search.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 import 'package:slowpick/widget/menu_cards.dart';
 
@@ -21,6 +22,25 @@ class VisionPilotCandidates extends StatelessWidget {
       context,
       MaterialPageRoute(
         builder: (_) => BloodSugarCheckRecord(menuData: menu),
+      ),
+    );
+  }
+
+  void _handleRetake(BuildContext context) => Navigator.pop(context);
+
+  void _handleSearchInstead(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SearchScreen(
+          selectionMode: true,
+          onMenuSelected: (menu) => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => BloodSugarCheckRecord(menuData: menu),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -106,7 +126,95 @@ class VisionPilotCandidates extends StatelessWidget {
                       },
                     ),
             ),
+
+            Container(
+              padding: const EdgeInsets.fromLTRB(24, 14, 24, 18),
+              decoration: const BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: Color(0xFFEDEDED)),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Text(
+                    '찾는 음료가 없나요?',
+                    style: TextStyle(
+                      color: Color(0xFF9A9A9A),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _FooterActionButton(
+                          label: '다시 촬영',
+                          filled: false,
+                          onTap: () => _handleRetake(context),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _FooterActionButton(
+                          label: '직접 검색하기',
+                          filled: true,
+                          onTap: () => _handleSearchInstead(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FooterActionButton extends StatelessWidget {
+  final String label;
+  final bool filled;
+  final VoidCallback onTap;
+
+  const _FooterActionButton({
+    required this.label,
+    required this.filled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 48,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          gradient: filled
+              ? const LinearGradient(
+                  begin: Alignment(0.00, 0.50),
+                  end: Alignment(1.00, 0.50),
+                  colors: [Color(0xFFB5F369), Color(0xFF7BF15B)],
+                )
+              : null,
+          color: filled ? null : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: filled
+              ? null
+              : Border.all(color: const Color(0xFF7BF15B), width: 1.5),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: filled ? Colors.white : const Color(0xFF242526),
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
+          ),
         ),
       ),
     );

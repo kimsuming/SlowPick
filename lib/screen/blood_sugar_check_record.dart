@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:slowpick/screen/blood_sugar_note_screen.dart';
+import 'package:slowpick/service/blood_sugar_service.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 
 class BloodSugarCheckRecord extends StatefulWidget {
@@ -30,9 +31,36 @@ class _BloodSugarCheckRecordState extends State<BloodSugarCheckRecord> {
   String? _medication;
   String? _exercise;
   int _bloodSugar = 100;
+  bool _isSaving = false;
 
   bool get _isComplete =>
       _mealTiming != null && _medication != null && _exercise != null;
+
+  Future<void> _handleComplete() async {
+    if (!_isComplete || _isSaving) return;
+    setState(() => _isSaving = true);
+    try {
+      await BloodSugarService.addRecord(
+        mealTiming: _mealTimingCodes[_mealTiming]!,
+        medication: _medication == _medicationYes,
+        exercise: _exerciseCodes[_exercise]!,
+        bloodSugar: _bloodSugar,
+        menuId: widget.menuData['id'] as int?,
+      );
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const BloodSugarNoteScreen()),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('저장에 실패했어요. 다시 시도해주세요. ($e)')),
+      );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
 
   void _showBloodSugarInputDialog() {
     final controller = TextEditingController(text: '$_bloodSugar');
@@ -175,22 +203,7 @@ class _BloodSugarCheckRecordState extends State<BloodSugarCheckRecord> {
                 color: Colors.white,
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                 child: GestureDetector(
-                  onTap: _isComplete
-                      ? () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => BloodSugarNoteScreen(
-                              pendingRecord: {
-                                'meal_timing': _mealTimingCodes[_mealTiming]!,
-                                'medication': _medication == _medicationYes,
-                                'exercise': _exerciseCodes[_exercise]!,
-                                'blood_sugar': _bloodSugar,
-                                'menu_id': widget.menuData['id'] as int?,
-                              },
-                            ),
-                          ),
-                        )
-                      : null,
+                  onTap: (_isComplete && !_isSaving) ? _handleComplete : null,
                   child: Container(
                     width: double.infinity,
                     height: 56,
@@ -206,17 +219,26 @@ class _BloodSugarCheckRecordState extends State<BloodSugarCheckRecord> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Center(
-                      child: Text(
-                        '완료',
-                        style: TextStyle(
-                          color: _isComplete
-                              ? Colors.white
-                              : const Color(0xFF9A9A9A),
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
+                      child: _isSaving
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              '완료',
+                              style: TextStyle(
+                                color: _isComplete
+                                    ? Colors.white
+                                    : const Color(0xFF9A9A9A),
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
                     ),
                   ),
                 ),

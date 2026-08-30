@@ -2,10 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:slowpick/screen/vision_pilot_candidates.dart';
 import 'package:slowpick/service/menu_service.dart';
 
+// 프로토타입 — 메가MGC커피는 실제 이미지 인식 대신 항상 이 메뉴명 3개를 "인식 결과"로
+// 취급한다. 이름만 고정이고, 실제 표시 데이터(이미지·칼로리·당류 등)는 DB에서 그대로 가져온다.
+const String kMegaCoffeeBrand = '메가MGC커피';
+const List<String> kMegaCoffeeMockMenuNames = [
+  '복숭아 퐁당 요거트 스무디',
+  '꿀수박주스',
+  '멋쟁이 토마토 스무디',
+];
+
 // vision pilot 플로우 2단계 — 음료 촬영 화면.
 // 프로토타입 — 실제 카메라/촬영·이미지 인식은 붙어 있지 않다. 셔터를 누르면
-// 분석 중 연출을 보여주는 동안 선택된 브랜드의 실제 DB 메뉴 중 3개를 무작위로
-// 뽑아 "인식된 후보"인 것처럼 후보군 화면에 넘긴다.
+// 분석 중 연출을 보여주는 동안 후보 메뉴 3개를 후보군 화면에 넘긴다.
+// 메가MGC커피는 위 고정 메뉴명으로 DB에서 실제 메뉴를 찾아 보여주고,
+// 그 외 브랜드는 DB 메뉴 중 무작위 3개를 사용한다.
 class VisionPilotCameraCapture extends StatefulWidget {
   final String brand;
   const VisionPilotCameraCapture({super.key, required this.brand});
@@ -13,6 +23,16 @@ class VisionPilotCameraCapture extends StatefulWidget {
   @override
   State<VisionPilotCameraCapture> createState() =>
       _VisionPilotCameraCaptureState();
+}
+
+Map<String, dynamic>? _findByMenuName(
+  List<Map<String, dynamic>> menus,
+  String name,
+) {
+  for (final menu in menus) {
+    if (menu['menu_name'] == name) return menu;
+  }
+  return null;
 }
 
 class _VisionPilotCameraCaptureState extends State<VisionPilotCameraCapture> {
@@ -24,18 +44,30 @@ class _VisionPilotCameraCaptureState extends State<VisionPilotCameraCapture> {
 
     try {
       final minDelay = Future.delayed(const Duration(seconds: 2));
+
       final menus = await MenuService.fetchMenus(brands: [widget.brand]);
+      final grouped = MenuService.groupVariants(menus);
+
+      List<Map<String, dynamic>> candidates;
+      if (widget.brand == kMegaCoffeeBrand) {
+        candidates = kMegaCoffeeMockMenuNames
+            .map((name) => _findByMenuName(grouped, name))
+            .whereType<Map<String, dynamic>>()
+            .toList();
+      } else {
+        candidates = (grouped..shuffle()).take(3).toList();
+      }
+
       await minDelay;
-
-      final candidates = MenuService.groupVariants(menus)..shuffle();
       if (!mounted) return;
+      setState(() => _isAnalyzing = false);
 
-      Navigator.pushReplacement(
+      Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => VisionPilotCandidates(
             brand: widget.brand,
-            candidates: candidates.take(3).toList(),
+            candidates: candidates,
           ),
         ),
       );

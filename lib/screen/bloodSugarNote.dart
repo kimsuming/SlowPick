@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:slowpick/models/blood_sugar_record.dart';
+import 'package:slowpick/widget/blood_sugar_graph.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 import 'package:slowpick/screen/bloodSugarDrinkSelect.dart';
 import 'package:slowpick/screen/mainNote.dart';
@@ -14,89 +15,15 @@ class BloodSugarNote extends StatefulWidget {
   State<BloodSugarNote> createState() => _BloodSugarNoteState();
 }
 
-/// 30/60/120분 후 실제 혈당 값(레코드 하나당 오프셋별 최대 1건).
-class _Followup {
-  final int bloodSugar;
-  final DateTime recordedAt;
-
-  _Followup({required this.bloodSugar, required this.recordedAt});
-
-  factory _Followup.fromJson(Map<String, dynamic> json) {
-    return _Followup(
-      bloodSugar: (json['blood_sugar'] as num).toInt(),
-      recordedAt: DateTime.parse(json['recorded_at'] as String),
-    );
-  }
-}
-
-class _BloodSugarRecord {
-  final int id;
-  final int? menuId;
-  final String? menuName;
-  final String? brandName;
-  final String? imageUrl;
-  final String mealTiming;
-  final bool medication;
-  final String exercise;
-  final int bloodSugar;
-  final DateTime recordedAt;
-  final Map<int, _Followup> followups;
-
-  _BloodSugarRecord({
-    required this.id,
-    required this.menuId,
-    required this.menuName,
-    required this.brandName,
-    required this.imageUrl,
-    required this.mealTiming,
-    required this.medication,
-    required this.exercise,
-    required this.bloodSugar,
-    required this.recordedAt,
-    required this.followups,
-  });
-
-  factory _BloodSugarRecord.fromJson(Map<String, dynamic> json) {
-    final followups = <int, _Followup>{};
-    final rawFollowups = json['followups'] as List?;
-    if (rawFollowups != null) {
-      for (final item in rawFollowups) {
-        if (item is! Map<String, dynamic>) continue;
-        final offset = item['offset_minutes'] as int?;
-        if (offset == null) continue;
-        followups[offset] = _Followup.fromJson(item);
-      }
-    }
-
-    return _BloodSugarRecord(
-      id: json['id'] as int,
-      menuId: json['menu_id'] as int?,
-      menuName: json['menu_name'] as String?,
-      brandName: json['brand_name'] as String?,
-      imageUrl: json['image_url'] as String?,
-      mealTiming: json['meal_timing'] as String? ?? 'fasting',
-      medication: json['medication'] == true || json['medication'] == 1,
-      exercise: json['exercise'] as String? ?? 'none',
-      bloodSugar: (json['blood_sugar'] as num).toInt(),
-      recordedAt: DateTime.parse(json['recorded_at'] as String),
-      followups: followups,
-    );
-  }
-
-  DateTime get day =>
-      DateTime(recordedAt.year, recordedAt.month, recordedAt.day);
-}
-
 class _BloodSugarNoteState extends State<BloodSugarNote> {
   static const Color _accent = Color(0xFF10B981);
   static const Color _textDark = Color(0xFF242526);
   static const Color _muted = Color(0xFF9A9A9A);
   static const String _defaultNoteTitle = '거부기의 혈당 노트';
 
-  List<_BloodSugarRecord> _records = [];
+  List<BloodSugarRecord> _records = [];
   bool _isLoading = true;
   String? _error;
-  int _graphCount = 6;
   int _selectedDateIndex = 0;
   final Set<int> _deletingIds = {};
   final Set<String> _savingFollowupKeys = {};
@@ -174,7 +101,7 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
     });
     try {
       final raw = await BloodSugarService.fetchRecords();
-      final parsed = raw.map(_BloodSugarRecord.fromJson).toList()
+      final parsed = raw.map(BloodSugarRecord.fromJson).toList()
         ..sort((a, b) => a.recordedAt.compareTo(b.recordedAt));
       if (!mounted) return;
       setState(() {
@@ -192,13 +119,13 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
     }
   }
 
-  List<DateTime> _recordDates([List<_BloodSugarRecord>? source]) {
+  List<DateTime> _recordDates([List<BloodSugarRecord>? source]) {
     final list = source ?? _records;
     final set = <DateTime>{for (final r in list) r.day};
     return set.toList()..sort();
   }
 
-  Future<void> _deleteRecord(_BloodSugarRecord record) async {
+  Future<void> _deleteRecord(BloodSugarRecord record) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -240,7 +167,7 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
     }
   }
 
-  Future<void> _editFollowup(_BloodSugarRecord record, int offsetMinutes) async {
+  Future<void> _editFollowup(BloodSugarRecord record, int offsetMinutes) async {
     final controller = TextEditingController(
       text: record.followups[offsetMinutes]?.bloodSugar.toString() ?? '',
     );
@@ -284,7 +211,7 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
       if (!mounted) return;
       setState(() {
         record.followups[offsetMinutes] =
-            _Followup(bloodSugar: result, recordedAt: DateTime.now());
+            BloodSugarFollowup(bloodSugar: result, recordedAt: DateTime.now());
         _savingFollowupKeys.remove(key);
       });
     } catch (e) {
@@ -389,7 +316,7 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
 
     return Column(
       children: [
-        _bloodSugarGraph(),
+        BloodSugarGraph(records: _records),
         _todayBloodSugarContent(size),
       ],
     );
@@ -515,231 +442,6 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
               child: const Icon(Icons.edit, color: Color(0xFF197100)),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  // 그래프에 표시할 최근 N개 기록 (오름차순 = 왼쪽이 과거)
-  List<_BloodSugarRecord> get _graphRecords {
-    final total = _records.length;
-    final count = _graphCount.clamp(1, total);
-    return _records.sublist(total - count);
-  }
-
-  // 혈당 그래프 위젯
-  Widget _bloodSugarGraph() {
-    final spots = _graphRecords;
-    final total = _records.length;
-    final displayedCount = spots.length;
-    final minStep = total < 2 ? total : 2;
-    final canDecrease = displayedCount > minStep;
-    final canIncrease = displayedCount < total;
-
-    final values = spots.map((r) => r.bloodSugar.toDouble()).toList();
-    final rawMin = values.reduce((a, b) => a < b ? a : b);
-    final rawMax = values.reduce((a, b) => a > b ? a : b);
-    final pad = ((rawMax - rawMin) * 0.3).clamp(10, 40);
-    double minY = (((rawMin - pad) / 10).floor() * 10).toDouble();
-    double maxY = (((rawMax + pad) / 10).ceil() * 10).toDouble();
-    if (minY < 0) minY = 0;
-    if (maxY - minY < 20) maxY = minY + 20;
-    final interval = ((maxY - minY) / 4).ceilToDouble();
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(15, 4, 15, 0),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(4, 18, 16, 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(width: 1, color: const Color(0xFFEDEDED)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            SizedBox(
-              height: 190,
-              child: LineChart(
-                LineChartData(
-                  minX: -0.5,
-                  maxX: (spots.length - 1).clamp(1, 1 << 30).toDouble() + 0.5,
-                  minY: minY,
-                  maxY: maxY,
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                    horizontalInterval: interval,
-                    getDrawingHorizontalLine: (_) =>
-                        const FlLine(color: Color(0xFFF2F2F2), strokeWidth: 1),
-                  ),
-                  borderData: FlBorderData(show: false),
-                  titlesData: FlTitlesData(
-                    show: true,
-                    topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        interval: interval,
-                        reservedSize: 34,
-                        getTitlesWidget: (value, meta) => SideTitleWidget(
-                          meta: meta,
-                          fitInside:
-                              SideTitleFitInsideData.fromTitleMeta(meta),
-                          child: Text(
-                            value.toInt().toString(),
-                            style: const TextStyle(
-                                color: Color(0xFFAAAAAA), fontSize: 10),
-                          ),
-                        ),
-                      ),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        interval: 1,
-                        reservedSize: 26,
-                        getTitlesWidget: (value, meta) {
-                          final idx = value.round();
-                          if (idx < 0 || idx >= spots.length) {
-                            return const SizedBox.shrink();
-                          }
-                          final d = spots[idx].recordedAt;
-                          return SideTitleWidget(
-                            meta: meta,
-                            fitInside:
-                                SideTitleFitInsideData.fromTitleMeta(meta),
-                            child: Text(
-                              '${d.month}/${d.day}',
-                              style: const TextStyle(
-                                  color: Color(0xFFAAAAAA), fontSize: 10),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  lineTouchData: LineTouchData(
-                    touchTooltipData: LineTouchTooltipData(
-                      getTooltipColor: (_) => _accent,
-                      getTooltipItems: (touchedSpots) => touchedSpots.map((s) {
-                        final r = spots[s.x.toInt()];
-                        return LineTooltipItem(
-                          '${r.bloodSugar} mg/dL\n${r.recordedAt.month}/${r.recordedAt.day}',
-                          const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                  lineBarsData: [
-                    // 차트 선
-                    LineChartBarData(
-                      spots: [
-                        for (int i = 0; i < spots.length; i++)
-                          FlSpot(i.toDouble(), spots[i].bloodSugar.toDouble()),
-                      ],
-                      curveSmoothness: 0.2,
-                      isCurved: true, // 차트 선이 꺾은선(false), 부드러운 선(true)
-                      color: _accent,
-                      barWidth: 2.5, // 차트 선 굵기
-                      isStrokeCapRound: true, // 차트 선의 처음과 끝을 둥글게 처리
-                      dotData: FlDotData(
-                        show: true,
-                        getDotPainter: (spot, percent, bar, index) =>
-                            FlDotCirclePainter(
-                          radius: 4,
-                          color: Colors.white,
-                          strokeWidth: 2.5,
-                          strokeColor: _accent,
-                        ),
-                      ),
-                      belowBarData: BarAreaData(
-                        // 차트 선 하단 공간 명암
-                        show: true,
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            _accent.withValues(alpha: 0.25),
-                            _accent.withValues(alpha: 0.0),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 6),
-
-            // 그래프에 표시할 기록 개수 조절
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _graphStepButton(
-                  Icons.remove,
-                  canDecrease,
-                  () => setState(() => _graphCount =
-                      (displayedCount - 2).clamp(minStep, total)),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Text(
-                    '최근 $displayedCount개 기록',
-                    style: const TextStyle(
-                      color: _muted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                _graphStepButton(
-                  Icons.add,
-                  canIncrease,
-                  () => setState(() => _graphCount =
-                      (displayedCount + 2).clamp(minStep, total)),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _graphStepButton(IconData icon, bool enabled, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: Container(
-        width: 26,
-        height: 26,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: enabled ? const Color(0xFFEAFBEA) : const Color(0xFFF5F5F5),
-          border: Border.all(
-            color: enabled ? _accent : const Color(0xFFE0E0E0),
-          ),
-        ),
-        child: Icon(
-          icon,
-          size: 16,
-          color: enabled ? _accent : const Color(0xFFCCCCCC),
         ),
       ),
     );
@@ -909,7 +611,7 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
     return const Color(0xFF187100);
   }
 
-  String _timingLabel(_BloodSugarRecord r) {
+  String _timingLabel(BloodSugarRecord r) {
     final h = r.recordedAt.hour;
     final String period;
     if (h < 11) {
@@ -940,7 +642,7 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
   }
 
   // 혈당 기록 카드 위젯
-  Widget _recordTile(Size size, _BloodSugarRecord record) {
+  Widget _recordTile(Size size, BloodSugarRecord record) {
     final deleting = _deletingIds.contains(record.id);
     final valueColor = _valueColor(record.bloodSugar);
 
@@ -1105,7 +807,7 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
   }
 
   // 30/60/120분 후 혈당 입력 칩
-  Widget _followupChip(_BloodSugarRecord record, int offsetMinutes) {
+  Widget _followupChip(BloodSugarRecord record, int offsetMinutes) {
     final entry = record.followups[offsetMinutes];
     final saving =
         _savingFollowupKeys.contains('${record.id}_$offsetMinutes');
