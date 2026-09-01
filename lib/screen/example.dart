@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:slowpick/service/auth_service.dart';
-import 'package:slowpick/screen/bloodSugarMenuSelectForExample.dart';
+import 'package:slowpick/screen/search.dart';
 
 void main() {
   runApp(const MaterialApp(home: Example()));
@@ -218,16 +218,25 @@ class _ExampleState extends State<Example> {
   // ─────────────────────────────────────────
   // 메뉴 선택 화면 열기 (추가된 부분)
   // ─────────────────────────────────────────
-  Future<void> _openMenuSelect() async {
-    final picked = await Navigator.push<Map<String, dynamic>>(
+  void _openMenuSelect() {
+    Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const BloodSugarMenuSelectForExample()),
+      MaterialPageRoute(
+        builder: (_) => SearchScreen(
+          selectionMode: true,
+          onMenuSelected: (menu) {
+            Navigator.pop(context); // 검색(선택) 화면 닫고 이 화면으로 복귀
+            _applyPickedMenu(menu);
+          },
+        ),
+      ),
     );
+  }
 
-    if (picked == null) return; // 선택 안 하고 뒤로 나온 경우
-
-    // menuData에서 값 꺼내기. carbs/fat이 없을 수도 있고,
-
+  // ─────────────────────────────────────────
+  // 선택 화면에서 돌아온 메뉴를 입력창에 반영
+  // ─────────────────────────────────────────
+  void _applyPickedMenu(Map<String, dynamic> picked) {
     final num? sugar = _toNum(picked['sugar']);
     final String name = (picked['menu_name'] as String?) ?? '음료';
 
@@ -420,7 +429,7 @@ class _ExampleState extends State<Example> {
                 children: [
                   const SizedBox(height: 20),
 
-                  // 메뉴 선택 안 했으면 "직접 선택하기" 박스,
+                  // 메뉴 선택 안 했으면 "음료 선택하기" 박스,
                   // 선택했으면 선택된 메뉴 카드로 바뀜
                   selectedMenu == null
                       ? _chooseBox(size)
@@ -1167,7 +1176,7 @@ class _ExampleState extends State<Example> {
   }
 
   // ─────────────────────────────────────────
-  // 메뉴 선택 전: "직접 선택하기" 박스 (기존)
+  // 메뉴 선택 전: "음료 선택하기" 박스 (기존)
   // ─────────────────────────────────────────
   Widget _chooseBox(Size size) {
     return Padding(
@@ -1195,7 +1204,7 @@ class _ExampleState extends State<Example> {
               Icon(Icons.search, color: Color(0xFF7BF15B), size: 36),
               SizedBox(width: 12),
               Text(
-                '직접 선택하기',
+                '음료 선택하기',
                 style: TextStyle(
                   color: Color(0xFF242526),
                   fontSize: 20,

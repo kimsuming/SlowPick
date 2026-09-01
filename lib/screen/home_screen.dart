@@ -407,6 +407,36 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // 카페 목록 - 전체 메뉴 버튼 ("ALL" 글자가 가운데 있는 동그란 모양)
+  Widget _cafeAllBtn() {
+    return GestureDetector(
+      onTap: () {
+        // 브랜드 필터 없이 검색 화면 이동 → 전체 메뉴 노출
+        _navigateToSearch();
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        width: 55,
+        height: 55,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white,
+          border: Border.all(color: const Color(0xFF74AE31), width: 2),
+        ),
+        child: const Text(
+          'ALL',
+          style: TextStyle(
+            color: Color(0xFF74AE31),
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
+          ),
+        ),
+      ),
+    );
+  }
+
   // 카페 목록 위젯
   Widget _cafeBtn({
     Color? color,
@@ -442,6 +472,8 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Row(
           children: [
             const SizedBox(width: 12),
+            // 맨 앞: 전체 메뉴 버튼
+            _cafeAllBtn(),
             // brandName은 search.dart의 _brandList에 있는 이름과 같아야 함
             _cafeBtn(
               imagePath: 'images/brand_logo/logo_starbucks.png',

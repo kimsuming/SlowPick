@@ -113,6 +113,8 @@ class _VisionPilotCameraCaptureState extends State<VisionPilotCameraCapture> {
                 alignment: Alignment.center,
                 children: [
                   // 카메라 미리보기를 흉내낸 더미 뷰파인더
+                  // 영상 촬영용 임시 처리 — 실제 카메라 대신 샘플 사진을 뷰파인더에
+                  // 깔아, 이 음료를 찍는 것처럼 연출한다. 촬영이 끝나면 되돌린다.
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 24),
                     decoration: BoxDecoration(
@@ -122,11 +124,20 @@ class _VisionPilotCameraCaptureState extends State<VisionPilotCameraCapture> {
                         color: Colors.white.withValues(alpha: 0.15),
                       ),
                     ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.local_cafe_outlined,
-                        size: 96,
-                        color: Colors.white24,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: Image.asset(
+                        'images/bloodSugarNote/mega_sample.jpg',
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                        errorBuilder: (_, __, ___) => const Center(
+                          child: Icon(
+                            Icons.local_cafe_outlined,
+                            size: 96,
+                            color: Colors.white24,
+                          ),
+                        ),
                       ),
                     ),
                   ),

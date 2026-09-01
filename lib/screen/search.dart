@@ -82,11 +82,26 @@ class _SearchScreenState extends State<SearchScreen> {
     }).toList();
 
     if (_selectedSort == '당류 낮은순') {
-      filtered.sort((a, b) => ((a['sugar'] as num?) ?? 0).compareTo((b['sugar'] as num?) ?? 0));
+      // 당류 '정보 미제공'(NULL·빈값·"-" 등 파싱 불가)은 값이 있는 메뉴를
+      // 오름차순 정렬한 뒤 그 뒤에 그대로 붙인다.
+      final withSugar = <Map<String, dynamic>>[];
+      final withoutSugar = <Map<String, dynamic>>[];
+      for (final m in filtered) {
+        (_tryNum(m['sugar']) == null ? withoutSugar : withSugar).add(m);
+      }
+      withSugar.sort((a, b) => _tryNum(a['sugar'])!.compareTo(_tryNum(b['sugar'])!));
+      filtered = [...withSugar, ...withoutSugar];
     } else if (_selectedSort == '칼로리 낮은순') {
-      filtered.sort((a, b) => ((a['calories'] as num?) ?? 0).compareTo((b['calories'] as num?) ?? 0));
+      filtered.sort((a, b) => (_tryNum(a['calories']) ?? 0).compareTo(_tryNum(b['calories']) ?? 0));
     }
     return filtered;
+  }
+
+  // API가 DECIMAL 컬럼(sugar, calories 등)을 num 또는 문자열("12.0")로 내려주고,
+  // 정보 미제공이면 NULL·""·"-" 등으로 온다. 숫자로 못 바꾸면 null 반환.
+  num? _tryNum(dynamic value) {
+    if (value is num) return value;
+    return num.tryParse(value?.toString() ?? '');
   }
 
   @override
