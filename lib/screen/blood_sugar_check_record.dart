@@ -14,9 +14,9 @@ class BloodSugarCheckRecord extends StatefulWidget {
 
 class _BloodSugarCheckRecordState extends State<BloodSugarCheckRecord> {
   static const Map<String, String> _mealTimingCodes = {
-    '식후 (식사 후 2시간 이내)': 'after_meal',
-    '식전 (식사 30분 전)': 'before_meal',
-    '공복': 'fasting',
+    '식후 2시간': 'after_meal_2h',
+    '식후 1시간': 'after_meal_1h',
+    '해당없음': 'none',
   };
 
   static const Map<String, String> _exerciseCodes = {
@@ -26,15 +26,20 @@ class _BloodSugarCheckRecordState extends State<BloodSugarCheckRecord> {
   };
 
   static const String _medicationYes = '네. 복용하고 있어요.';
+  static const String _insulinYes = '네. 투여하고 있어요.';
 
   String? _mealTiming;
   String? _medication;
+  String? _insulin;
   String? _exercise;
   int _bloodSugar = 100;
   bool _isSaving = false;
 
   bool get _isComplete =>
-      _mealTiming != null && _medication != null && _exercise != null;
+      _mealTiming != null &&
+      _medication != null &&
+      _insulin != null &&
+      _exercise != null;
 
   Future<void> _handleComplete() async {
     if (!_isComplete || _isSaving) return;
@@ -43,6 +48,7 @@ class _BloodSugarCheckRecordState extends State<BloodSugarCheckRecord> {
       await BloodSugarService.addRecord(
         mealTiming: _mealTimingCodes[_mealTiming]!,
         medication: _medication == _medicationYes,
+        insulin: _insulin == _insulinYes,
         exercise: _exerciseCodes[_exercise]!,
         bloodSugar: _bloodSugar,
         menuId: widget.menuData['id'] as int?,
@@ -164,7 +170,7 @@ class _BloodSugarCheckRecordState extends State<BloodSugarCheckRecord> {
                         const SizedBox(height: 28),
                         _buildQuestion(
                           '음료를 드신 시간을 선택해 주세요.',
-                          ['식후 (식사 후 2시간 이내)', '식전 (식사 30분 전)', '공복'],
+                          ['식후 2시간', '식후 1시간', '해당없음'],
                           _mealTiming,
                           (v) => _mealTiming = v,
                         ),
@@ -175,6 +181,14 @@ class _BloodSugarCheckRecordState extends State<BloodSugarCheckRecord> {
                           ['네. 복용하고 있어요.', '아니오. 복용하고 있지 않아요.'],
                           _medication,
                           (v) => _medication = v,
+                        ),
+
+                        const SizedBox(height: 20),
+                        _buildQuestion(
+                          '인슐린을 투여하고 계신가요?',
+                          ['네. 투여하고 있어요.', '아니오. 투여하고 있지 않아요.'],
+                          _insulin,
+                          (v) => _insulin = v,
                         ),
 
                         const SizedBox(height: 20),

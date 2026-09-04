@@ -626,14 +626,14 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
 
     final String meal;
     switch (r.mealTiming) {
-      case 'before_meal':
-        meal = '식전';
+      case 'after_meal_2h':
+        meal = '식후 2시간';
         break;
-      case 'after_meal':
-        meal = '식후';
+      case 'after_meal_1h':
+        meal = '식후 1시간';
         break;
       default:
-        meal = '공복';
+        meal = '해당없음';
     }
 
     final hh = r.recordedAt.hour.toString().padLeft(2, '0');
@@ -752,7 +752,9 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
                       ),
                     ],
                   ),
-                  if (record.medication || record.exercise != 'none')
+                  if (record.medication ||
+                      record.insulin ||
+                      record.exercise != 'none')
                     Padding(
                       padding: const EdgeInsets.only(top: 6),
                       child: Wrap(
@@ -760,6 +762,7 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
                         runSpacing: 4,
                         children: [
                           if (record.medication) const _RecordBadge(text: '투약'),
+                          if (record.insulin) const _RecordBadge(text: '인슐린'),
                           if (record.exercise != 'none')
                             _RecordBadge(
                               text: record.exercise == 'intense'

@@ -395,8 +395,9 @@ CREATE TABLE blood_sugar_records (
   id BIGINT NOT NULL AUTO_INCREMENT,
   cognito_sub VARCHAR(36) NOT NULL,
   menu_id BIGINT DEFAULT NULL,
-  meal_timing ENUM('after_meal','before_meal','fasting') NOT NULL,
+  meal_timing ENUM('after_meal_2h','after_meal_1h','none') NOT NULL,
   medication TINYINT(1) NOT NULL,
+  insulin TINYINT(1) NOT NULL DEFAULT 0,
   exercise ENUM('none','light','intense') NOT NULL,
   blood_sugar SMALLINT UNSIGNED NOT NULL,
   recorded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -404,6 +405,8 @@ CREATE TABLE blood_sugar_records (
   FOREIGN KEY (cognito_sub) REFERENCES users(cognito_sub) ON DELETE CASCADE,
   FOREIGN KEY (menu_id) REFERENCES menus(id) ON DELETE SET NULL
   -- menu_id 는 메뉴 삭제와 무관하게 혈당 기록 이력을 보존하기 위해 SET NULL (다른 FK와 다름)
+  -- meal_timing: after_meal_2h(식후 2시간) / after_meal_1h(식후 1시간) / none(해당없음)
+  -- medication = 당뇨약 복용 여부, insulin = 인슐린 투여 여부 (별개 항목)
 );
 
 CREATE TABLE blood_sugar_followups (

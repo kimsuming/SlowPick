@@ -22,6 +22,7 @@ class BloodSugarRecord {
   final String? imageUrl;
   final String mealTiming;
   final bool medication;
+  final bool insulin;
   final String exercise;
   final int bloodSugar;
   final DateTime recordedAt;
@@ -35,6 +36,7 @@ class BloodSugarRecord {
     required this.imageUrl,
     required this.mealTiming,
     required this.medication,
+    required this.insulin,
     required this.exercise,
     required this.bloodSugar,
     required this.recordedAt,
@@ -59,8 +61,9 @@ class BloodSugarRecord {
       menuName: json['menu_name'] as String?,
       brandName: json['brand_name'] as String?,
       imageUrl: json['image_url'] as String?,
-      mealTiming: json['meal_timing'] as String? ?? 'fasting',
+      mealTiming: json['meal_timing'] as String? ?? 'none',
       medication: json['medication'] == true || json['medication'] == 1,
+      insulin: json['insulin'] == true || json['insulin'] == 1,
       exercise: json['exercise'] as String? ?? 'none',
       bloodSugar: (json['blood_sugar'] as num).toInt(),
       recordedAt: DateTime.parse(json['recorded_at'] as String),

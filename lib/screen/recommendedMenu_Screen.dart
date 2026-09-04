@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:slowpick/service/auth_service.dart';
+import 'package:slowpick/service/menu_service.dart';
+import 'package:slowpick/service/settings_service.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:slowpick/widget/menu_cards.dart';
-import 'package:slowpick/screen/menu_detail_screen.dart';
 import 'package:slowpick/screen/chat_screen.dart';
 
 class RecommendedMenuScreen extends StatefulWidget {
@@ -13,17 +14,78 @@ class RecommendedMenuScreen extends StatefulWidget {
 }
 
 class _RecommendedMenuScreenState extends State<RecommendedMenuScreen> {
+  List<Map<String, dynamic>> _menus = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  String _nickname = '';
+
+  // 카드 미리보기에 표시할 영양 성분 (search.dart와 동일하게 SharedPreferences 사용)
+  List<String> _previewNutrients = SettingsService.defaultPreviewNutrients;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNickname();
+    _loadMenus();
+    _loadPreviewNutrients();
+  }
+
+  Future<void> _loadNickname() async {
+    final name = await AuthService.instance.fetchNickname();
+    if (!mounted) return;
+    setState(() => _nickname = name);
+  }
+
+  Future<void> _loadPreviewNutrients() async {
+    final saved = await SettingsService.loadPreviewNutrients();
+    if (!mounted) return;
+    setState(() => _previewNutrients = saved);
+  }
+
+  Future<void> _loadMenus() async {
+    try {
+      final menus = await MenuService.fetchRecommended();
+      if (!mounted) return;
+      setState(() {
+        // 핫/아이스·사이즈 변형을 대표 변형 하나로 묶어 보여준다 (search.dart와 동일).
+        _menus = MenuService.groupVariants(menus);
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _toggleLike(int menuId) async {
+    final idx = _menus.indexWhere((m) => m['id'] as int == menuId);
+    if (idx == -1) return;
+    final currently = _menus[idx]['is_liked'] as bool? ?? false;
+    setState(() => _menus[idx]['is_liked'] = !currently);
+    try {
+      await MenuService.likeMenu(menuId);
+    } catch (e) {
+      setState(() => _menus[idx]['is_liked'] = currently);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // 그리드 뷰 비율 계산
     final double screenWidth = MediaQuery.of(context).size.width;
     final double screenHeight = MediaQuery.of(context).size.height;
-    final double gridAspectRatio = (screenWidth / 2) / (screenHeight * 0.38);
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final created = await Navigator.push<bool>(
+        onPressed: () {
+          Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => ChatScreen()),
           );
@@ -33,7 +95,7 @@ class _RecommendedMenuScreenState extends State<RecommendedMenuScreen> {
         child: Image.asset("images/home/chatbot.png", width: 30, height: 30),
       ),
       bottomNavigationBar: Container(
-        color: Color(0xFFFCFCFC), // << 여기 색이 하단까지 채워짐
+        color: const Color(0xFFFCFCFC),
         child: SafeArea(top: false, child: BottomBarNew()),
       ),
       body: Stack(
@@ -47,45 +109,41 @@ class _RecommendedMenuScreenState extends State<RecommendedMenuScreen> {
               ),
             ),
           ),
-          // 상단 UI
-          Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              SizedBox(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 70, bottom: 10),
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                // 상단 헤더 (뒤로가기 + 타이틀)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 8, 4, 10),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       IconButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        icon: const Icon(Icons.arrow_back, size: 35),
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back, size: 32),
                       ),
-                      SizedBox(
+                      Expanded(
                         child: Text.rich(
                           TextSpan(
                             children: [
                               TextSpan(
-                                text: 'OOO 님을 위한 ',
-                                style: TextStyle(
+                                text:
+                                    '${_nickname.isEmpty ? 'OOO' : _nickname} 님을 위한 ',
+                                style: const TextStyle(
                                   color: Colors.black,
                                   fontSize: 22,
                                   fontFamily: 'KoPubDotum Medium',
                                   fontWeight: FontWeight.w400,
-                                  height: 0.91,
                                   letterSpacing: -1.30,
                                 ),
                               ),
-                              TextSpan(
+                              const TextSpan(
                                 text: '추천 메뉴',
                                 style: TextStyle(
                                   color: Colors.black,
                                   fontSize: 22,
                                   fontFamily: 'KoPubDotum Bold',
                                   fontWeight: FontWeight.bold,
-                                  height: 0.91,
                                   letterSpacing: -1.30,
                                 ),
                               ),
@@ -98,135 +156,120 @@ class _RecommendedMenuScreenState extends State<RecommendedMenuScreen> {
                     ],
                   ),
                 ),
-              ),
 
-              Expanded(
-                child: Container(
-                  width: MediaQuery.of(context).size.width * 1,
-                  height: MediaQuery.of(context).size.height * 0.8,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(50),
-                      topRight: Radius.circular(50),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      // 흰박스 상단 여백 조절
-                      SizedBox(
-                        height: MediaQuery.of(context).size.height * 0.04,
+                Expanded(
+                  child: Container(
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(50),
+                        topRight: Radius.circular(50),
                       ),
-                      //추천 메세지
-                      SizedBox(
-                        width:
-                            MediaQuery.of(context).size.width *
-                            0.54, // 원하는 가로 크기
-                        height:
-                            MediaQuery.of(context).size.height *
-                            0.11, // 원하는 세로 크기
-                        child: Container(
+                    ),
+                    child: Column(
+                      children: [
+                        SizedBox(height: screenHeight * 0.035),
+                        // 추천 메세지 말풍선
+                        Container(
+                          width: screenWidth * 0.62,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20), // 네 방향 라운드
+                            borderRadius: BorderRadius.circular(20),
                             gradient: const LinearGradient(
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: [Color(0xFFFFE940), Color(0xFFFFF0A4)],
                             ),
                           ),
-                          child: SizedBox(
-                            child: Center(
-                              child: Text(
-                                '저번주보다 혈당이 더 올랐어요.\n이번주엔 혈당에 부담없는\n메뉴들을 추천해 드릴게요!',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontFamily: "Clipartkorea",
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w400,
-                                  height: 1.43,
-                                  letterSpacing: -0.24,
-                                ),
-                              ),
+                          child: const Text(
+                            '저번주보다 혈당이 더 올랐어요.\n이번주엔 혈당에 부담없는\n메뉴들을 추천해 드릴게요!',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontFamily: "Clipartkorea",
+                              fontSize: 15,
+                              fontWeight: FontWeight.w400,
+                              height: 1.43,
+                              letterSpacing: -0.24,
                             ),
                           ),
                         ),
-                      ),
-                      // 흰박스 상단 여백 조절
-                      SizedBox(height: screenHeight * 0.03),
+                        SizedBox(height: screenHeight * 0.025),
 
-                      // === 저당 메뉴 6개 ===
-                      Expanded(
-                        child: StreamBuilder<QuerySnapshot>(
-                          // nutrition.sugar_g 기준으로 오름차순 정렬 후 6개 제한
-                          stream: FirebaseFirestore.instance
-                              .collection('menus')
-                              .orderBy('nutrition.sugar_g', descending: false)
-                              .limit(6)
-                              .snapshots(),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return const Center(
-                                child: CircularProgressIndicator(
-                                  color: Color(0xFFADF950),
-                                ),
-                              );
-                            }
-                            if (!snapshot.hasData ||
-                                snapshot.data!.docs.isEmpty) {
-                              return const Center(
-                                child: Text('추천 메뉴 데이터가 없습니다.'),
-                              );
-                            }
-
-                            final docs = snapshot.data!.docs;
-
-                            return GridView.builder(
-                              padding: EdgeInsets.fromLTRB(
-                                screenWidth * 0.04,
-                                0,
-                                screenWidth * 0.04,
-                                20, // 하단 여백
-                              ),
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 2,
-                                    childAspectRatio: gridAspectRatio,
-                                    crossAxisSpacing: screenWidth * 0.04,
-                                    mainAxisSpacing: screenWidth * 0.04,
-                                  ),
-                              itemCount: docs.length,
-                              itemBuilder: (context, index) {
-                                final data =
-                                    docs[index].data() as Map<String, dynamic>;
-
-                                // 카드 클릭 시 상세 페이지 이동
-                                return GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            MenuDetailScreen(data: data),
-                                      ),
-                                    );
-                                  },
-                                  child: MenuGridCard(data: data),
-                                );
-                              },
-                            );
-                          },
-                        ),
-                      ),
-                    ],
+                        // 추천 메뉴 그리드
+                        Expanded(child: _buildMenuGrid(screenWidth)),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildMenuGrid(double screenWidth) {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFFADF950)),
+      );
+    }
+    if (_errorMessage != null) {
+      return Center(child: Text('오류: $_errorMessage'));
+    }
+    if (_menus.isEmpty) {
+      return const Center(child: Text('추천 메뉴 데이터가 없습니다.'));
+    }
+
+    // search.dart와 동일한 방식: 카드마다 필요한 높이가 달라서 GridView의 고정
+    // childAspectRatio를 쓰면 한 카드가 길어질 때 전체가 늘어나 오버플로우가 난다.
+    // 두 장씩 Row로 묶고 IntrinsicHeight로 그 줄 안에서만 높이를 맞춘다.
+    final rowCount = (_menus.length / 2).ceil();
+    final horizontalPadding = screenWidth * 0.04;
+    final gap = screenWidth * 0.04;
+
+    return ListView.separated(
+      padding: EdgeInsets.fromLTRB(
+        horizontalPadding,
+        10,
+        horizontalPadding,
+        18,
+      ),
+      itemCount: rowCount,
+      separatorBuilder: (context, index) => SizedBox(height: gap),
+      itemBuilder: (context, rowIndex) {
+        final firstIndex = rowIndex * 2;
+        final secondIndex = firstIndex + 1;
+        final hasSecond = secondIndex < _menus.length;
+
+        Widget buildCard(int index) => MenuGridCard(
+              data: _menus[index],
+              isLiked: _menus[index]['is_liked'] as bool? ?? false,
+              onLikeTap: () => _toggleLike(_menus[index]['id'] as int),
+              previewNutrients: _previewNutrients,
+            );
+
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: buildCard(firstIndex)),
+              SizedBox(width: gap),
+              Expanded(
+                child: hasSecond
+                    ? buildCard(secondIndex)
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

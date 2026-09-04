@@ -6,10 +6,11 @@ import 'package:slowpick/service/api_client.dart';
 ///
 /// 백엔드 필요 엔드포인트:
 ///   POST /api/blood-sugar-records
-///     body: { meal_timing, medication, exercise, blood_sugar, menu_id? }
+///     body: { meal_timing, medication, insulin, exercise, blood_sugar, menu_id? }
+///     meal_timing: 'after_meal_2h' | 'after_meal_1h' | 'none'
 ///   GET  /api/blood-sugar-records?limit=&days=
 ///     응답: { records: [{ id, menu_id, menu_name, brand_name, image_url,
-///              meal_timing, medication, exercise, blood_sugar, recorded_at }, ...] }
+///              meal_timing, medication, insulin, exercise, blood_sugar, recorded_at }, ...] }
 ///     (로그인 유저 소유 기록만, req.user.sub 기준, recorded_at DESC)
 ///   DELETE /api/blood-sugar-records/:id
 ///     (본인 기록만 삭제 가능, WHERE id = ? AND cognito_sub = ?)
@@ -34,6 +35,7 @@ class BloodSugarService {
   static Future<void> addRecord({
     required String mealTiming,
     required bool medication,
+    required bool insulin,
     required String exercise,
     required int bloodSugar,
     int? menuId,
@@ -43,6 +45,7 @@ class BloodSugarService {
       body: {
         'meal_timing': mealTiming,
         'medication': medication,
+        'insulin': insulin,
         'exercise': exercise,
         'blood_sugar': bloodSugar,
         if (menuId != null) 'menu_id': menuId,

@@ -74,14 +74,14 @@ class _BloodSugarNoteScreenState extends State<BloodSugarNoteScreen> {
 
     final String meal;
     switch (r.mealTiming) {
-      case 'before_meal':
-        meal = '식전';
+      case 'after_meal_2h':
+        meal = '식후 2시간';
         break;
-      case 'after_meal':
-        meal = '식후';
+      case 'after_meal_1h':
+        meal = '식후 1시간';
         break;
       default:
-        meal = '공복';
+        meal = '해당없음';
     }
 
     final hh = r.recordedAt.hour.toString().padLeft(2, '0');
