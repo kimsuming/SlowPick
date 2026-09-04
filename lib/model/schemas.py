@@ -101,14 +101,53 @@ class PredictResponse(BaseModel):
     coaching_action: Optional[str] = Field(None, description="행동 추천")
 
 
-# 실제 측정값을 기록할 때 클라이언트가 서버로 보내는 요청 데이터 형태입니다.
+# 혈당 노트 화면에서 실제로 보내는 값 그대로 받는 "스냅샷 기록" 요청 형태입니다.
+# (음료 영양정보나 미래 실측값을 앱이 직접 묶어서 보낼 필요가 없습니다 - 서버가 자동으로 짝지음)
 class RecordRequest(BaseModel):
-    """실제 측정값 기록 (모델 학습용)"""
-    user_id: str
-    predict_request: PredictRequest
-    actual_glucose_30m: Optional[float] = Field(None, ge=40, le=400, description="30분 후 실측값")
-    actual_glucose_60m: Optional[float] = Field(None, ge=40, le=400, description="60분 후 실측값")
-    actual_glucose_120m: Optional[float] = Field(None, ge=40, le=400, description="120분 후 실측값")
+    """
+    혈당 노트 스냅샷 기록.
+    followup_offset_minutes가 오면 "N분 후 실측값" 업데이트로 처리되어
+    같은 사용자의 가장 최근 기록에 그 값을 직접 채워넣는다 (시간차 추측 없음).
+    followup_offset_minutes가 없으면 평범한 새 스냅샷으로 저장된다.
+    """
+    user_id: str = Field(..., description="사용자 ID")
+    current_glucose: float = Field(..., ge=40, le=400, description="현재 혈당 (mg/dL)")
+    # followup(실측값 업데이트) 호출 시에는 식사/운동 컨텍스트를 다시 안 보내도 되도록 옵션 처리
+    meal_status: Optional[MealStatus] = Field(None, description="마지막 식사 상태")
+    exercise_level: Optional[ExerciseLevel] = Field(None, description="운동 여부")
+    insulin_taken: bool = Field(False, description="인슐린 투여 여부")
+    medication_taken: bool = Field(False, description="당뇨 약 복용 여부")
+    menu_id: Optional[int] = Field(None, description="카페 메뉴 ID (참고용, 표시/추적용)")
+    # 메뉴 선택 화면이 이미 클라이언트에서 갖고 있는 당류 값을 그대로 실어 보냄
+    drink_name: Optional[str] = Field(None, description="음료 이름")
+    sugar_g: Optional[float] = Field(None, ge=0, description="당류 (g)")
+    measured_at: Optional[datetime] = Field(None, description="측정 시간 (없으면 현재 시각)")
+    # 30/60/120 중 하나가 오면 "N분 후 실측값 업데이트"로 처리
+    followup_offset_minutes: Optional[int] = Field(
+        None, description="30/60/120 중 하나. 있으면 최근 기록의 실측값 업데이트로 처리"
+    )
+
+    @field_validator("measured_at", mode="before")
+    @classmethod
+    def set_measured_at(cls, v):
+        return v or datetime.now()
+
+    model_config = {"use_enum_values": True}
+
+
+# Flutter 화면의 한글/코드 라벨(mealTiming, exercise 문자열 코드)을
+# schemas.MealStatus / ExerciseLevel enum으로 변환하는 헬퍼입니다.
+MEAL_TIMING_CODE_MAP = {
+    "after_meal_2h": MealStatus.WITHIN_2H,
+    "after_meal_1h": MealStatus.WITHIN_1H,
+    "none": MealStatus.FASTING,
+}
+
+EXERCISE_CODE_MAP = {
+    "none": ExerciseLevel.NONE,
+    "light": ExerciseLevel.LIGHT,
+    "intense": ExerciseLevel.INTENSE,
+}
 
 
 # 기록 저장이 완료된 후 클라이언트에게 돌려주는 응답 데이터 형태입니다.

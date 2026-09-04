@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:slowpick/screen/blood_sugar_note_screen.dart';
+import 'package:slowpick/service/auth_service.dart';
 import 'package:slowpick/service/blood_sugar_service.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 
@@ -45,13 +46,25 @@ class _BloodSugarCheckRecordState extends State<BloodSugarCheckRecord> {
     if (!_isComplete || _isSaving) return;
     setState(() => _isSaving = true);
     try {
+      final userId = await AuthService.instance.fetchUserId();
+      if (userId == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('로그인이 필요합니다. 다시 로그인해주세요.')),
+        );
+        setState(() => _isSaving = false);
+        return;
+      }
       await BloodSugarService.addRecord(
+        userId: userId,
         mealTiming: _mealTimingCodes[_mealTiming]!,
         medication: _medication == _medicationYes,
         insulin: _insulin == _insulinYes,
         exercise: _exerciseCodes[_exercise]!,
         bloodSugar: _bloodSugar,
         menuId: widget.menuData['id'] as int?,
+        drinkName: widget.menuData['menu_name'] as String?,
+        sugarG: _parseSugar(widget.menuData['sugar']),
       );
       if (!mounted) return;
       Navigator.pushReplacement(
@@ -60,12 +73,20 @@ class _BloodSugarCheckRecordState extends State<BloodSugarCheckRecord> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('저장에 실패했어요. 다시 시도해주세요. ($e)')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('저장에 실패했어요. 다시 시도해주세요. ($e)')));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
+  }
+
+  /// menuData['sugar']가 문자열(String)이나 숫자(num) 어느 쪽으로 와도
+  /// 안전하게 숫자로 변환한다. 파싱 불가능하면 null.
+  num? _parseSugar(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value;
+    return num.tryParse(value.toString());
   }
 
   void _showBloodSugarInputDialog() {
@@ -330,10 +351,7 @@ class _BloodSugarCheckRecordState extends State<BloodSugarCheckRecord> {
                   children: [
                     _NutriBadge(text: '${calories ?? '-'}Kcal'),
                     const SizedBox(width: 6),
-                    _NutriBadge(
-                      text: '당 ${sugar ?? '-'}g',
-                      isHighlight: true,
-                    ),
+                    _NutriBadge(text: '당 ${sugar ?? '-'}g', isHighlight: true),
                   ],
                 ),
               ],
@@ -370,8 +388,10 @@ class _BloodSugarCheckRecordState extends State<BloodSugarCheckRecord> {
               onTap: () => setState(() => onSelect(option)),
               child: Container(
                 width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 14,
+                  horizontal: 16,
+                ),
                 decoration: BoxDecoration(
                   color: selectedValue == option
                       ? const Color(0xFF7BF15B)
@@ -426,7 +446,10 @@ class _BloodSugarCheckRecordState extends State<BloodSugarCheckRecord> {
             GestureDetector(
               onTap: () {},
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF0FDF0),
                   borderRadius: BorderRadius.circular(20),
@@ -520,20 +543,28 @@ class _BloodSugarCheckRecordState extends State<BloodSugarCheckRecord> {
               LayoutBuilder(
                 builder: (context, constraints) => GestureDetector(
                   onHorizontalDragUpdate: (d) {
-                    final double x =
-                        d.localPosition.dx.clamp(0.0, constraints.maxWidth);
-                    setState(() => _bloodSugar =
-                        (70 + (x / constraints.maxWidth) * (200 - 70))
-                            .round()
-                            .clamp(70, 200));
+                    final double x = d.localPosition.dx.clamp(
+                      0.0,
+                      constraints.maxWidth,
+                    );
+                    setState(
+                      () => _bloodSugar =
+                          (70 + (x / constraints.maxWidth) * (200 - 70))
+                              .round()
+                              .clamp(70, 200),
+                    );
                   },
                   onTapDown: (d) {
-                    final double x =
-                        d.localPosition.dx.clamp(0.0, constraints.maxWidth);
-                    setState(() => _bloodSugar =
-                        (70 + (x / constraints.maxWidth) * (200 - 70))
-                            .round()
-                            .clamp(70, 200));
+                    final double x = d.localPosition.dx.clamp(
+                      0.0,
+                      constraints.maxWidth,
+                    );
+                    setState(
+                      () => _bloodSugar =
+                          (70 + (x / constraints.maxWidth) * (200 - 70))
+                              .round()
+                              .clamp(70, 200),
+                    );
                   },
                   child: _GradientSlider(value: _bloodSugar, min: 70, max: 200),
                 ),
@@ -635,9 +666,7 @@ class _NutriBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: isHighlight
-            ? const Color(0xFFE8F5E9)
-            : const Color(0xFFF5F5F5),
+        color: isHighlight ? const Color(0xFFE8F5E9) : const Color(0xFFF5F5F5),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(

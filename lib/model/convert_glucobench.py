@@ -19,18 +19,25 @@ import uuid
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
+import os
 
 # ── 경로 설정 ──
-CSV_PATH  = "GlucoBench_benchmark_dataset.csv"
-DB_PATH   = "lib/model/data/glucose_with_glucobench.db"   # 실제 프로젝트 경로
+BASE_DIR  = os.path.dirname(os.path.abspath(__file__))
+CSV_PATH  = os.path.join(BASE_DIR, "data", "synthetic_glucose_dataset.csv")
+DB_PATH   = os.path.join(BASE_DIR, "data", "glucose.db")
 
 # ── exercise_intensity → exercise_level 변환 ──
-EXERCISE_MAP = {
-    "none":   0,
-    "low":    1,
-    "medium": 2,
-    "high":   2,
-}
+def map_exercise_level(value):
+    try:
+        v = float(value)
+        if v == 0:
+            return 0
+        elif v < 0.6:
+            return 1
+        else:
+            return 2
+    except (ValueError, TypeError):
+        return EXERCISE_MAP.get(str(value).lower(), 0)
 
 def find_glucose_after(df_user, base_ts, minutes):
     """base_ts 기준으로 ±5분 범위 내 가장 가까운 glucose값 반환"""
@@ -101,9 +108,10 @@ def convert():
             sugar_g        = round(carbs_g * 0.5, 1)   # 추정값
             fat_g          = 0.0
             current_glucose = float(row["glucose"])
-            exercise_level = EXERCISE_MAP.get(str(row["exercise_intensity"]).lower(), 0)
+            exercise_level = map_exercise_level(row["exercise_intensity"])
             insulin_taken  = 1 if float(row["insulin_bolus"]) > 0 else 0
-            medication_taken = 0 if str(row["medication_other"]).strip().lower() == "none" else 1
+            med_val = str(row["medication_other"]).strip().lower()
+            medication_taken = 0 if med_val in ("none", "", "nan") else 1
             meal_status    = 1  # 식사 시점이므로 1시간 이내로 고정
             measured_at    = base_ts.isoformat()
             drink_name     = f"식사 (탄수화물 {carbs_g}g)"

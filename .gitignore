@@ -19,9 +19,6 @@ Thumbs.db
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
 #.vscode/
 
 # Flutter/Dart/Pub related
@@ -34,8 +31,6 @@ Thumbs.db
 /build/
 /coverage/
 
-# flutter pub get 실행 시 pubspec.yaml 기준으로 자동 재생성됨 — 로컬 환경마다
-# 줄바꿈만 다르게 찍혀서 실질적인 변경 없이 계속 modified로 뜨는 잡음이 있었음
 **/GeneratedPluginRegistrant.*
 
 # Symbolication related
@@ -49,27 +44,23 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Firebase 서비스 계정 키 !!
 serviceAccountKey.json
 google-services.json
 slowpick-ebc24-*.json
 
-# Node.js 의존성 폴더
 node_modules/
 
-# 환경 변수 파일
 .env
 
-# 카페 html 파일
 *.html
 
-# amplify
 .amplify/
 amplify_outputs*
 amplifyconfiguration*
 lib/amplify_outputs.dart
 
-# Claude Code local settings (개인별 권한 설정)
 .claude/settings.local.json
 CLAUDE.md
 pubspec.lock
+
+tf-env/

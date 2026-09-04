@@ -5,6 +5,7 @@ import 'package:slowpick/widget/blood_sugar_graph.dart';
 import 'package:slowpick/widget/bottomBar_new.dart';
 import 'package:slowpick/screen/bloodSugarDrinkSelect.dart';
 import 'package:slowpick/screen/mainNote.dart';
+import 'package:slowpick/service/auth_service.dart';
 import 'package:slowpick/service/blood_sugar_service.dart';
 import 'package:slowpick/service/note_title_service.dart';
 
@@ -84,13 +85,15 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
     setState(() => _noteTitleText = result);
     try {
       await NoteTitleService.updateTitle(
-          NoteTitleService.bloodSugarNoteKey, result);
+        NoteTitleService.bloodSugarNoteKey,
+        result,
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() => _noteTitleText = previous);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('노트 이름 저장에 실패했어요. ($e)')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('노트 이름 저장에 실패했어요. ($e)')));
     }
   }
 
@@ -161,9 +164,9 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _deletingIds.remove(record.id));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('삭제에 실패했어요. ($e)')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('삭제에 실패했어요. ($e)')));
     }
   }
 
@@ -180,7 +183,10 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
           controller: controller,
           autofocus: true,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(hintText: '예: 132', suffixText: 'mg/dL'),
+          decoration: const InputDecoration(
+            hintText: '예: 132',
+            suffixText: 'mg/dL',
+          ),
         ),
         actions: [
           TextButton(
@@ -203,23 +209,35 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
     final key = '${record.id}_$offsetMinutes';
     setState(() => _savingFollowupKeys.add(key));
     try {
+      final userId = await AuthService.instance.fetchUserId();
+      if (userId == null) {
+        if (!mounted) return;
+        setState(() => _savingFollowupKeys.remove(key));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('로그인이 필요합니다. 다시 로그인해주세요.')),
+        );
+        return;
+      }
       await BloodSugarService.addFollowup(
+        userId: userId,
         recordId: record.id,
         offsetMinutes: offsetMinutes,
         bloodSugar: result,
       );
       if (!mounted) return;
       setState(() {
-        record.followups[offsetMinutes] =
-            BloodSugarFollowup(bloodSugar: result, recordedAt: DateTime.now());
+        record.followups[offsetMinutes] = BloodSugarFollowup(
+          bloodSugar: result,
+          recordedAt: DateTime.now(),
+        );
         _savingFollowupKeys.remove(key);
       });
     } catch (e) {
       if (!mounted) return;
       setState(() => _savingFollowupKeys.remove(key));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('저장에 실패했어요. ($e)')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('저장에 실패했어요. ($e)')));
     }
   }
 
@@ -301,8 +319,9 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
               style: OutlinedButton.styleFrom(
                 foregroundColor: _accent,
                 side: const BorderSide(color: _accent),
-                shape:
-                    RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
               ),
               child: const Text('다시 시도'),
             ),
@@ -457,8 +476,9 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
     final highest = values.isEmpty
         ? null
         : values.reduce((a, b) => a > b ? a : b);
-    final lowest =
-        values.isEmpty ? null : values.reduce((a, b) => a < b ? a : b);
+    final lowest = values.isEmpty
+        ? null
+        : values.reduce((a, b) => a < b ? a : b);
 
     return Container(
       child: Column(
@@ -812,10 +832,10 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
   // 30/60/120분 후 혈당 입력 칩
   Widget _followupChip(BloodSugarRecord record, int offsetMinutes) {
     final entry = record.followups[offsetMinutes];
-    final saving =
-        _savingFollowupKeys.contains('${record.id}_$offsetMinutes');
-    final due = DateTime.now()
-        .isAfter(record.recordedAt.add(Duration(minutes: offsetMinutes)));
+    final saving = _savingFollowupKeys.contains('${record.id}_$offsetMinutes');
+    final due = DateTime.now().isAfter(
+      record.recordedAt.add(Duration(minutes: offsetMinutes)),
+    );
 
     if (saving) {
       return _chipShell(
@@ -885,10 +905,7 @@ class _BloodSugarNoteState extends State<BloodSugarNote> {
               fontWeight: FontWeight.w600,
             ),
           ),
-          if (trailing != null) ...[
-            const SizedBox(width: 4),
-            trailing,
-          ],
+          if (trailing != null) ...[const SizedBox(width: 4), trailing],
         ],
       ),
     );

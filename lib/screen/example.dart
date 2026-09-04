@@ -247,13 +247,19 @@ class _ExampleState extends State<Example> {
     });
   }
 
+  // 예측이 저장된 시각 (실측값 입력 시 30/60/120분 오프셋 계산에 사용)
+  DateTime? _predictedAt;
+
   // ─────────────────────────────────────────
   // /predict 호출
   // ─────────────────────────────────────────
   Future<void> predictGlucose() async {
     if (sugarController.text.isEmpty || glucoseController.text.isEmpty) {
       _showSnack('음료를 먼저 선택해주세요');
-
+      return;
+    }
+    if (_userId == null) {
+      _showSnack('로그인 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
       return;
     }
 
@@ -262,7 +268,7 @@ class _ExampleState extends State<Example> {
     try {
       final url = Uri.parse('http://3.34.7.133:8000/predict');
       final body = jsonEncode({
-        'user_id': _userId ?? 'user_001',
+        'user_id': _userId,
         'drink': {
           'name': drinkNameController.text.isEmpty
               ? '음료'
@@ -288,10 +294,19 @@ class _ExampleState extends State<Example> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        final now = DateTime.now();
         setState(() {
           result = PredictResponse.fromJson(data);
           recordDone = false;
+          _predictedAt = now;
         });
+        // 예측 시점의 "before" 스냅샷을 서버에 저장.
+        // 나중에 실측값을 기록하면 서버가 시간차로 이 스냅샷과 자동으로 짝지어
+        // 30/60/120분 실측값을 채워넣는다.
+        await _saveSnapshot(
+          glucose: double.parse(glucoseController.text),
+          measuredAt: now,
+        );
         _startTimer(); // 예측 성공 → 타이머 자동 시작
       } else {
         _showSnack('서버 오류: ${response.statusCode}');
@@ -304,73 +319,89 @@ class _ExampleState extends State<Example> {
   }
 
   // ─────────────────────────────────────────
-  // /record 호출
+  // 스냅샷 하나를 /record로 저장 (내부 공용 헬퍼)
+  // ─────────────────────────────────────────
+  Future<bool> _saveSnapshot({
+    required double glucose,
+    required DateTime measuredAt,
+  }) async {
+    if (_userId == null) return false;
+    try {
+      final url = Uri.parse('http://3.34.7.133:8000/record');
+      final body = jsonEncode({
+        'user_id': _userId,
+        'current_glucose': glucose,
+        'meal_status': selectedMeal.value,
+        'exercise_level': selectedExercise.value,
+        'insulin_taken': isInsulin,
+        'medication_taken': isMedication,
+        'drink_name': drinkNameController.text.isEmpty
+            ? '음료'
+            : drinkNameController.text,
+        'sugar_g': sugarController.text.isEmpty
+            ? null
+            : double.parse(sugarController.text),
+        'measured_at': measuredAt.toIso8601String(),
+      });
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: body,
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      // ignore: avoid_print
+      print('스냅샷 저장 실패: $e');
+      return false;
+    }
+  }
+
+  // ─────────────────────────────────────────
+  // 실측값 기록: 입력된 30/60/120분 값 각각을
+  // "예측 시각 + 오프셋"으로 measured_at을 지정해 개별 /record로 저장.
+  // 서버가 이 시각들을 보고 위의 "before" 스냅샷과 자동으로 짝짓는다.
   // ─────────────────────────────────────────
   Future<void> recordActual() async {
-    // 하나도 입력 안 했으면 막기
     if (actual30Controller.text.isEmpty &&
         actual60Controller.text.isEmpty &&
         actual120Controller.text.isEmpty) {
       _showSnack('측정값을 하나 이상 입력하세요');
       return;
     }
+    if (_userId == null) {
+      _showSnack('로그인 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+    if (_predictedAt == null) {
+      _showSnack('먼저 예측을 실행해주세요');
+      return;
+    }
 
     setState(() => isRecording = true);
 
-    try {
-      final url = Uri.parse('http://3.34.7.133:8000/record');
+    final entries = <int, String>{
+      30: actual30Controller.text,
+      60: actual60Controller.text,
+      120: actual120Controller.text,
+    };
 
-      // null 처리: 입력 안 한 항목은 null로 전송
-      double? actual30 = actual30Controller.text.isNotEmpty
-          ? double.parse(actual30Controller.text)
-          : null;
-      double? actual60 = actual60Controller.text.isNotEmpty
-          ? double.parse(actual60Controller.text)
-          : null;
-      double? actual120 = actual120Controller.text.isNotEmpty
-          ? double.parse(actual120Controller.text)
-          : null;
-
-      final body = jsonEncode({
-        'user_id': _userId ?? 'user_001',
-        'predict_request': {
-          'user_id': _userId ?? 'user_001',
-          'drink': {
-            'name': drinkNameController.text.isEmpty
-                ? '음료'
-                : drinkNameController.text,
-            'sugar_g': double.parse(sugarController.text),
-            'carbs_g': carbsController.text.isEmpty
-                ? double.parse(sugarController.text)
-                : double.parse(carbsController.text),
-            'fat_g': double.parse(fatController.text),
-          },
-          'current_glucose': double.parse(glucoseController.text),
-          'meal_status': selectedMeal.value,
-          'exercise_level': selectedExercise.value,
-          'insulin_taken': isInsulin,
-          'medication_taken': isMedication,
-        },
-        'actual_glucose_30m': actual30,
-        'actual_glucose_60m': actual60,
-        'actual_glucose_120m': actual120,
-      });
-
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: body,
+    bool anySuccess = false;
+    for (final entry in entries.entries) {
+      if (entry.value.isEmpty) continue;
+      final value = double.tryParse(entry.value);
+      if (value == null) continue;
+      final ok = await _saveSnapshot(
+        glucose: value,
+        measuredAt: _predictedAt!.add(Duration(minutes: entry.key)),
       );
+      anySuccess = anySuccess || ok;
+    }
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() => recordDone = true);
-        _showSnack('✅ 기록 완료! ${data['message']}');
-      } else {
-        _showSnack('기록 실패: ${response.statusCode}');
-      }
-    } catch (e) {
-      _showSnack('기록 실패: $e');
+    if (anySuccess) {
+      setState(() => recordDone = true);
+      _showSnack('✅ 기록 완료!');
+    } else {
+      _showSnack('기록 실패');
     }
 
     setState(() => isRecording = false);
